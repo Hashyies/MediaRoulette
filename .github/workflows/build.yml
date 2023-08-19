@@ -20,11 +20,18 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Gradle
-        run: ./gradlew build shadowJar
+      - name: Install Latest Gradle Version
+        run: |
+          wget https://services.gradle.org/distributions/gradle-8.2.1-bin.zip
+          sudo unzip -d /opt/gradle gradle-8.2.1-bin.zip
+          echo "export PATH=$PATH:/opt/gradle/gradle-8.2.1/bin" >> $HOME/.bashrc
+          source $HOME/.bashrc
+
+      - name: Build with Gradle ShadowJar Plugin
+        run: gradle build shadowJar
 
       - name: Run tests
-        run: ./gradlew test
+        run: gradle test
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
