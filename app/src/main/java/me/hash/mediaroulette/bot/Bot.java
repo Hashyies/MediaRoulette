@@ -23,7 +23,7 @@ public class Bot {
 
         jda.addEventListener(new getRandomImage());
 
-        jda.getGuildById("1139908994232750120").updateCommands().addCommands(
+        jda.updateCommands().addCommands(
             Commands.slash("random", "Sends a random image")
         ).queue();
     }

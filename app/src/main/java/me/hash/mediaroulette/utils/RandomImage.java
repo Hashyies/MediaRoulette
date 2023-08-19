@@ -3,6 +3,7 @@ package me.hash.mediaroulette.utils;
 import java.net.*;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
 import java.awt.Image;
 import javax.imageio.ImageIO;
@@ -39,20 +40,20 @@ public class RandomImage {
     public static String[] get4ChanImage() {
         // Select a board
         String board = BOARDS[RANDOM.nextInt(BOARDS.length)];
-    
-        // Check if the board's catalog has already been requested
+
+        // If a board's catalog has already been requested, just use that stored data
+        // instead
         if (CACHE.containsKey(board) && !CACHE.get(board).isEmpty()) {
-            // Use the stored data
             List<String> images = CACHE.get(board);
             String image = images.remove(RANDOM.nextInt(images.size()));
             String thread = image.split(" ")[1];
             image = image.split(" ")[0];
             return new String[] { image, thread };
         } else {
-            // Request the board catalog and get a list of threads on the board
+            // Request board catalog, and get a list of threads on the board
             List<Integer> threadnums = new ArrayList<>();
             JSONArray data = new JSONArray(HttpRequest.get("https://a.4cdn.org/" + board + "/catalog.json"));
-    
+
             // Get a list of threads in the data
             for (int i = 0; i < data.length(); i++) {
                 JSONObject page = data.getJSONObject(i);
@@ -62,11 +63,11 @@ public class RandomImage {
                     threadnums.add(thread.getInt("no"));
                 }
             }
-    
+
             // Select a thread
             int thread = threadnums.get(RANDOM.nextInt(threadnums.size()));
-    
-            // Request the thread information and get a list of images in that thread
+
+            // Request the thread information, and get a list of images in that thread
             List<String> imgs = new ArrayList<>();
             JSONObject pd = new JSONObject(
                     HttpRequest.get("https://a.4cdn.org/" + board + "/thread/" + thread + ".json"));
@@ -79,20 +80,19 @@ public class RandomImage {
                             ("https://boards.4chan.org/" + board + "/thread/" + thread));
                 }
             }
-    
+
             // Save images to cache
             CACHE.put(board, imgs);
-    
+
             // Select an image
             String image = imgs.remove(RANDOM.nextInt(imgs.size()));
             String threadUrl = image.split(" ")[1];
             image = image.split(" ")[0];
-    
+
             // Assemble and return the urls
             return new String[] { image, threadUrl };
         }
     }
-    
 
     // Picsum
     public static String getPicSumImage() {
@@ -173,10 +173,7 @@ public class RandomImage {
         }
     
         // Read a random line from the subreddits.txt file
-        String subreddit;
-        try (Stream<String> lines = Files.lines(resourcePath)) {
-            subreddit = lines.skip(new Random().nextInt((int) lines.count())).findFirst().get();
-        }
+        String subreddit = getRandomLine(resourcePath);
     
         if (!IMAGE_QUEUES.containsKey(subreddit)) {
             IMAGE_QUEUES.put(subreddit, new LinkedList<>());
@@ -189,6 +186,17 @@ public class RandomImage {
             LAST_UPDATED.put(subreddit, System.currentTimeMillis());
         }
         return imageQueue.poll();
+    }
+    
+    static String getRandomLine(Path path) throws IOException {
+        long lineCount;
+        try (Stream<String> lines = Files.lines(path)) {
+            lineCount = lines.count();
+        }
+        long lineNumber = ThreadLocalRandom.current().nextLong(lineCount);
+        try (BufferedReader reader = Files.newBufferedReader(path)) {
+            return reader.lines().skip(lineNumber).findFirst().orElse(null);
+        }
     }
     
     private static void updateImageQueue(String subreddit, String accessToken, Queue<String> imageQueue)

@@ -8,6 +8,15 @@
 plugins {
     // Apply the application plugin to add support for building a CLI application in Java.
     application
+    id("com.github.johnrengelman.shadow") version "7.1.2"
+
+}
+
+tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {
+    archiveClassifier.set("")
+    manifest {
+        attributes["Main-Class"] = "me.hash.mediaroulette.Main"
+    }
 }
 
 repositories {
@@ -21,6 +30,7 @@ dependencies {
     implementation("org.jsoup:jsoup:1.16.1")
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
     implementation("club.minnced:discord-webhooks:0.8.4")
+
 }
 
 // Apply a specific Java toolchain to ease working on different environments.

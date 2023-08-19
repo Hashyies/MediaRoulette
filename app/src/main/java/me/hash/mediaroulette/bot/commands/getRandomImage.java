@@ -3,7 +3,8 @@ package me.hash.mediaroulette.bot.commands;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -16,22 +17,25 @@ import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.utils.RandomImage;
 import net.dv8tion.jda.api.EmbedBuilder;
 import club.minnced.discord.webhook.WebhookClient;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 public class getRandomImage extends ListenerAdapter {
+
+    private static final Map<Long, Long> COOLDOWNS = new HashMap<>();
+    private static final long COOLDOWN_DURATION = 2500; // 2.5 seconds in milliseconds
 
     public String getImage() {
         // Define the probability of each method being selected
         int prob4Chan = 20;
         int probPicsum = 10;
         int probImgur = 35;
-        int probReddit = 35;
+        // int probReddit = 35;
 
         // Generate a random number between 0 and 100
         int rand = new Random().nextInt(100);
@@ -59,16 +63,37 @@ public class getRandomImage extends ListenerAdapter {
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (!event.getName().equals("random"))
             return;
+
+        // Check if the user is on cooldown
+        long userId = event.getUser().getIdLong();
+        if (COOLDOWNS.containsKey(userId) && System.currentTimeMillis() - COOLDOWNS.get(userId) < COOLDOWN_DURATION) {
+            // The user is on cooldown, reply with an embed
+            EmbedBuilder embedBuilder = new EmbedBuilder();
+            embedBuilder.setTitle("Slow down dude...");
+            embedBuilder.setDescription(
+                    "Please wait for " + COOLDOWN_DURATION / 1000 + " seconds before using this command again.");
+            embedBuilder.setColor(Color.RED);
+            event.replyEmbeds(embedBuilder.build()).setEphemeral(true).queue();
+            return;
+        }
+
+        // Update the user's cooldown
+        COOLDOWNS.put(userId, System.currentTimeMillis());
+
+        String url = getImage();
+
         event.deferReply().queue();
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Here is a random image:");
-        embedBuilder.setImage(getImage());
+        embedBuilder.setImage(url);
+        embedBuilder.setUrl(url);
         embedBuilder.setColor(Color.CYAN);
         embedBuilder.setFooter(
                 "Current time: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-
-        Button safe = Button.primary("safe", "Button A").withEmoji(Emoji.fromUnicode("🅰️"));
-        Button nsfw = Button.danger("nsfw", "Button B").withEmoji(Emoji.fromUnicode("🅱️"));
+        User user = event.getUser();
+        embedBuilder.setAuthor(user.getName(), null, user.getEffectiveAvatarUrl());
+        Button safe = Button.primary("safe", "Safe").withEmoji(Emoji.fromUnicode("✔️"));
+        Button nsfw = Button.danger("nsfw", "NSFW").withEmoji(Emoji.fromUnicode("🔞"));
 
         event.getHook().sendMessageEmbeds(embedBuilder.build()).addActionRow(safe, nsfw).queue();
     }
@@ -78,6 +103,13 @@ public class getRandomImage extends ListenerAdapter {
         String buttonId = event.getButton().getId();
         if (!buttonId.equals("nsfw") && !buttonId.equals("safe"))
             return;
+
+        // Check if the user who clicked the button is the author of the embed
+        if (!event.getUser().getName().equals(event.getMessage().getEmbeds().get(0).getAuthor().getName())) {
+            // The user is not the author of the embed, reply with "This is not your image!"
+            event.reply("This is not your image!").setEphemeral(true).queue();
+            return;
+        }
 
         String webhookUrl = buttonId.equals("nsfw") ? Main.getEnv("DISCORD_NSFW_WEBHOOK")
                 : Main.getEnv("DISCORD_SAFE_WEBHOOK");
@@ -89,6 +121,8 @@ public class getRandomImage extends ListenerAdapter {
 
         WebhookClient client = new WebhookClientBuilder(webhookUrl).build();
         client.send(embedBuilder.build());
+
+        event.reply("Thanks for feedback!").setEphemeral(true).queue();
 
         // Disable all buttons on the message
         event.getMessage().editMessageComponents(
