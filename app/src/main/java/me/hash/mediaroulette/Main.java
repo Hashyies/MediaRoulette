@@ -3,12 +3,21 @@
  */
 package me.hash.mediaroulette;
 
+import java.io.IOException;
+
+import io.github.cdimascio.dotenv.Dotenv;
 import me.hash.mediaroulette.utils.RandomImage;
 
 public class Main {
     
+    public static Dotenv env = Dotenv.load();
+    
 
-    public static void main(String[] args) {
-        System.out.println(RandomImage.get4ChanImage()[0]);
+    public static void main(String[] args) throws Exception {
+        System.out.println(RandomImage.getRandomReddit());
+    }
+
+    public static String getEnv(String key) {
+        return env.get(key);
     }
 }

@@ -18,6 +18,8 @@ repositories {
 dependencies {
     implementation("net.dv8tion:JDA:5.0.0-beta.13")
     implementation("org.json:json:20230618")
+    implementation("org.jsoup:jsoup:1.16.1")
+    implementation("io.github.cdimascio:dotenv-java:3.0.0")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
