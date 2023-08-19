@@ -3,8 +3,12 @@ package me.hash.mediaroulette.utils;
 import java.net.*;
 import java.io.*;
 import java.util.*;
+import java.util.stream.Stream;
 import java.awt.Image;
 import javax.imageio.ImageIO;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -16,7 +20,6 @@ import me.hash.mediaroulette.Main;
 public class RandomImage {
 
     private static final long EXPIRATION_TIME = 15 * 60 * 1000; // 15 minutes in milliseconds
-    private static final String[] SUBREDDITS = { "hentai" };
     private static final Map<String, Queue<String>> IMAGE_QUEUES = new HashMap<>();
     private static final Map<String, Long> LAST_UPDATED = new HashMap<>();
 
@@ -36,20 +39,20 @@ public class RandomImage {
     public static String[] get4ChanImage() {
         // Select a board
         String board = BOARDS[RANDOM.nextInt(BOARDS.length)];
-
-        // If a board's catalog has already been requested, just use that stored data
-        // instead
+    
+        // Check if the board's catalog has already been requested
         if (CACHE.containsKey(board) && !CACHE.get(board).isEmpty()) {
+            // Use the stored data
             List<String> images = CACHE.get(board);
             String image = images.remove(RANDOM.nextInt(images.size()));
             String thread = image.split(" ")[1];
             image = image.split(" ")[0];
             return new String[] { image, thread };
         } else {
-            // Request board catalog, and get a list of threads on the board
+            // Request the board catalog and get a list of threads on the board
             List<Integer> threadnums = new ArrayList<>();
             JSONArray data = new JSONArray(HttpRequest.get("https://a.4cdn.org/" + board + "/catalog.json"));
-
+    
             // Get a list of threads in the data
             for (int i = 0; i < data.length(); i++) {
                 JSONObject page = data.getJSONObject(i);
@@ -59,11 +62,11 @@ public class RandomImage {
                     threadnums.add(thread.getInt("no"));
                 }
             }
-
+    
             // Select a thread
             int thread = threadnums.get(RANDOM.nextInt(threadnums.size()));
-
-            // Request the thread information, and get a list of images in that thread
+    
+            // Request the thread information and get a list of images in that thread
             List<String> imgs = new ArrayList<>();
             JSONObject pd = new JSONObject(
                     HttpRequest.get("https://a.4cdn.org/" + board + "/thread/" + thread + ".json"));
@@ -76,19 +79,20 @@ public class RandomImage {
                             ("https://boards.4chan.org/" + board + "/thread/" + thread));
                 }
             }
-
+    
             // Save images to cache
             CACHE.put(board, imgs);
-
+    
             // Select an image
             String image = imgs.remove(RANDOM.nextInt(imgs.size()));
             String threadUrl = image.split(" ")[1];
             image = image.split(" ")[0];
-
+    
             // Assemble and return the urls
             return new String[] { image, threadUrl };
         }
     }
+    
 
     // Picsum
     public static String getPicSumImage() {
@@ -158,7 +162,22 @@ public class RandomImage {
 
     // Reddit Section
     public static String getRandomReddit() throws IOException {
-        String subreddit = SUBREDDITS[RANDOM.nextInt(SUBREDDITS.length)];
+        // Get the URL of the subreddits.txt file in the resources directory
+        URL resourceUrl = Main.class.getResource("/subreddits.txt");
+        // Convert the URL to a Path object
+        Path resourcePath = null;
+        try {
+            resourcePath = Paths.get(resourceUrl.toURI());
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+    
+        // Read a random line from the subreddits.txt file
+        String subreddit;
+        try (Stream<String> lines = Files.lines(resourcePath)) {
+            subreddit = lines.skip(new Random().nextInt((int) lines.count())).findFirst().get();
+        }
+    
         if (!IMAGE_QUEUES.containsKey(subreddit)) {
             IMAGE_QUEUES.put(subreddit, new LinkedList<>());
             LAST_UPDATED.put(subreddit, 0L);
@@ -187,18 +206,23 @@ public class RandomImage {
             JSONArray posts = json.getJSONObject("data").getJSONArray("children");
             for (int j = 0; j < posts.length(); j++) {
                 JSONObject post = posts.getJSONObject(j).getJSONObject("data");
-                images.add(post.getString("url"));
+                String postUrl = post.getString("url");
+                // Check if the URL is an image
+                if (postUrl.endsWith(".jpg") || postUrl.endsWith(".jpeg") || postUrl.endsWith(".png")
+                        || postUrl.endsWith(".gif")) {
+                    images.add(postUrl);
+                }
             }
             after = json.getJSONObject("data").getString("after");
         }
         Collections.shuffle(images);
         imageQueue.addAll(images);
     }
-    
+
     private static String getAccessToken() throws IOException {
         String authString = Main.getEnv("REDDIT_CLIENT_ID") + ":" + Main.getEnv("REDDIT_CLIENT_SECRET");
         String encodedAuthString = Base64.getEncoder().encodeToString(authString.getBytes());
-    
+
         URL url = new URL("https://www.reddit.com/api/v1/access_token");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("POST");
@@ -207,7 +231,7 @@ public class RandomImage {
         conn.setDoOutput(true);
         conn.getOutputStream().write(("grant_type=password&username=" + Main.getEnv("REDDIT_USERNAME") +
                 "&password=" + Main.getEnv("REDDIT_PASSWORD")).getBytes());
-    
+
         try {
             String response = new String(conn.getInputStream().readAllBytes());
             JSONObject json = new JSONObject(response);
@@ -219,5 +243,5 @@ public class RandomImage {
             throw e;
         }
     }
-    
+
 }

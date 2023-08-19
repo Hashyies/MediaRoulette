@@ -7,14 +7,16 @@ import java.io.IOException;
 
 import io.github.cdimascio.dotenv.Dotenv;
 import me.hash.mediaroulette.utils.RandomImage;
+import me.hash.mediaroulette.bot.Bot;
 
 public class Main {
-    
+
     public static Dotenv env = Dotenv.load();
     
 
     public static void main(String[] args) throws Exception {
-        System.out.println(RandomImage.getRandomReddit());
+        // System.out.println(RandomImage.getRandomReddit());
+        Bot bot = new Bot(getEnv("DISCORD_TOKEN"));
     }
 
     public static String getEnv(String key) {
