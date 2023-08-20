@@ -19,6 +19,10 @@ tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {
     }
 }
 
+tasks.named("distTar") {
+    dependsOn(":app:shadowJar")
+}
+
 tasks.named("distZip") {
     dependsOn(":app:shadowJar")
 }
