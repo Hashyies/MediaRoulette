@@ -27,6 +27,11 @@ I just happened to have this idea of letting users classify images as NSFW and n
 - [ ] Add "Search for Image" feature where users will find an image
 - [ ] Allow code to only run in NSFW channels to follow Discord Terms of Service.
 
+### How to build
+1. Download a release or login to github and download one of the developer releases from [Github Actions](https://github.com/Hashyies/MediaRoulette/actions)
+2. Rename the extension from jar to zip then extract it
+3. Rename/edit the .env in resources according to your details
+4. Compress the files as a zip and then rename the extension to .jar again
 
 ### Donate?
 All this work is done in my free-time alongside my studies as a hobby, though getting donations would encourage me to keep working on open-source projects for everyone to see! 
