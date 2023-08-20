@@ -36,8 +36,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: my-artifact
-          path: build/libs/*.jar
+          name: media-roulette
+          path: app/build/libs/*.jar
 
   release:
     needs: build
