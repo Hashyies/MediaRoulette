@@ -22,6 +22,7 @@ tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
+    google()
 }
 
 dependencies {
@@ -30,7 +31,6 @@ dependencies {
     implementation("org.jsoup:jsoup:1.16.1")
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
     implementation("club.minnced:discord-webhooks:0.8.4")
-
 }
 
 // Apply a specific Java toolchain to ease working on different environments.

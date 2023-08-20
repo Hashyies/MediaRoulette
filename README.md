@@ -10,6 +10,7 @@ I just happened to have this idea of letting users classify images as NSFW and n
 - PicSum
 - Imgur
 - Reddit (Subreddit dictionary needs to be higher)
+- Rule34xxx
 
 ### Roadmap
 **Ongoing tasks**

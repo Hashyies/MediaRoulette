@@ -4,11 +4,9 @@ import java.net.*;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.awt.Image;
 import javax.imageio.ImageIO;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -16,6 +14,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
 
 import me.hash.mediaroulette.Main;
 
@@ -120,9 +119,8 @@ public class RandomImage {
 
     // Imgur Section
     public static String getImgurImage() {
-        Random rand = new Random();
-        String imgurId = getRandomImgurId(rand);
-        String format = IMAGE_FORMATS[rand.nextInt(IMAGE_FORMATS.length)];
+        String imgurId = getRandomImgurId();
+        String format = IMAGE_FORMATS[RANDOM.nextInt(IMAGE_FORMATS.length)];
         String imgUrl = IMGUR_BASE_URL + imgurId + "." + format;
         Image image = null;
         try {
@@ -141,18 +139,16 @@ public class RandomImage {
         }
         return imgUrl;
     }
-    
-    
-    private static String getRandomImgurId(Random rand) {
-        int length = rand.nextInt(IMGUR_ID_LENGTH_RANGE[1] - IMGUR_ID_LENGTH_RANGE[0] + 1) + IMGUR_ID_LENGTH_RANGE[0];
+
+    private static String getRandomImgurId() {
+        int length = RANDOM.nextInt(IMGUR_ID_LENGTH_RANGE[1] - IMGUR_ID_LENGTH_RANGE[0] + 1) + IMGUR_ID_LENGTH_RANGE[0];
         StringBuilder idBuilder = new StringBuilder();
         for (int i = 0; i < length; i++) {
-            int pos = rand.nextInt(IMGUR_ID_CHARACTERS.length());
+            int pos = RANDOM.nextInt(IMGUR_ID_CHARACTERS.length());
             idBuilder.append(IMGUR_ID_CHARACTERS.charAt(pos));
         }
         return idBuilder.toString();
     }
-    
 
     // Reddit Section
     public static String getRandomReddit() throws IOException {
@@ -292,6 +288,47 @@ public class RandomImage {
             System.err.println(errorResponse);
             throw e;
         }
+    }
+
+    // Rule34 xxx section
+    public static String getRandomRule34xxx() {
+        String url = "https://rule34.xxx/index.php?page=post&s=random";
+        String imageUrl = null;
+        try {
+            Document doc = Jsoup.connect(url).get();
+            Elements image = doc.select("#image");
+            if (image.size() != 0) {
+                imageUrl = image.attr("src");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return imageUrl;
+    }
+
+    public static String getGoogleQueryImage(String query) throws IOException {
+        String api_key = Main.getEnv("GOOGLE_API_KEY");
+        String cse_id = Main.getEnv("GOOGLE_CX");
+        Random rand = new Random();
+        int start = rand.nextInt(5) + 1;
+        // Encode the query string
+        String encodedQuery = URLEncoder.encode(query, "UTF-8");
+        URL url = new URL(String.format("https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&searchType=image&start=%d", api_key, cse_id, encodedQuery, start));
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        int responseCode = conn.getResponseCode();
+        if (responseCode != HttpURLConnection.HTTP_OK) {
+            // An error occurred, print the error message
+            String error = new String(conn.getErrorStream().readAllBytes());
+            System.err.println("Error: " + error);
+            return null;
+        }
+        String response = new String(conn.getInputStream().readAllBytes());
+        JSONObject json = new JSONObject(response);
+        JSONArray items = json.getJSONArray("items");
+        int index = rand.nextInt(items.length());
+        JSONObject randomImage = items.getJSONObject(index);
+        return randomImage.getString("link");
     }
 
 }

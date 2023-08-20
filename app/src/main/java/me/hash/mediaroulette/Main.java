@@ -3,14 +3,34 @@
  */
 package me.hash.mediaroulette;
 
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+
 import io.github.cdimascio.dotenv.Dotenv;
 import me.hash.mediaroulette.bot.Bot;
 
 public class Main {
 
-    public static Dotenv env = Dotenv.load();
-    
+    public static Dotenv env;
+
     public static void main(String[] args) throws Exception {
+        // Get an InputStream for the .env file
+        InputStream inputStream = Main.class.getClassLoader().getResourceAsStream(".env");
+
+        // Create a temporary file to hold the contents of the .env file
+        Path tempFile = Files.createTempFile("dotenv", ".env");
+        tempFile.toFile().deleteOnExit();
+
+        // Copy the contents of the .env file to the temporary file
+        Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+
+        env = Dotenv.configure()
+                .directory(tempFile.getParent().toString())
+                .filename(tempFile.getFileName().toString())
+                .load();
+
         // System.out.println(RandomImage.getRandomReddit());
         new Bot(getEnv("DISCORD_TOKEN"));
     }
