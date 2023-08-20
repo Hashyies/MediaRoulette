@@ -28,7 +28,7 @@ jobs:
           source $HOME/.bashrc
 
       - name: Build with Gradle ShadowJar Plugin
-        run: gradle build shadowJar
+        run: gradle shadowJar
 
       - name: Run tests
         run: gradle test
