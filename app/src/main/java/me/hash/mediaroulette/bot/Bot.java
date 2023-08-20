@@ -26,7 +26,7 @@ public class Bot {
 
         jda.updateCommands().addCommands(
                 Commands.slash("random", "Sends a random image")
-                        .addOption(OptionType.BOOLEAN, "shouldContinue",
+                        .addOption(OptionType.BOOLEAN, "shouldcontinue",
                                 "Should the bot keep generating images after 1?", false))
                 .queue();
     }

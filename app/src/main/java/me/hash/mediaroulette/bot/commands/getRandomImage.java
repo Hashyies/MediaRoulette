@@ -1,6 +1,8 @@
 package me.hash.mediaroulette.bot.commands;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -89,8 +91,20 @@ public class getRandomImage extends ListenerAdapter {
 
             EmbedBuilder embedBuilder = new EmbedBuilder();
             embedBuilder.setTitle("Here is a random image:");
-            embedBuilder.setImage(url);
-            embedBuilder.setUrl(url);
+            try {
+                embedBuilder.setImage(url);
+                embedBuilder.setUrl(url);
+            } catch (IllegalStateException e) {
+                // An error occurred, display an error message with the stack trace in a red embed
+                EmbedBuilder errorEmbedBuilder = new EmbedBuilder();
+                errorEmbedBuilder.setTitle("An error occurred");
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                e.printStackTrace(pw);
+                errorEmbedBuilder.setDescription(sw.toString() + "\nURL: " + url);
+                errorEmbedBuilder.setColor(Color.RED);
+                event.getHook().sendMessageEmbeds(errorEmbedBuilder.build()).queue();
+            }
             embedBuilder.setColor(Color.CYAN);
             embedBuilder.setFooter("Current time: "
                     + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
@@ -98,8 +112,8 @@ public class getRandomImage extends ListenerAdapter {
             embedBuilder.setAuthor(user.getName(), null, user.getEffectiveAvatarUrl());
 
             // Check if the shouldContinue option is present and true
-            boolean shouldContinue = event.getOption("shouldContinue") != null
-                    && event.getOption("shouldContinue").getAsBoolean();
+            boolean shouldContinue = event.getOption("shouldcontinue") != null
+                    && event.getOption("shouldcontinue").getAsBoolean();
 
             Button safe = Button.primary(shouldContinue ? "safe:continue" : "safe", "Safe")
                     .withEmoji(Emoji.fromUnicode("✔️"));
@@ -138,32 +152,43 @@ public class getRandomImage extends ListenerAdapter {
 
             event.reply("Thanks for feedback!").setEphemeral(true).queue();
 
-            // Check if the shouldContinue argument is present and true
-
-            if (shouldContinue) {
-                // Generate a new image and update the embed
-                String url = getImage();
-                EmbedBuilder newEmbedBuilder = new EmbedBuilder();
-                newEmbedBuilder.setTitle("Here is a random image:");
-                newEmbedBuilder.setImage(url);
-                newEmbedBuilder.setUrl(url);
-                newEmbedBuilder.setColor(Color.CYAN);
-                newEmbedBuilder.setFooter("Current time: "
-                        + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-                User user = event.getUser();
-                newEmbedBuilder.setAuthor(user.getName(), null, user.getEffectiveAvatarUrl());
-                Button safe = Button.primary("safe", "Safe").withEmoji(Emoji.fromUnicode("✔️"));
-                Button nsfw = Button.danger("nsfw", "NSFW").withEmoji(Emoji.fromUnicode("🔞"));
-                event.getMessage().editMessageEmbeds(newEmbedBuilder.build()).setActionRow(safe, nsfw).queue();
-            } else {
-                // Disable all buttons on the message
-                event.getMessage()
+            // Disable all buttons
+            event.getMessage()
                         .editMessageComponents(event.getMessage().getActionRows().stream()
                                 .map(actionRow -> ActionRow.of(actionRow.getComponents().stream()
                                         .map(component -> ((Button) component).asDisabled())
                                         .collect(Collectors.toList())))
                                 .collect(Collectors.toList()))
                         .queue();
+
+            // Check if the shouldContinue argument is present and tru
+            if (shouldContinue) {
+                // Generate a new image and update the embed
+                String url = getImage();
+                EmbedBuilder newEmbedBuilder = new EmbedBuilder();
+                newEmbedBuilder.setTitle("Here is a random image:");
+                try {
+                    newEmbedBuilder.setImage(url);
+                    newEmbedBuilder.setUrl(url);
+                } catch (IllegalStateException e) {
+                    // An error occurred, display an error message with the stack trace in a red embed
+                    EmbedBuilder errorEmbedBuilder = new EmbedBuilder();
+                    errorEmbedBuilder.setTitle("An error occurred");
+                    StringWriter sw = new StringWriter();
+                    PrintWriter pw = new PrintWriter(sw);
+                    e.printStackTrace(pw);
+                    errorEmbedBuilder.setDescription(sw.toString() + "\nURL: " + url);
+                    errorEmbedBuilder.setColor(Color.RED);
+                    event.getHook().sendMessageEmbeds(errorEmbedBuilder.build()).queue();
+                }
+                newEmbedBuilder.setColor(Color.CYAN);
+                newEmbedBuilder.setFooter("Current time: "
+                        + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                User user = event.getUser();
+                newEmbedBuilder.setAuthor(user.getName(), null, user.getEffectiveAvatarUrl());
+                Button safe = Button.primary("safe:continue", "Safe").withEmoji(Emoji.fromUnicode("✔️"));
+                Button nsfw = Button.danger("nsfw:continue", "NSFW").withEmoji(Emoji.fromUnicode("🔞"));
+                event.getMessage().editMessageEmbeds(newEmbedBuilder.build()).setActionRow(safe, nsfw).queue();
             }
         });
     }

@@ -131,6 +131,9 @@ public class RandomImage {
             if (image == null) {
                 // Failed to read the image, try again with a different Imgur ID
                 return getImgurImage();
+            } else if (image.getWidth(null) == 161 || image.getHeight(null) == 81) {
+                // The image has invalid dimensions, try again with a different Imgur ID
+                return getImgurImage();
             }
         } catch (IOException e) {
             // Failed to read the image, try again with a different Imgur ID
@@ -138,6 +141,7 @@ public class RandomImage {
         }
         return imgUrl;
     }
+    
     
     private static String getRandomImgurId(Random rand) {
         int length = rand.nextInt(IMGUR_ID_LENGTH_RANGE[1] - IMGUR_ID_LENGTH_RANGE[0] + 1) + IMGUR_ID_LENGTH_RANGE[0];
