@@ -13,12 +13,17 @@ I just happened to have this idea of letting users classify images as NSFW and n
 
 ### Roadmap
 <details><summary><strong>Completed Tasks</strong></summary>
+
 - [x] ~~Discord bot for receiving images~~
 - [x] ~~Adding a variety of popular subreddits~~
 - [x] ~~Create probability table for RandomImage for integration with other parts of the project~~
 - [x] ~~Create a webhook/database system for receiving NSFW rating and storing them.~~
 - [x] Allow users to use their own Reddit API keys. (May be discarded for now)
+
 </details>
+
+**Ongoing tasks**
+
 - [ ] Add "Search for Image" feature where users will find an image
 - [ ] Allow code to only run in NSFW channels to follow Discord Terms of Service.
 

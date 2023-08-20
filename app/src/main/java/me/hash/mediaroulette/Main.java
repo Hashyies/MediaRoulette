@@ -10,7 +10,6 @@ public class Main {
 
     public static Dotenv env = Dotenv.load();
     
-
     public static void main(String[] args) throws Exception {
         // System.out.println(RandomImage.getRandomReddit());
         new Bot(getEnv("DISCORD_TOKEN"));

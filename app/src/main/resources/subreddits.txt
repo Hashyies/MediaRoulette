@@ -1552,7 +1552,6 @@ startrek
 startups
 starwars
 stellar
-stepdadreflexes
 stevenuniverse
 stockmarket
 stocks
