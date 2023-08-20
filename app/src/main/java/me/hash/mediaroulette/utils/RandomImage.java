@@ -5,6 +5,7 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
+import java.util.zip.GZIPInputStream;
 import java.awt.Image;
 import javax.imageio.ImageIO;
 import java.nio.file.Files;
@@ -128,28 +129,16 @@ public class RandomImage {
             URL url = new URL(imgUrl);
             image = ImageIO.read(url);
             if (image == null) {
-                // Failed to read the image, try again
-                return getImgurImage();
-            } else if (image.getWidth(null) == 161 && image.getHeight(null) == 81) {
-                // The image is invalid, try again
+                // Failed to read the image, try again with a different Imgur ID
                 return getImgurImage();
             }
         } catch (IOException e) {
-            // Failed to read the image, check if it's a 404 error
-            try {
-                Document doc = Jsoup.connect(imgUrl).get();
-                if (doc.select(".Page404Cover-title").size() > 0) {
-                    // The image is invalid, try again
-                    return getImgurImage();
-                }
-            } catch (IOException ex) {
-                // Failed to fetch the webpage, try again
-                return getImgurImage();
-            }
+            // Failed to read the image, try again with a different Imgur ID
+            return getImgurImage();
         }
         return imgUrl;
     }
-
+    
     private static String getRandomImgurId(Random rand) {
         int length = rand.nextInt(IMGUR_ID_LENGTH_RANGE[1] - IMGUR_ID_LENGTH_RANGE[0] + 1) + IMGUR_ID_LENGTH_RANGE[0];
         StringBuilder idBuilder = new StringBuilder();
@@ -159,6 +148,7 @@ public class RandomImage {
         }
         return idBuilder.toString();
     }
+    
 
     // Reddit Section
     public static String getRandomReddit() throws IOException {
@@ -171,10 +161,10 @@ public class RandomImage {
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
-    
+
         // Read a random line from the subreddits.txt file
         String subreddit = getRandomLine(resourcePath);
-    
+
         if (!IMAGE_QUEUES.containsKey(subreddit)) {
             IMAGE_QUEUES.put(subreddit, new LinkedList<>());
             LAST_UPDATED.put(subreddit, 0L);
@@ -187,18 +177,35 @@ public class RandomImage {
         }
         return imageQueue.poll();
     }
-    
+
     static String getRandomLine(Path path) throws IOException {
-        long lineCount;
-        try (Stream<String> lines = Files.lines(path)) {
-            lineCount = lines.count();
-        }
-        long lineNumber = ThreadLocalRandom.current().nextLong(lineCount);
-        try (BufferedReader reader = Files.newBufferedReader(path)) {
-            return reader.lines().skip(lineNumber).findFirst().orElse(null);
+        // Use a RandomAccessFile to read a random line from the file
+        try (RandomAccessFile file = new RandomAccessFile(path.toFile(), "r")) {
+            long fileSize = file.length();
+            long randomPosition = ThreadLocalRandom.current().nextLong(fileSize);
+            file.seek(randomPosition);
+            // Skip the current line as it may be incomplete
+            file.readLine();
+            // Read the next complete line
+            String line = file.readLine();
+            // If the line is null, it means we have reached the end of the file
+            // In this case, we start from the beginning of the file and read the first line
+            if (line == null) {
+                file.seek(0);
+                line = file.readLine();
+            }
+            return line;
         }
     }
-    
+
+    // Helper method to check if a URL is valid using a regular expression
+    private static boolean isValidURL(String url) {
+        // Regular expression to match valid URLs
+        String regex = "^(https?|ftp)://[^\\s/$.?#].[^\\s]*$";
+        // Check if the URL matches the regular expression
+        return url.matches(regex);
+    }
+
     private static void updateImageQueue(String subreddit, String accessToken, Queue<String> imageQueue)
             throws IOException {
         String after = "";
@@ -208,20 +215,51 @@ public class RandomImage {
             HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
             conn.setRequestProperty("Authorization", "Bearer " + accessToken);
             conn.setRequestProperty("User-Agent", "MediaRoulette/0.1 by pgmmestar");
+            conn.setConnectTimeout(5000); // Set a timeout of 5 seconds
+            conn.setReadTimeout(5000); // Set a timeout of 5 seconds
+            conn.setRequestProperty("Accept-Encoding", "gzip"); // Request compressed data to reduce bandwidth usage
             conn.connect();
-            String response = new String(conn.getInputStream().readAllBytes());
+            // Use a GZIPInputStream to decompress the data if it is compressed
+            InputStream inputStream = conn.getInputStream();
+            if ("gzip".equals(conn.getContentEncoding())) {
+                inputStream = new GZIPInputStream(inputStream);
+            }
+            String response = new String(inputStream.readAllBytes());
             JSONObject json = new JSONObject(response);
             JSONArray posts = json.getJSONObject("data").getJSONArray("children");
+            // Shuffle the posts to make them more random
+            List<JSONObject> shuffledPosts = new ArrayList<>();
             for (int j = 0; j < posts.length(); j++) {
-                JSONObject post = posts.getJSONObject(j).getJSONObject("data");
-                String postUrl = post.getString("url");
-                // Check if the URL is an image
-                if (postUrl.endsWith(".jpg") || postUrl.endsWith(".jpeg") || postUrl.endsWith(".png")
-                        || postUrl.endsWith(".gif")) {
-                    images.add(postUrl);
+                shuffledPosts.add(posts.getJSONObject(j));
+            }
+            Collections.shuffle(shuffledPosts);
+            for (JSONObject post : shuffledPosts) {
+                JSONObject postData = post.getJSONObject("data");
+                // Check if the post_hint key is present and has the value "image", "rich:video"
+                // or "hosted:video"
+                if (postData.has("post_hint") && ("image".equals(postData.getString("post_hint"))
+                        || "rich:video".equals(postData.getString("post_hint"))
+                        || "hosted:video".equals(postData.getString("post_hint")))) {
+                    String postUrl = postData.getString("url");
+                    // Check if the URL is an image, video or GIF and if it is valid
+                    if ((postUrl.endsWith(".jpg") || postUrl.endsWith(".jpeg") || postUrl.endsWith(".png")
+                            || postUrl.endsWith(".gif") || postUrl.endsWith(".mp4") || postUrl.contains("gfycat.com")
+                            || postUrl.contains("redgifs.com") || postUrl.contains("streamable.com"))
+                            && isValidURL(postUrl)) {
+                        images.add(postUrl);
+                    }
                 }
             }
-            after = json.getJSONObject("data").getString("after");
+
+            // Check if the "after" key is present and not null before attempting to
+            // retrieve its value as a string
+            if (json.getJSONObject("data").has("after") && !json.getJSONObject("data").isNull("after")) {
+                after = json.getJSONObject("data").getString("after");
+            } else {
+                // Handle the case where the "after" key is not present or its value is null
+                // For example, you can break out of the loop or throw an exception
+                break;
+            }
         }
         Collections.shuffle(images);
         imageQueue.addAll(images);
