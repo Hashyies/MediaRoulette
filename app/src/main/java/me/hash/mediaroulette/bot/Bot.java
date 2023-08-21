@@ -33,9 +33,17 @@ public class Bot {
                 Commands.slash("random", "Sends a random image")
                         .addOption(OptionType.BOOLEAN, "shouldcontinue",
                                 "Should the bot keep generating images after 1?", false),
-                Commands.slash("random-google", "Sends a random image")
+                Commands.slash("random-google", "Sends a random image from google")
                         .addOption(OptionType.STRING, "query",
-                                "Image to search", true)
+                                "Image to search", true),
+                Commands.slash("random-reddit", "Sends a random image from reddit")
+                        .addOption(OptionType.STRING, "subreddit",
+                                "Subreddit to get images from", false),
+                Commands.slash("random-4chan", "Sends a random image from 4chan")
+                        .addOption(OptionType.STRING, "board",
+                                "Board to get images from", false),
+                Commands.slash("random-picsum", "Sends a random image"),
+                Commands.slash("random-rule34xxx", "Sends a random image")
         ).queue();
     }
 

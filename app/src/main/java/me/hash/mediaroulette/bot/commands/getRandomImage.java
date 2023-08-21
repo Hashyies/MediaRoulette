@@ -3,10 +3,9 @@ package me.hash.mediaroulette.bot.commands;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -19,6 +18,7 @@ import java.awt.Color;
 
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.utils.RandomImage;
+import me.hash.mediaroulette.utils.random.RandomReddit;
 import me.hash.mediaroulette.bot.Bot;
 import net.dv8tion.jda.api.EmbedBuilder;
 import club.minnced.discord.webhook.WebhookClient;
@@ -49,15 +49,15 @@ public class getRandomImage extends ListenerAdapter {
         String result = "";
         if (rand < prob4Chan) {
             // Method a returns a string in an array, so we only want the first string
-            result = RandomImage.get4ChanImage()[0];
+            result = RandomImage.get4ChanImage(null)[0];
         } else if (rand < prob4Chan + probPicsum) {
             result = RandomImage.getPicSumImage();
         } else if (rand < prob4Chan + probPicsum + probImgur) {
             result = RandomImage.getImgurImage();
         } else if (rand < prob4Chan + probPicsum + probImgur + probReddit) {
             try {
-                result = RandomImage.getRandomReddit();
-            } catch (IOException e) {
+                result = RandomReddit.getRandomReddit(null);
+            } catch (IOException | URISyntaxException e) {
                 e.printStackTrace();
             }
         } else {
