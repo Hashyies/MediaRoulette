@@ -1,13 +1,12 @@
 package me.hash.mediaroulette.utils.random;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -37,9 +36,8 @@ public class RandomReddit {
     public static String getRandomReddit(String subreddit) throws IOException, URISyntaxException {
         if (subreddit == null || !doesSubredditExist(subreddit)) {
             // Generate a random subreddit from the subreddits.txt file
-            URL resourceUrl = Main.class.getResource("/subreddits.txt");
-            Path resourcePath = Paths.get(resourceUrl.toURI());
-            subreddit = getRandomLine(resourcePath);
+            InputStream inputStream = Main.class.getResourceAsStream("/subreddits.txt");
+            subreddit = getRandomLine(inputStream);
         }
         
         if (!IMAGE_QUEUES.containsKey(subreddit)) {
@@ -74,25 +72,17 @@ public class RandomReddit {
         return responseCode == 200;
     }    
 
-    private static String getRandomLine(Path path) throws IOException {
-        // Use a RandomAccessFile to read a random line from the file
-        try (RandomAccessFile file = new RandomAccessFile(path.toFile(), "r")) {
-            long fileSize = file.length();
-            long randomPosition = ThreadLocalRandom.current().nextLong(fileSize);
-            file.seek(randomPosition);
-            // Skip the current line as it may be incomplete
-            file.readLine();
-            // Read the next complete line
-            String line = file.readLine();
-            // If the line is null, it means we have reached the end of the file
-            // In this case, we start from the beginning of the file and read the first line
-            if (line == null) {
-                file.seek(0);
-                line = file.readLine();
+    private static String getRandomLine(InputStream inputStream) throws IOException {
+        List<String> lines = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                lines.add(line);
             }
-            return line;
         }
-    }
+        int randomIndex = ThreadLocalRandom.current().nextInt(lines.size());
+        return lines.get(randomIndex);
+    }    
 
     // Helper method to check if a URL is valid using a regular expression
     private static boolean isValidURL(String url) {

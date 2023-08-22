@@ -2,6 +2,7 @@ package me.hash.mediaroulette.bot.commands;
 
 import java.awt.Color;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -21,7 +22,8 @@ public class randomQuery extends ListenerAdapter {
         if (!event.getName().equals("random-google"))
             return;
         event.deferReply().queue();
-
+        
+        Bot.executor.execute(() -> {
         // Get the search query from the command options
         String query = event.getOption("query").getAsString();
 
@@ -70,6 +72,10 @@ public class randomQuery extends ListenerAdapter {
         event.getHook().sendMessageEmbeds(embedBuilder.build())
                 .addActionRow(safe, nsfw)
                 .queue();
+
+        Bot.config.set("image_generated", new BigInteger(Bot.config.getOrDefault("image_generated", "0", String.class))
+                .add(new BigInteger(String.valueOf(1))).toString());;
+    });
     }
 
 }

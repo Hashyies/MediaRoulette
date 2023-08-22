@@ -1,6 +1,7 @@
 package me.hash.mediaroulette.bot.commands;
 
 import java.awt.Color;
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -19,7 +20,7 @@ public class get4Chan extends ListenerAdapter {
         if (!event.getName().equals("random-4chan"))
             return;
         event.deferReply().queue();
-
+        Bot.executor.execute(() -> {
         // Get the search query from the command options
         String board = null;
         if (event.getOption("board") != null) {
@@ -75,6 +76,11 @@ public class get4Chan extends ListenerAdapter {
         event.getHook().sendMessageEmbeds(embedBuilder.build())
                 .addActionRow(safe, nsfw)
                 .queue();
+
+Bot.config.set("image_generated", new BigInteger(Bot.config.getOrDefault("image_generated", "0", String.class))
+                .add(new BigInteger(String.valueOf(1))).toString());
+
+    });
     }
 
 }

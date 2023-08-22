@@ -1,20 +1,31 @@
 package me.hash.mediaroulette.bot;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
+import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.commands.*;
+import me.hash.mediaroulette.utils.Config;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 
 public class Bot {
 
-    final JDA jda;
+    static JDA jda = null;
     public static final long COOLDOWN_DURATION = 2500; // 2.5 seconds in milliseconds
     public static final Map<Long, Long> COOLDOWNS = new HashMap<>();
+    public static  Config config = null;
+    public static final ExecutorService executor = Executors.newCachedThreadPool();
 
     public Bot(String token) {
         jda = JDABuilder.createDefault(token)
@@ -45,6 +56,20 @@ public class Bot {
                 Commands.slash("random-picsum", "Sends a random image"),
                 Commands.slash("random-rule34xxx", "Sends a random image")
         ).queue();
+
+        config = new Config(Main.getEnv("MONGODB_CONNECTION"), "MediaRoulette");
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+                executor.scheduleAtFixedRate(() -> {
+                    GuildChannel voiceChannel = jda.getGuildChannelById(ChannelType.VOICE, 
+                    Main.getEnv("GENERATED_VOICE_CHANNEL"));
+                    if (voiceChannel != null) {
+                        String imageGenerated = config.getOrDefault("image_generated", "0", String.class);
+
+                        voiceChannel.getManager().setName("Generated: " + 
+                         Config.formatBigInteger(new BigInteger(imageGenerated))).queue();
+                    }
+                    System.out.println(config.getOrDefault("image_generated", "0", String.class));
+        }, 0, 5, TimeUnit.SECONDS);
     }
 
     public JDA getJDA() {

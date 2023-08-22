@@ -1,0 +1,5 @@
+app/src/main/resources/.env
+app/build/*
+app/bin/*
+.gradle/*
+.vscode/*

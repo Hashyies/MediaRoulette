@@ -2,6 +2,7 @@ package me.hash.mediaroulette.bot.commands;
 
 import java.awt.Color;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -23,6 +24,7 @@ public class getReddit extends ListenerAdapter {
             return;
         event.deferReply().queue();
 
+        Bot.executor.execute(() -> {
         // Get the search query from the command options
         String subreddit = null;
         if (event.getOption("subreddit") != null) {
@@ -89,6 +91,10 @@ public class getReddit extends ListenerAdapter {
         event.getHook().sendMessageEmbeds(embedBuilder.build())
                 .addActionRow(safe, nsfw)
                 .queue();
+
+            Bot.config.set("image_generated", new BigInteger(Bot.config.getOrDefault("image_generated", "0", String.class))
+                .add(new BigInteger(String.valueOf(1))).toString());
+    });
     }
 
 }

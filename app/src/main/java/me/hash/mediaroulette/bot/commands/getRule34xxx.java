@@ -1,6 +1,7 @@
 package me.hash.mediaroulette.bot.commands;
 
 import java.awt.Color;
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -20,6 +21,7 @@ public class getRule34xxx extends ListenerAdapter {
             return;
         event.deferReply().queue();
 
+        Bot.executor.execute(() -> {
         // Check if the user is on cooldown
         long userId = event.getUser().getIdLong();
         if (Bot.COOLDOWNS.containsKey(userId)
@@ -59,6 +61,10 @@ public class getRule34xxx extends ListenerAdapter {
         event.getHook().sendMessageEmbeds(embedBuilder.build())
                 .addActionRow(safe, nsfw)
                 .queue();
+
+        Bot.config.set("image_generated", new BigInteger(Bot.config.getOrDefault("image_generated", "0", String.class))
+                .add(new BigInteger(String.valueOf(1))).toString());
+    });
     }
 
 }

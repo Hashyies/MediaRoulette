@@ -3,12 +3,11 @@ package me.hash.mediaroulette.bot.commands;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.math.BigInteger;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import club.minnced.discord.webhook.WebhookClientBuilder;
@@ -31,8 +30,6 @@ import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 public class getRandomImage extends ListenerAdapter {
-
-    private static final ExecutorService executor = Executors.newCachedThreadPool();
 
     public String getImage() {
         // Define the probability of each method being selected
@@ -71,7 +68,7 @@ public class getRandomImage extends ListenerAdapter {
         if (!event.getName().equals("random"))
             return;
         event.deferReply().queue();
-        executor.execute(() -> {
+        Bot.executor.execute(() -> {
             // Check if the user is on cooldown
             long userId = event.getUser().getIdLong();
             if (Bot.COOLDOWNS.containsKey(userId)
@@ -133,6 +130,8 @@ public class getRandomImage extends ListenerAdapter {
             event.getHook().sendMessageEmbeds(embedBuilder.build())
                     .addActionRow(actionRow.getComponents())
                     .queue();
+            Bot.config.set("image_generated", new BigInteger(Bot.config.getOrDefault("image_generated", "0", String.class))
+                    .add(new BigInteger(String.valueOf(1))).toString());
 
         });
     }
@@ -145,7 +144,7 @@ public class getRandomImage extends ListenerAdapter {
         if (!buttonId.equals("nsfw") && !buttonId.equals("safe") &&
                 !buttonId.equals("end"))
             return;
-        executor.execute(() -> {
+        Bot.executor.execute(() -> {
             // Check if the user who clicked the button is the author of the embed
             if (!event.getUser().getName().equals(event.getMessage().getEmbeds().get(0).getAuthor().getName())) {
                 // The user is not the author of the embed, reply with "This is not your image!"
@@ -211,6 +210,9 @@ public class getRandomImage extends ListenerAdapter {
                 Button nsfw = Button.danger("nsfw:continue", "NSFW").withEmoji(Emoji.fromUnicode("🔞"));
                 Button end = Button.secondary("end", "End").withEmoji(Emoji.fromUnicode("❌"));
                 event.getMessage().editMessageEmbeds(newEmbedBuilder.build()).setActionRow(safe, nsfw, end).queue();
+
+                Bot.config.set("image_generated", new BigInteger(Bot.config.getOrDefault("image_generated", "0", String.class))
+                        .add(new BigInteger(String.valueOf(1))).toString());
             }
         });
     }

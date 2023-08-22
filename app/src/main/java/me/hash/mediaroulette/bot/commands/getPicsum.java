@@ -1,6 +1,7 @@
 package me.hash.mediaroulette.bot.commands;
 
 import java.awt.Color;
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -19,8 +20,8 @@ public class getPicsum extends ListenerAdapter {
         if (!event.getName().equals("random-picsum"))
             return;
         event.deferReply().queue();
-
-        // Check if the user is on cooldown
+        Bot.executor.execute(() -> {
+            // Check if the user is on cooldown
         long userId = event.getUser().getIdLong();
         if (Bot.COOLDOWNS.containsKey(userId)
                 && System.currentTimeMillis() - Bot.COOLDOWNS.get(userId) < Bot.COOLDOWN_DURATION) {
@@ -59,6 +60,11 @@ public class getPicsum extends ListenerAdapter {
         event.getHook().sendMessageEmbeds(embedBuilder.build())
                 .addActionRow(safe, nsfw)
                 .queue();
+        
+Bot.config.set("image_generated", new BigInteger(Bot.config.getOrDefault("image_generated", "0", String.class))
+                .add(new BigInteger(String.valueOf(1))).toString());
+        });
+        
     }
 
 }
