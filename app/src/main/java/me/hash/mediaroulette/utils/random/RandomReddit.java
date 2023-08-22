@@ -33,6 +33,7 @@ public class RandomReddit {
     private static final Map<String, Queue<String>> IMAGE_QUEUES = new HashMap<>();
     private static final Map<String, Long> LAST_UPDATED = new HashMap<>();
 
+    // Fix This method for jars
     public static String getRandomReddit(String subreddit) throws IOException, URISyntaxException {
         if (subreddit == null || !doesSubredditExist(subreddit)) {
             // Generate a random subreddit from the subreddits.txt file

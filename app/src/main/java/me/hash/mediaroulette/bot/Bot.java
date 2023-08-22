@@ -27,7 +27,7 @@ public class Bot {
             e.printStackTrace();
         }
 
-        jda.addEventListener(new getRandomImage(), new randomQuery());
+        jda.addEventListener(new getRandomImage(), new randomQuery(), new get4Chan(), new getPicsum(), new getReddit(), new getRule34xxx());
 
         jda.updateCommands().addCommands(
                 Commands.slash("random", "Sends a random image")
