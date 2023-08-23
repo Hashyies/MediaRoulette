@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.math.BigInteger;
-import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Random;
@@ -19,6 +18,7 @@ import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.utils.RandomImage;
 import me.hash.mediaroulette.utils.random.RandomReddit;
 import me.hash.mediaroulette.bot.Bot;
+import me.hash.mediaroulette.bot.Embeds;
 import net.dv8tion.jda.api.EmbedBuilder;
 import club.minnced.discord.webhook.WebhookClient;
 import net.dv8tion.jda.api.entities.User;
@@ -54,7 +54,7 @@ public class getRandomImage extends ListenerAdapter {
         } else if (rand < prob4Chan + probPicsum + probImgur + probReddit) {
             try {
                 result = RandomReddit.getRandomReddit(null);
-            } catch (IOException | URISyntaxException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         } else {
@@ -69,70 +69,10 @@ public class getRandomImage extends ListenerAdapter {
             return;
         event.deferReply().queue();
         Bot.executor.execute(() -> {
-            // Check if the user is on cooldown
-            long userId = event.getUser().getIdLong();
-            if (Bot.COOLDOWNS.containsKey(userId)
-                    && System.currentTimeMillis() - Bot.COOLDOWNS.get(userId) < Bot.COOLDOWN_DURATION) {
-                // The user is on cooldown, reply with an embed
-                EmbedBuilder embedBuilder = new EmbedBuilder();
-                embedBuilder.setTitle("Slow down dude...");
-                embedBuilder.setDescription(
-                        "Please wait for " + Bot.COOLDOWN_DURATION / 1000
-                                + " seconds before using this command again.");
-                embedBuilder.setColor(Color.RED);
-                event.replyEmbeds(embedBuilder.build()).setEphemeral(true).queue();
-                return;
-            }
-
-            // Update the user's cooldown
-            Bot.COOLDOWNS.put(userId, System.currentTimeMillis());
-
-            String url = getImage();
-
-            EmbedBuilder embedBuilder = new EmbedBuilder();
-            embedBuilder.setTitle("Here is a random image:");
-            try {
-                embedBuilder.setImage(url);
-                embedBuilder.setUrl(url);
-            } catch (IllegalStateException e) {
-                // An error occurred, display an error message with the stack trace in a red
-                // embed
-                EmbedBuilder errorEmbedBuilder = new EmbedBuilder();
-                errorEmbedBuilder.setTitle("An error occurred");
-                StringWriter sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw);
-                e.printStackTrace(pw);
-                errorEmbedBuilder.setDescription(sw.toString() + "\nURL: " + url);
-                errorEmbedBuilder.setColor(Color.RED);
-                event.getHook().sendMessageEmbeds(errorEmbedBuilder.build()).queue();
-            }
-            embedBuilder.setColor(Color.CYAN);
-            embedBuilder.setFooter("Current time: "
-                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-            User user = event.getUser();
-            embedBuilder.setAuthor(user.getName(), null, user.getEffectiveAvatarUrl());
-
-            // Check if the shouldContinue option is present and true
+            // Send the embds to user
             boolean shouldContinue = event.getOption("shouldcontinue") != null
                     && event.getOption("shouldcontinue").getAsBoolean();
-
-            Button safe = Button.success(shouldContinue ? "safe:continue" : "safe", "Safe")
-                    .withEmoji(Emoji.fromUnicode("✔️"));
-            Button nsfw = Button.danger(shouldContinue ? "nsfw:continue" : "nsfw", "NSFW")
-                    .withEmoji(Emoji.fromUnicode("🔞"));
-            Button end = Button.secondary("end", "End")
-                    .withEmoji(Emoji.fromUnicode("❌"));
-
-            ActionRow actionRow = ActionRow.of(safe, nsfw);
-            if (shouldContinue) {
-                actionRow = ActionRow.of(safe, nsfw, end);
-            }
-            event.getHook().sendMessageEmbeds(embedBuilder.build())
-                    .addActionRow(actionRow.getComponents())
-                    .queue();
-            Bot.config.set("image_generated", new BigInteger(Bot.config.getOrDefault("image_generated", "0", String.class))
-                    .add(new BigInteger(String.valueOf(1))).toString());
-
+            Embeds.sendImageEmbed(event, "Here is your random image:", getImage(), shouldContinue);
         });
     }
 

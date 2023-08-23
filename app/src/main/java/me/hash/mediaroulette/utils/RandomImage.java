@@ -1,11 +1,14 @@
 package me.hash.mediaroulette.utils;
 
-import java.net.*;
-import java.io.*;
-import java.util.*;
 import java.awt.Image;
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
 import javax.imageio.ImageIO;
 
+import okhttp3.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
@@ -16,14 +19,13 @@ import me.hash.mediaroulette.Main;
 
 public class RandomImage {
 
+    private static final Map<String, List<String>> CACHE = new ConcurrentHashMap<>();
+    private static final Random RANDOM = new Random();
+    public static final OkHttpClient HTTP_CLIENT = new OkHttpClient();
     public static final List<String> BOARDS = Arrays.asList("a", "c", "w", "m", "cgl", "cm", "n", "jp", "vp", "v", "vg", "vr", "co",
             "g", "tv", "k", "o", "an", "tg", "sp", "asp", "sci", "int", "out", "toy", "biz", "i", "po", "p", "ck", "ic",
             "wg", "mu", "fa", "3", "gd", "diy", "wsg", "s", "hc", "hm", "h", "e", "u", "d", "y", "t", "hr", "gif",
             "trv", "fit", "x", "lit", "adv", "lgbt", "mlp", "b", "r", "r9k", "pol", "soc", "s4s");
-    private static final HashMap<String, List<String>> CACHE = new HashMap<>();
-    private static final Random RANDOM = new Random();
-
-    // 4Chan
 
     public static String[] get4ChanImage(String board) {
         // Select a board if not provided
@@ -34,8 +36,15 @@ public class RandomImage {
         // Check if the board's catalog has already been requested
         if (!CACHE.containsKey(board) || CACHE.get(board).isEmpty()) {
             // Request board catalog, and get a list of threads on the board
-            List<Integer> threadnums = new ArrayList<>();
-            JSONArray data = new JSONArray(HttpRequest.get("https://a.4cdn.org/" + board + "/catalog.json"));
+            List<Integer> threadNumbers = new ArrayList<>();
+            String url = "https://a.4cdn.org/" + board + "/catalog.json";
+            String response = null;
+            try {
+                response = httpGet(url);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            JSONArray data = new JSONArray(response);
 
             // Get a list of threads in the data
             for (int i = 0; i < data.length(); i++) {
@@ -43,29 +52,34 @@ public class RandomImage {
                 JSONArray threads = page.getJSONArray("threads");
                 for (int j = 0; j < threads.length(); j++) {
                     JSONObject thread = threads.getJSONObject(j);
-                    threadnums.add(thread.getInt("no"));
+                    threadNumbers.add(thread.getInt("no"));
                 }
             }
 
             // Select a thread
-            int thread = threadnums.get(RANDOM.nextInt(threadnums.size()));
+            int thread = threadNumbers.get(RANDOM.nextInt(threadNumbers.size()));
 
             // Request the thread information, and get a list of images in that thread
-            List<String> imgs = new ArrayList<>();
-            JSONObject pd = new JSONObject(
-                    HttpRequest.get("https://a.4cdn.org/" + board + "/thread/" + thread + ".json"));
-            JSONArray posts = pd.getJSONArray("posts");
+            List<String> images = new ArrayList<>();
+            url = "https://a.4cdn.org/" + board + "/thread/" + thread + ".json";
+            try {
+                response = httpGet(url);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            JSONObject postData = new JSONObject(response);
+            JSONArray posts = postData.getJSONArray("posts");
             for (int i = 0; i < posts.length(); i++) {
                 JSONObject post = posts.getJSONObject(i);
                 if (post.has("tim") && post.has("ext")) {
-                    imgs.add("https://i.4cdn.org/" + board + "/" + post.getLong("tim") + post.getString("ext") +
+                    images.add("https://i.4cdn.org/" + board + "/" + post.getLong("tim") + post.getString("ext") +
                             ' ' +
                             ("https://boards.4chan.org/" + board + "/thread/" + thread));
                 }
             }
 
             // Save images to cache
-            CACHE.put(board, imgs);
+            CACHE.put(board, images);
         }
 
         List<String> images = CACHE.get(board);
@@ -77,21 +91,19 @@ public class RandomImage {
         return new String[] { image, threadUrl };
     }
 
-    // Picsum
     public static String getPicSumImage() {
         try {
             // Create a URL object with the specified URL
-            URL obj = new URL("https://picsum.photos/1920/1080");
-            HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
-            conn.setInstanceFollowRedirects(false);
-            conn.connect();
+            String url = "https://picsum.photos/1920/1080";
+            Request request = new Request.Builder()
+                    .url(url)
+                    .build();
+            Response response = HTTP_CLIENT.newCall(request).execute();
 
-            // Check if the response code is a redirect
-            int responseCode = conn.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP
-                    || responseCode == HttpURLConnection.HTTP_SEE_OTHER) {
+            // Check if the response is a redirect
+            if (response.isRedirect()) {
                 // Get the redirected URL from the "Location" header field
-                String redirectedUrl = conn.getHeaderField("Location");
+                String redirectedUrl = response.header("Location");
                 return redirectedUrl;
             }
         } catch (Exception e) {
@@ -100,27 +112,22 @@ public class RandomImage {
         return null;
     }
 
-    // Imgur Section
     public static String getImgurImage() {
         String[] IMAGE_FORMATS = { "jpg", "png", "gif" };
         String imgurId = getRandomImgurId();
-        String imgUrl = "https://i.imgur.com/" + imgurId + "." + IMAGE_FORMATS[RANDOM.nextInt(IMAGE_FORMATS.length)];
-        Image image = null;
+        String imageUrl = "https://i.imgur.com/" + imgurId + "." + IMAGE_FORMATS[RANDOM.nextInt(IMAGE_FORMATS.length)];
         try {
-            URL url = new URL(imgUrl);
-            image = ImageIO.read(url);
-            if (image == null) {
-                // Failed to read the image, try again with a different Imgur ID
-                return getImgurImage();
-            } else if (image.getWidth(null) == 161 || image.getHeight(null) == 81) {
-                // The image has invalid dimensions, try again with a different Imgur ID
+            URL url = new URL(imageUrl);
+            Image image = ImageIO.read(url);
+            if (image == null || image.getWidth(null) == 161 || image.getHeight(null) == 81) {
+                // Failed to read the image or the image has invalid dimensions, try again with a different Imgur ID
                 return getImgurImage();
             }
         } catch (IOException e) {
             // Failed to read the image, try again with a different Imgur ID
             return getImgurImage();
         }
-        return imgUrl;
+        return imageUrl;
     }
 
     private static String getRandomImgurId() {
@@ -135,7 +142,6 @@ public class RandomImage {
         return idBuilder.toString();
     }
 
-    // Rule34 xxx section (Add random for tags)
     public static String getRandomRule34xxx() {
         String url = "https://rule34.xxx/index.php?page=post&s=random";
         String imageUrl = null;
@@ -152,25 +158,16 @@ public class RandomImage {
     }
 
     public static String getGoogleQueryImage(String query) throws IOException {
-        String api_key = Main.getEnv("GOOGLE_API_KEY");
-        String cse_id = Main.getEnv("GOOGLE_CX");
+        String apiKey = Main.getEnv("GOOGLE_API_KEY");
+        String cseId = Main.getEnv("GOOGLE_CX");
         Random rand = new Random();
         int start = rand.nextInt(5) + 1;
         // Encode the query string
         String encodedQuery = URLEncoder.encode(query, "UTF-8");
-        URL url = new URL(
-                String.format("https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&searchType=image&start=%d",
-                        api_key, cse_id, encodedQuery, start));
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("GET");
-        int responseCode = conn.getResponseCode();
-        if (responseCode != HttpURLConnection.HTTP_OK) {
-            // An error occurred, print the error message
-            String error = new String(conn.getErrorStream().readAllBytes());
-            System.err.println("Error: " + error);
-            return null;
-        }
-        String response = new String(conn.getInputStream().readAllBytes());
+        String url = String.format(
+                "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&searchType=image&start=%d", apiKey,
+                cseId, encodedQuery, start);
+        String response = httpGet(url);
         JSONObject json = new JSONObject(response);
         JSONArray items = json.getJSONArray("items");
         int index = rand.nextInt(items.length());
@@ -178,4 +175,16 @@ public class RandomImage {
         return randomImage.getString("link");
     }
 
+    private static String httpGet(String url) throws IOException {
+        Request request = new Request.Builder()
+                .url(url)
+                .build();
+        Response response = HTTP_CLIENT.newCall(request).execute();
+        if (!response.isSuccessful()) {
+            // An error occurred, print the error message
+            System.err.println("Error: " + response.body().string());
+            return null;
+        }
+        return response.body().string();
+    }
 }

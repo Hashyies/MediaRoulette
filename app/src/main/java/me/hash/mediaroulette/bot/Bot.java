@@ -68,7 +68,6 @@ public class Bot {
                         voiceChannel.getManager().setName("Generated: " + 
                          Config.formatBigInteger(new BigInteger(imageGenerated))).queue();
                     }
-                    System.out.println(config.getOrDefault("image_generated", "0", String.class));
         }, 0, 5, TimeUnit.SECONDS);
     }
 

@@ -61,7 +61,7 @@ public class Config {
     }
 
     public static String formatBigInteger(BigInteger value) {
-        String[] units = new String[] { "", "k", "m", "b", "t", "unit1", "unit2", "unit3" };
+        String[] units = new String[] { "", "k", "m", "b", "t" };
         int unitIndex = 0;
         BigDecimal decimalValue = new BigDecimal(value);
         while (decimalValue.compareTo(BigDecimal.valueOf(1000)) >= 0 && unitIndex < units.length - 1) {
