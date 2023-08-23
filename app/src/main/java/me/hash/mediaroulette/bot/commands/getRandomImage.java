@@ -105,16 +105,18 @@ public class getRandomImage extends ListenerAdapter {
                 return;
             }
 
-            String webhookUrl = buttonId.equals("nsfw") ? Main.getEnv("DISCORD_NSFW_WEBHOOK")
-                    : Main.getEnv("DISCORD_SAFE_WEBHOOK");
-            int color = buttonId.equals("nsfw") ? Color.RED.getRGB() : Color.GREEN.getRGB();
+            if (Bot.config.get("NSFW_WEBHOOK", Boolean.class) && Bot.config.get("SAFE_WEBHOOK", Boolean.class)) {
+                String webhookUrl = buttonId.equals("nsfw") ? Main.getEnv("DISCORD_NSFW_WEBHOOK")
+                        : Main.getEnv("DISCORD_SAFE_WEBHOOK");
+                int color = buttonId.equals("nsfw") ? Color.RED.getRGB() : Color.GREEN.getRGB();
 
-            WebhookEmbedBuilder embedBuilder = new WebhookEmbedBuilder();
-            embedBuilder.setImageUrl(event.getMessage().getEmbeds().get(0).getImage().getUrl());
-            embedBuilder.setColor(color);
+                WebhookEmbedBuilder embedBuilder = new WebhookEmbedBuilder();
+                embedBuilder.setImageUrl(event.getMessage().getEmbeds().get(0).getImage().getUrl());
+                embedBuilder.setColor(color);
 
-            WebhookClient client = new WebhookClientBuilder(webhookUrl).build();
-            client.send(embedBuilder.build());
+                WebhookClient client = new WebhookClientBuilder(webhookUrl).build();
+                client.send(embedBuilder.build());
+            }
 
             event.reply("Thanks for feedback!").setEphemeral(true).queue();
 
@@ -151,8 +153,9 @@ public class getRandomImage extends ListenerAdapter {
                 Button end = Button.secondary("end", "End").withEmoji(Emoji.fromUnicode("❌"));
                 event.getMessage().editMessageEmbeds(newEmbedBuilder.build()).setActionRow(safe, nsfw, end).queue();
 
-                Bot.config.set("image_generated", new BigInteger(Bot.config.getOrDefault("image_generated", "0", String.class))
-                        .add(new BigInteger(String.valueOf(1))).toString());
+                Bot.config.set("image_generated",
+                        new BigInteger(Bot.config.getOrDefault("image_generated", "0", String.class))
+                                .add(new BigInteger(String.valueOf(1))).toString());
             }
         });
     }

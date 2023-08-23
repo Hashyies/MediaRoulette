@@ -21,7 +21,7 @@ import me.hash.mediaroulette.utils.Database;
 public class Main {
 
     public static Dotenv env;
-    public static Database databse = new Database(Main.getEnv("MONGODB_CONNECTION"), "MediaRoulette");
+    public static Database database;
     public static List<String> CHOICES_BOT = new ArrayList<>();
 
     public static void main(String[] args) throws Exception {
@@ -39,6 +39,8 @@ public class Main {
                 .directory(tempFile.getParent().toString())
                 .filename(tempFile.getFileName().toString())
                 .load();
+
+        database = new Database(Main.getEnv("MONGODB_CONNECTION"), "MediaRoulette");
 
         // System.out.println(RandomImage.getRandomReddit());
         new Bot(getEnv("DISCORD_TOKEN"));
@@ -88,10 +90,11 @@ public class Main {
         CHOICES_BOT.add("GOOGLE");
         CHOICES_BOT.add("GENERATED_VOICE_CHANNEL");
         CHOICES_BOT.add("4CHAN");
+        CHOICES_BOT.add("PICSUM");
         CHOICES_BOT.add("RULE34XXX");
     }
 
-    static boolean containsKey(Set<DotenvEntry> entries, String key) {
+    public static boolean containsKey(Set<DotenvEntry> entries, String key) {
         for (DotenvEntry entry : entries) {
             if (entry.getKey().equals(key)) {
                 return true;

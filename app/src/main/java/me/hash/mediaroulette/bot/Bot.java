@@ -39,7 +39,7 @@ public class Bot {
             e.printStackTrace();
         }
 
-        jda.addEventListener(new getRandomImage(), new randomQuery(), new get4Chan(), new getPicsum(), new getReddit(), new getRule34xxx());
+        jda.addEventListener(new getRandomImage(), new randomQuery(), new get4Chan(), new getPicsum(), new getReddit(), new getRule34xxx(), new ConfigCommand());
 
         jda.updateCommands().addCommands(
                 Commands.slash("random", "Sends a random image")
@@ -62,9 +62,11 @@ public class Bot {
                                 .addOption(OptionType.STRING, "value", "value to set", true))
         ).queue();
 
-        config = new Config(Main.databse);
+        config = new Config(Main.database);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
                 executor.scheduleAtFixedRate(() -> {
+                        if (!config.get("GENERATED_VOICE_CHANNEL", Boolean.class))
+                                return;
                     GuildChannel voiceChannel = jda.getGuildChannelById(ChannelType.VOICE, 
                     Main.getEnv("GENERATED_VOICE_CHANNEL"));
                     if (voiceChannel != null) {
