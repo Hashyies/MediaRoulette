@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 
 public class Bot {
 
@@ -54,10 +55,14 @@ public class Bot {
                         .addOption(OptionType.STRING, "board",
                                 "Board to get images from", false),
                 Commands.slash("random-picsum", "Sends a random image"),
-                Commands.slash("random-rule34xxx", "Sends a random image")
+                Commands.slash("random-rule34xxx", "Sends a random image"),
+                Commands.slash("config", "Change personal, guild or bot settings")
+                        .addSubcommands(new SubcommandData("bot", "Configure bot settings")
+                                .addOption(OptionType.STRING, "option", "Field to change", true, true)
+                                .addOption(OptionType.STRING, "value", "value to set", true))
         ).queue();
 
-        config = new Config(Main.getEnv("MONGODB_CONNECTION"), "MediaRoulette");
+        config = new Config(Main.databse);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
                 executor.scheduleAtFixedRate(() -> {
                     GuildChannel voiceChannel = jda.getGuildChannelById(ChannelType.VOICE, 

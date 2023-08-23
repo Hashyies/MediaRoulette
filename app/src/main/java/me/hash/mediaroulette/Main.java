@@ -7,13 +7,22 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import io.github.cdimascio.dotenv.Dotenv;
+import io.github.cdimascio.dotenv.DotenvEntry;
 import me.hash.mediaroulette.bot.Bot;
+import me.hash.mediaroulette.utils.Database;
 
 public class Main {
 
     public static Dotenv env;
+    public static Database databse = new Database(Main.getEnv("MONGODB_CONNECTION"), "MediaRoulette");
+    public static List<String> CHOICES_BOT = new ArrayList<>();
 
     public static void main(String[] args) throws Exception {
         // Get an InputStream for the .env file
@@ -33,6 +42,62 @@ public class Main {
 
         // System.out.println(RandomImage.getRandomReddit());
         new Bot(getEnv("DISCORD_TOKEN"));
+
+        init();
+    }
+
+    static void init() {
+        Set<DotenvEntry> entries = env.entries();
+        Map<String, String> configMap = new HashMap<>();
+        configMap.put("DISCORD_NSFW_WEBHOOK", "NSFW_WEBHOOK");
+        configMap.put("DISCORD_SAFE_WEBHOOK", "SAFE_WEBHOOK");
+        configMap.put("GENERATED_VOICE_CHANNEL", "GENERATED_VOICE_CHANNEL");
+
+        for (Map.Entry<String, String> entry : configMap.entrySet()) {
+            String envKey = entry.getKey();
+            String configKey = entry.getValue();
+            if (containsKey(entries, envKey)) {
+                System.out.println(envKey + " Loaded!");
+                Bot.config.set(configKey, Bot.config.getOrDefault(configKey, true, Boolean.class));
+            } else {
+                System.out.println(envKey + " Not found in .env");
+                Bot.config.set(configKey, false);
+            }
+        }
+
+        if (containsKey(entries, "REDDIT_CLIENT_ID") && containsKey(entries, "REDDIT_CLIENT_ID")
+                && containsKey(entries, "REDDIT_USERNAME") && containsKey(entries, "REDDIT_PASSWORD")) {
+            System.out.println("Reddit Loaded!");
+            Bot.config.set("REDDIT", Bot.config.getOrDefault("REDDIT", true, Boolean.class));
+        } else {
+            System.out.println("Reddit credentials are not set in .env");
+            Bot.config.set("REDDIT", false);
+        }
+
+        if (containsKey(entries, "GOOGLE_API_KEY") && containsKey(entries, "GOOGLE_CX")) {
+            System.out.println("Google Loaded!");
+            Bot.config.set("GOOGLE", Bot.config.getOrDefault("GOOGLE", true, Boolean.class));
+        } else {
+            System.out.println("Google credentials are not set in .env");
+            Bot.config.set("GOOGLE", false);
+        }
+
+        CHOICES_BOT.add("NSFW_WEBHOOK");
+        CHOICES_BOT.add("SAFE_WEBHOOK");
+        CHOICES_BOT.add("REDDIT");
+        CHOICES_BOT.add("GOOGLE");
+        CHOICES_BOT.add("GENERATED_VOICE_CHANNEL");
+        CHOICES_BOT.add("4CHAN");
+        CHOICES_BOT.add("RULE34XXX");
+    }
+
+    static boolean containsKey(Set<DotenvEntry> entries, String key) {
+        for (DotenvEntry entry : entries) {
+            if (entry.getKey().equals(key)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static String getEnv(String key) {
