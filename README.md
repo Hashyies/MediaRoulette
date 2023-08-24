@@ -18,7 +18,7 @@ I just happened to have this idea of letting users classify images as NSFW and n
 - [ ] Allow code to only run in NSFW channels to follow Discord Terms of Service.
 - [ ] Think of more ideas meanwhile to add here
 - [ ] Investigate DeviantArt (Possible, but needs a dictionary like reddit for gallaries)
-- [ ] Try to add rigged twitter
+- [ ] Try to add rigged Twitter
 
 <details><summary><strong>Completed Tasks</strong></summary>
 
