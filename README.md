@@ -27,7 +27,7 @@ I just happened to have this idea of letting users classify images as NSFW and n
 - [x] ~~Create probability table for RandomImage for integration with other parts of the project~~
 - [x] ~~Create a webhook/database system for receiving NSFW rating and storing them.~~
 - [x] ~~Allow users to use their own Reddit API keys. (May be discarded for now)~~
-- [x] Add "Search for Image" feature where users will find an image
+- [x] ~~Add "Search for Image" feature where users will find an image~~
 
 </details>
 
