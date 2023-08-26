@@ -19,7 +19,7 @@ public class getReddit extends ListenerAdapter {
         event.deferReply().queue();
 
         Bot.executor.execute(() -> {
-            if (!Bot.config.get("REDDIT", Boolean.class)) {
+            if (!Bot.config.getOrDefault("REDDIT", true, Boolean.class)) {
                 EmbedBuilder embedBuilder = new EmbedBuilder();
                 embedBuilder.setTitle("Error");
                 embedBuilder.setDescription("This command is disabled by the bot owner");

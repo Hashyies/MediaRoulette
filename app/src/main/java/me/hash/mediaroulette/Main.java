@@ -41,8 +41,6 @@ public class Main {
                 .load();
 
         database = new Database(Main.getEnv("MONGODB_CONNECTION"), "MediaRoulette");
-
-        // System.out.println(RandomImage.getRandomReddit());
         new Bot(getEnv("DISCORD_TOKEN"));
 
         init();
@@ -67,31 +65,29 @@ public class Main {
             }
         }
 
-        if (containsKey(entries, "REDDIT_CLIENT_ID") && containsKey(entries, "REDDIT_CLIENT_ID")
-                && containsKey(entries, "REDDIT_USERNAME") && containsKey(entries, "REDDIT_PASSWORD")) {
-            System.out.println("Reddit Loaded!");
-            Bot.config.set("REDDIT", Bot.config.getOrDefault("REDDIT", true, Boolean.class));
-        } else {
-            System.out.println("Reddit credentials are not set in .env");
-            Bot.config.set("REDDIT", false);
-        }
+        // Check for Reddit credentials
+        checkCredentials(entries, "REDDIT", "REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET", "REDDIT_USERNAME",
+                "REDDIT_PASSWORD");
 
-        if (containsKey(entries, "GOOGLE_API_KEY") && containsKey(entries, "GOOGLE_CX")) {
-            System.out.println("Google Loaded!");
-            Bot.config.set("GOOGLE", Bot.config.getOrDefault("GOOGLE", true, Boolean.class));
-        } else {
-            System.out.println("Google credentials are not set in .env");
-            Bot.config.set("GOOGLE", false);
-        }
+        // Check for Google credentials
+        checkCredentials(entries, "GOOGLE", "GOOGLE_API_KEY", "GOOGLE_CX");
+    }
 
-        CHOICES_BOT.add("NSFW_WEBHOOK");
-        CHOICES_BOT.add("SAFE_WEBHOOK");
-        CHOICES_BOT.add("REDDIT");
-        CHOICES_BOT.add("GOOGLE");
-        CHOICES_BOT.add("GENERATED_VOICE_CHANNEL");
-        CHOICES_BOT.add("4CHAN");
-        CHOICES_BOT.add("PICSUM");
-        CHOICES_BOT.add("RULE34XXX");
+    private static void checkCredentials(Set<DotenvEntry> entries, String configKey, String... keys) {
+        boolean allKeysPresent = true;
+        for (String key : keys) {
+            if (!containsKey(entries, key)) {
+                allKeysPresent = false;
+                break;
+            }
+        }
+        if (allKeysPresent) {
+            System.out.println(configKey + " Loaded!");
+            Bot.config.set(configKey, Bot.config.getOrDefault(configKey, true, Boolean.class));
+        } else {
+            System.out.println(configKey + " credentials are not set in .env");
+            Bot.config.set(configKey, false);
+        }
     }
 
     public static boolean containsKey(Set<DotenvEntry> entries, String key) {

@@ -18,19 +18,20 @@ import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 
 public class Bot {
 
-    static JDA jda = null;
-    public static final long COOLDOWN_DURATION = 2500; // 2.5 seconds in milliseconds
-    public static final Map<Long, Long> COOLDOWNS = new HashMap<>();
-    public static  Config config = null;
-    public static final ExecutorService executor = Executors.newCachedThreadPool();
+        static JDA jda = null;
+        public static final long COOLDOWN_DURATION = 2500; // 2.5 seconds in milliseconds
+        public static final Map<Long, Long> COOLDOWNS = new HashMap<>();
+        public static Config config = null;
+        public static final ExecutorService executor = Executors.newCachedThreadPool();
 
     public Bot(String token) {
         jda = JDABuilder.createDefault(token)
-                .setActivity(Activity.playing("The Media Roulette"))
+                .setActivity(Activity.playing("The Media Roulette | v0.1a"))
                 .build();
 
         try {
@@ -39,8 +40,16 @@ public class Bot {
             e.printStackTrace();
         }
 
-        jda.addEventListener(new getRandomImage(), new randomQuery(), new get4Chan(), new getPicsum(), new getReddit(), new getRule34xxx(), new ConfigCommand());
-
+        jda.addEventListener(
+                new getRandomImage(),
+                new randomQuery(),
+                new get4Chan(),
+                new getPicsum(),
+                new getReddit(),
+                new getRule34xxx(),
+                new ConfigCommand()
+        );
+        
         jda.updateCommands().addCommands(
                 Commands.slash("random", "Sends a random image")
                         .addOption(OptionType.BOOLEAN, "shouldcontinue",
@@ -57,9 +66,26 @@ public class Bot {
                 Commands.slash("random-picsum", "Sends a random image"),
                 Commands.slash("random-rule34xxx", "Sends a random image"),
                 Commands.slash("config", "Change personal, guild or bot settings")
-                        .addSubcommands(new SubcommandData("bot", "Configure bot settings")
-                                .addOption(OptionType.STRING, "option", "Field to change", true, true)
-                                .addOption(OptionType.STRING, "value", "value to set", true))
+                        .addSubcommands(
+                        new SubcommandData("bot", "Change settings for yourself")
+                                .addOptions(new OptionData(OptionType.STRING, "option", "Field to change", true)
+                                        .addChoice("Enable NSFW Webhook", "NSFW_WEBHOOK")
+                                        .addChoice("Enable Safe Webhook", "SAFE_WEBHOOK")
+                                        .addChoice("Enable Reddit", "REDDIT")
+                                        .addChoice("Enable Google Search", "GOOGLE")
+                                        .addChoice("Enable 4Chan", "4CHAN")
+                                        .addChoice("Enable Picsum", "PICSUM")
+                                        .addChoice("Enable Rule34.xxx", "RULE34XXX")
+                                        .addChoice("Enable Generated Count", "GENERATED_VOICE_CHANNEL"))
+                                .addOption(OptionType.STRING, "value", "Value to set", false),
+                                
+                        new SubcommandData("user", "Change settings for yourself")
+                                .addOptions(new OptionData(OptionType.STRING, "option", "Field to change", true)
+                                        .addChoice("Enable Reddit", "REDDIT")
+                                        .addChoice("Enable 4Chan", "4CHAN")
+                                        .addChoice("Enable Picsum", "PICSUM")
+                                        .addChoice("Enable Rule34.xxx", "RULE34XXX"))
+                        )
         ).queue();
 
         config = new Config(Main.database);
@@ -78,8 +104,8 @@ public class Bot {
         }, 0, 5, TimeUnit.SECONDS);
     }
 
-    public JDA getJDA() {
-        return jda;
-    }
+        public JDA getJDA() {
+                return jda;
+        }
 
 }

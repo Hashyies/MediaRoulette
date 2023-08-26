@@ -19,7 +19,7 @@ public class randomQuery extends ListenerAdapter {
         event.deferReply().queue();
 
         Bot.executor.execute(() -> {
-            if (!Bot.config.get("GOOGLE", Boolean.class)) {
+            if (!Bot.config.getOrDefault("GOOGLE", true, Boolean.class)) {
                 EmbedBuilder embedBuilder = new EmbedBuilder();
                 embedBuilder.setTitle("Error");
                 embedBuilder.setDescription("This command is disabled by the bot owner");

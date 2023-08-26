@@ -16,7 +16,7 @@ public class get4Chan extends ListenerAdapter {
             return;
         event.deferReply().queue();
         Bot.executor.execute(() -> {
-            if (!Bot.config.get("4CHAN", Boolean.class)) {
+            if (!Bot.config.getOrDefault("4CHAN", true, Boolean.class)) {
                                 EmbedBuilder embedBuilder = new EmbedBuilder();
                 embedBuilder.setTitle("Error");
                 embedBuilder.setDescription("This command is disabled by the bot owner");

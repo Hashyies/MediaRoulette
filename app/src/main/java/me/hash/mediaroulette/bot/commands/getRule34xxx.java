@@ -17,7 +17,7 @@ public class getRule34xxx extends ListenerAdapter {
         event.deferReply().queue();
 
         Bot.executor.execute(() -> {
-            if (!Bot.config.get("RULE34XXX", Boolean.class)) {
+            if (!Bot.config.getOrDefault("RULE34XXX", true, Boolean.class)) {
                 EmbedBuilder embedBuilder = new EmbedBuilder();
                 embedBuilder.setTitle("Error");
                 embedBuilder.setDescription("This command is disabled by the bot owner");
