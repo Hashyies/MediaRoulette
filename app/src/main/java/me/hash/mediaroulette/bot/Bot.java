@@ -1,13 +1,5 @@
 package me.hash.mediaroulette.bot;
 
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.commands.*;
 import me.hash.mediaroulette.utils.Config;
@@ -21,13 +13,17 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 
-public class Bot {
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.*;
 
-        static JDA jda = null;
-        public static final long COOLDOWN_DURATION = 2500; // 2.5 seconds in milliseconds
-        public static final Map<Long, Long> COOLDOWNS = new HashMap<>();
-        public static Config config = null;
-        public static final ExecutorService executor = Executors.newCachedThreadPool();
+public class Bot {
+    static JDA jda = null;
+    public static final long COOLDOWN_DURATION = 2500; // 2.5 seconds in milliseconds
+    public static final Map<Long, Long> COOLDOWNS = new HashMap<>();
+    public static Config config = null;
+    public static final ExecutorService executor = Executors.newCachedThreadPool();
 
     public Bot(String token) {
         jda = JDABuilder.createDefault(token)
@@ -49,7 +45,7 @@ public class Bot {
                 new getRule34xxx(),
                 new ConfigCommand()
         );
-        
+
         jda.updateCommands().addCommands(
                 Commands.slash("random", "Sends a random image")
                         .addOption(OptionType.BOOLEAN, "shouldcontinue",
@@ -67,45 +63,46 @@ public class Bot {
                 Commands.slash("random-rule34xxx", "Sends a random image"),
                 Commands.slash("config", "Change personal, guild or bot settings")
                         .addSubcommands(
-                        new SubcommandData("bot", "Change settings for yourself")
-                                .addOptions(new OptionData(OptionType.STRING, "option", "Field to change", true)
-                                        .addChoice("Enable NSFW Webhook", "NSFW_WEBHOOK")
-                                        .addChoice("Enable Safe Webhook", "SAFE_WEBHOOK")
-                                        .addChoice("Enable Reddit", "REDDIT")
-                                        .addChoice("Enable Google Search", "GOOGLE")
-                                        .addChoice("Enable 4Chan", "4CHAN")
-                                        .addChoice("Enable Picsum", "PICSUM")
-                                        .addChoice("Enable Rule34.xxx", "RULE34XXX")
-                                        .addChoice("Enable Generated Count", "GENERATED_VOICE_CHANNEL"))
-                                .addOption(OptionType.STRING, "value", "Value to set", false),
-                                
-                        new SubcommandData("user", "Change settings for yourself")
-                                .addOptions(new OptionData(OptionType.STRING, "option", "Field to change", true)
-                                        .addChoice("Enable Reddit", "REDDIT")
-                                        .addChoice("Enable 4Chan", "4CHAN")
-                                        .addChoice("Enable Picsum", "PICSUM")
-                                        .addChoice("Enable Rule34.xxx", "RULE34XXX"))
+                                new SubcommandData("bot", "Change settings for yourself")
+                                        .addOptions(new OptionData(OptionType.STRING, "option", "Field to change", true)
+                                                .addChoice("Enable NSFW Webhook", "NSFW_WEBHOOK")
+                                                .addChoice("Enable Safe Webhook", "SAFE_WEBHOOK")
+                                                .addChoice("Enable Reddit", "REDDIT")
+                                                .addChoice("Enable Google Search", "GOOGLE")
+                                                .addChoice("Enable 4Chan", "4CHAN")
+                                                .addChoice("Enable Picsum", "PICSUM")
+                                                .addChoice("Enable Rule34.xxx", "RULE34XXX")
+                                                .addChoice("Enable Generated Count", "GENERATED_VOICE_CHANNEL"))
+                                        .addOption(OptionType.STRING, "value", "Value to set", false),
+                                new SubcommandData("user", "Change settings for yourself")
+                                        .addOptions(new OptionData(OptionType.STRING, "option", "Field to change", true)
+                                                .addChoice("Toggle NSFW", "nsfw")
+                                                .addChoice("Set Chances for Images", "chances")
+                                                .addChoice("Enable Image Option", "enable")
+                                                .addChoice("Disable Image Option", "disable"))
+                                        .addOption(OptionType.STRING, "value", "Value to set", true),
+                                new SubcommandData("send", "Send your configuration to the current channel")
+                                        .addOption(OptionType.STRING, "description", "Description for configuration", true)
                         )
         ).queue();
 
         config = new Config(Main.database);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-                executor.scheduleAtFixedRate(() -> {
-                        if (!config.get("GENERATED_VOICE_CHANNEL", Boolean.class))
-                                return;
-                    GuildChannel voiceChannel = jda.getGuildChannelById(ChannelType.VOICE, 
+        executor.scheduleAtFixedRate(() -> {
+            if (!config.get("GENERATED_VOICE_CHANNEL", Boolean.class))
+                return;
+            GuildChannel voiceChannel = jda.getGuildChannelById(ChannelType.VOICE,
                     Main.getEnv("GENERATED_VOICE_CHANNEL"));
-                    if (voiceChannel != null) {
-                        String imageGenerated = config.getOrDefault("image_generated", "0", String.class);
+            if (voiceChannel != null) {
+                String imageGenerated = config.getOrDefault("image_generated", "0", String.class);
 
-                        voiceChannel.getManager().setName("Generated: " + 
-                         Config.formatBigInteger(new BigInteger(imageGenerated))).queue();
-                    }
+                voiceChannel.getManager().setName("Generated: "
+                        + Config.formatBigInteger(new BigInteger(imageGenerated))).queue();
+            }
         }, 0, 5, TimeUnit.SECONDS);
     }
 
-        public JDA getJDA() {
-                return jda;
-        }
-
+    public JDA getJDA() {
+        return jda;
+    }
 }

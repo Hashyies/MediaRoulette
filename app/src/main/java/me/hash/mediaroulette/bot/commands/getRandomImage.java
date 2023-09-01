@@ -41,9 +41,9 @@ public class getRandomImage extends ListenerAdapter {
             errorEmbed.setDescription(e.getMessage());
             errorEmbed.setColor(Color.RED);
             if (event instanceof SlashCommandInteractionEvent) {
-                ((SlashCommandInteractionEvent) event).replyEmbeds(errorEmbed.build()).queue();
+                ((SlashCommandInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).queue();
             } else if (event instanceof ButtonInteractionEvent) {
-                ((ButtonInteractionEvent) event).replyEmbeds(errorEmbed.build()).queue();
+                ((ButtonInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).queue();
             }
         }
         return url;
