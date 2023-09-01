@@ -1,5 +1,8 @@
 package me.hash.mediaroulette.utils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ImageOptions {
     private final String imageType;
     private boolean enabled;
@@ -29,6 +32,18 @@ public class ImageOptions {
 
     public void setChance(double chance) {
         this.chance = chance;
+    }
+
+    public static List<ImageOptions> getDefaultOptions() {
+        List<ImageOptions> options = new ArrayList<>();
+
+        options.add(new ImageOptions("reddit", true, 30));
+        options.add(new ImageOptions("imgur", true, 25));
+        options.add(new ImageOptions("rule34xxx", true, 25));
+        options.add(new ImageOptions("4chan", true, 15));
+        options.add(new ImageOptions("picsum", true, 5));
+
+        return options;
     }
 }
 
