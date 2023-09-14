@@ -10,6 +10,7 @@ import javax.imageio.ImageIO;
 
 import okhttp3.*;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -21,7 +22,9 @@ public class RandomImage {
 
     private static final Map<String, List<String>> CACHE = new ConcurrentHashMap<>();
     private static final Random RANDOM = new Random();
-    public static final OkHttpClient HTTP_CLIENT = new OkHttpClient();
+    public static OkHttpClient HTTP_CLIENT = new OkHttpClient.Builder()
+            .followRedirects(false)
+            .build();
     public static final List<String> BOARDS = Arrays.asList("a", "c", "w", "m", "cgl", "cm", "n", "jp", "vp", "v", "vg", "vr", "co",
             "g", "tv", "k", "o", "an", "tg", "sp", "asp", "sci", "int", "out", "toy", "biz", "i", "po", "p", "ck", "ic",
             "wg", "mu", "fa", "3", "gd", "diy", "wsg", "s", "hc", "hm", "h", "e", "u", "d", "y", "t", "hr", "gif",
@@ -95,22 +98,25 @@ public class RandomImage {
         try {
             // Create a URL object with the specified URL
             String url = "https://picsum.photos/1920/1080";
+            
+            // Create a new OkHttpClient and set it to not follow redirects
+
+    
             Request request = new Request.Builder()
                     .url(url)
                     .build();
             Response response = HTTP_CLIENT.newCall(request).execute();
-
-            // Check if the response is a redirect
-            if (response.isRedirect()) {
-                // Get the redirected URL from the "Location" header field
-                String redirectedUrl = response.header("Location");
-                return redirectedUrl;
-            }
+    
+            // Get the redirected URL from the "Location" header field
+            String redirectedUrl = response.header("Location");
+            return redirectedUrl;
         } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
     }
+    
+    
 
     public static String getImgurImage() {
         String[] IMAGE_FORMATS = { "jpg", "png", "gif" };
@@ -187,4 +193,34 @@ public class RandomImage {
         }
         return response.body().string();
     }
+
+    public static String getTenor() throws IOException {
+        Request request = new Request.Builder()
+                .url("https://tenor.googleapis.com/v2/search?key=" + Main.getEnv("TENOR_API") + "&q=test&limit=50")
+                .build();
+    
+        try (Response response = HTTP_CLIENT.newCall(request).execute()) {
+            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+    
+            JSONObject jsonObject = new JSONObject(response.body().string());
+            JSONArray resultsArray = jsonObject.getJSONArray("results");
+            int randomIndex = new Random().nextInt(resultsArray.length());
+            
+            JSONObject resultObject = resultsArray.getJSONObject(randomIndex);
+            
+            // Check if "media_formats" and "gif" keys exist
+            if (resultObject.has("media_formats") && resultObject.getJSONObject("media_formats").has("gif")) {
+                String gifUrl = resultObject
+                        .getJSONObject("media_formats")
+                        .getJSONObject("gif").getString("url");
+                
+                return gifUrl;
+            } else {
+                throw new JSONException("Key 'media_formats' or 'gif' not found in JSONObject");
+            }
+        }
+    }
+    
+    
+
 }

@@ -11,6 +11,7 @@ I just happened to have this idea of letting users classify images as NSFW and n
 - Imgur
 - Reddit (Subreddit dictionary needs to be higher)
 - Rule34xxx
+- Tenor (v1 API had random but not v2, therefore needs a dictionary ASAP!!!!!!)
 
 ### Roadmap
 **Ongoing tasks**

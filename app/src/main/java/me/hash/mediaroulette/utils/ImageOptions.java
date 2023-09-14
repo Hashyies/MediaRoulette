@@ -37,9 +37,10 @@ public class ImageOptions {
     public static List<ImageOptions> getDefaultOptions() {
         List<ImageOptions> options = new ArrayList<>();
 
-        options.add(new ImageOptions("reddit", true, 30));
-        options.add(new ImageOptions("imgur", true, 25));
-        options.add(new ImageOptions("rule34xxx", true, 25));
+        options.add(new ImageOptions("reddit", true, 35));
+        options.add(new ImageOptions("imgur", true, 20));
+        options.add(new ImageOptions("tenor", true, 20));
+        options.add(new ImageOptions("rule34xxx", true, 15));
         options.add(new ImageOptions("4chan", true, 15));
         options.add(new ImageOptions("picsum", true, 5));
 

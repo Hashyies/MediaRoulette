@@ -44,6 +44,8 @@ public class Main {
         new Bot(getEnv("DISCORD_TOKEN"));
 
         init();
+
+        // System.out.println(RandomImage.getPicSumImage());
     }
 
     static void init() {
@@ -51,7 +53,9 @@ public class Main {
         Map<String, String> configMap = new HashMap<>();
         configMap.put("DISCORD_NSFW_WEBHOOK", "NSFW_WEBHOOK");
         configMap.put("DISCORD_SAFE_WEBHOOK", "SAFE_WEBHOOK");
-        configMap.put("GENERATED_VOICE_CHANNEL", "GENERATED_VOICE_CHANNEL");
+        configMap.put("TENOR_API", "TENOR");
+
+
 
         for (Map.Entry<String, String> entry : configMap.entrySet()) {
             String envKey = entry.getKey();
@@ -88,6 +92,15 @@ public class Main {
             System.out.println(configKey + " credentials are not set in .env");
             Bot.config.set(configKey, false);
         }
+    }
+
+    public static boolean checkCredentialsBoolean(Set<DotenvEntry> entries, String configKey, String... keys) {
+        for (String key : keys) {
+            if (!containsKey(entries, key)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static boolean containsKey(Set<DotenvEntry> entries, String key) {

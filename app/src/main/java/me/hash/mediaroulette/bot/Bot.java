@@ -27,7 +27,7 @@ public class Bot {
 
     public Bot(String token) {
         jda = JDABuilder.createDefault(token)
-                .setActivity(Activity.playing("The Media Roulette | v0.1a"))
+                .setActivity(Activity.playing("The Media Roulette | CODE BUILD"))
                 .build();
 
         try {
@@ -43,6 +43,8 @@ public class Bot {
                 new getPicsum(),
                 new getReddit(),
                 new getRule34xxx(),
+                new getImgur(),
+                new getTenor(),
                 new ConfigCommand()
         );
 
@@ -53,14 +55,16 @@ public class Bot {
                 Commands.slash("random-google", "Sends a random image from google")
                         .addOption(OptionType.STRING, "query",
                                 "Image to search", true),
-                Commands.slash("random-reddit", "Sends a random image from reddit")
+                Commands.slash("random-reddit", "Sends a random reddit image")
                         .addOption(OptionType.STRING, "subreddit",
                                 "Subreddit to get images from", false),
-                Commands.slash("random-4chan", "Sends a random image from 4chan")
+                Commands.slash("random-4chan", "Sends a random image 4chan")
                         .addOption(OptionType.STRING, "board",
                                 "Board to get images from", false),
-                Commands.slash("random-picsum", "Sends a random image"),
-                Commands.slash("random-rule34xxx", "Sends a random image"),
+                Commands.slash("random-picsum", "Sends a random picsum image"),
+                Commands.slash("random-rule34xxx", "Sends a random rule34xxx image"),
+                Commands.slash("random-imgur", "Sends a random imgur image"),
+                Commands.slash("random-tenor", "Sends a random tenor image"),
                 Commands.slash("config", "Change personal, guild or bot settings")
                         .addSubcommands(
                                 new SubcommandData("bot", "Change settings for yourself")
@@ -72,6 +76,7 @@ public class Bot {
                                                 .addChoice("Enable 4Chan", "4CHAN")
                                                 .addChoice("Enable Picsum", "PICSUM")
                                                 .addChoice("Enable Rule34.xxx", "RULE34XXX")
+                                                .addChoice("Enable Tenor", "TENOR")
                                                 .addChoice("Enable Generated Count", "GENERATED_VOICE_CHANNEL"))
                                         .addOption(OptionType.STRING, "value", "Value to set", false),
                                 new SubcommandData("user", "Change settings for yourself")

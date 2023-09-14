@@ -171,6 +171,12 @@ public class User {
                     }
                 case "rule34xxx":
                     return RandomImage.getRandomRule34xxx();
+                case "tenor":
+                    try {
+                        return RandomImage.getTenor();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 default:
                     throw new IllegalArgumentException("Unknown image type: " + imageType);
             }
