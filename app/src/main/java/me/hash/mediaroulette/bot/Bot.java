@@ -38,33 +38,44 @@ public class Bot {
 
         jda.addEventListener(
                 new getRandomImage(),
-                new randomQuery(),
-                new get4Chan(),
-                new getPicsum(),
-                new getReddit(),
-                new getRule34xxx(),
-                new getImgur(),
-                new getTenor(),
                 new ConfigCommand()
         );
 
         jda.updateCommands().addCommands(
-                Commands.slash("random", "Sends a random image")
+                /*Commands.slash("random", "Sends a random image")
                         .addOption(OptionType.BOOLEAN, "shouldcontinue",
-                                "Should the bot keep generating images after 1?", false),
-                Commands.slash("random-google", "Sends a random image from google")
-                        .addOption(OptionType.STRING, "query",
-                                "Image to search", true),
-                Commands.slash("random-reddit", "Sends a random reddit image")
-                        .addOption(OptionType.STRING, "subreddit",
-                                "Subreddit to get images from", false),
-                Commands.slash("random-4chan", "Sends a random image 4chan")
-                        .addOption(OptionType.STRING, "board",
-                                "Board to get images from", false),
-                Commands.slash("random-picsum", "Sends a random picsum image"),
-                Commands.slash("random-rule34xxx", "Sends a random rule34xxx image"),
-                Commands.slash("random-imgur", "Sends a random imgur image"),
-                Commands.slash("random-tenor", "Sends a random tenor image"),
+                                "Should the bot keep generating images after 1?", false),*/
+                Commands.slash("random", "Sends a random image")
+                        .addSubcommands(
+                                new SubcommandData("all", "Sends images from all sources")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the image keep generating?"),
+                                new SubcommandData("picsum", "Sends a random image from picsum")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the image keep generating?"),
+                                new SubcommandData("imgur", "Sends a random image from imgur")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the image keep generating?"),
+                                new SubcommandData("rule34xxx", "Sends a random image from rule34.xxx")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the image keep generating?"),
+                                new SubcommandData("google", "Sends a random image from google")
+                                .addOption(OptionType.STRING, "query", "What image should be searched for?")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the image keep generating?"),
+                                new SubcommandData("reddit", "Sends a random image from reddit")
+                                .addOption(OptionType.STRING, "subreddit", "Which subreddit should the image be retrieved from?")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the image keep generating?"),
+                                new SubcommandData("tenor", "Sends a random gif from tenor")
+                                .addOption(OptionType.STRING, "query", "What gif should be searched for?")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the gif keep generating?"),
+                                new SubcommandData("4chan", "Sends a random image from 4chan")
+                                .addOption(OptionType.STRING, "query", "Which board to retrieve image from?")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the image keep generating?")
+                        ),
                 Commands.slash("config", "Change personal, guild or bot settings")
                         .addSubcommands(
                                 new SubcommandData("bot", "Change settings for yourself")

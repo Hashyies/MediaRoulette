@@ -1,5 +1,6 @@
 package me.hash.mediaroulette.bot.commands;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.math.BigInteger;
@@ -13,12 +14,15 @@ import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
 import java.awt.Color;
 
 import me.hash.mediaroulette.Main;
+import me.hash.mediaroulette.utils.RandomImage;
 import me.hash.mediaroulette.utils.exceptions.InvalidChancesException;
 import me.hash.mediaroulette.utils.exceptions.NoEnabledOptionsException;
+import me.hash.mediaroulette.utils.random.RandomReddit;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
 import net.dv8tion.jda.api.EmbedBuilder;
 import club.minnced.discord.webhook.WebhookClient;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -36,17 +40,21 @@ public class getRandomImage extends ListenerAdapter {
         try {
             url = user.getImage();
         } catch (NoEnabledOptionsException | InvalidChancesException e) {
-            EmbedBuilder errorEmbed = new EmbedBuilder();
-            errorEmbed.setTitle(e instanceof NoEnabledOptionsException ? "No Enabled Options" : "Invalid Chances");
-            errorEmbed.setDescription(e.getMessage());
-            errorEmbed.setColor(Color.RED);
-            if (event instanceof SlashCommandInteractionEvent) {
-                ((SlashCommandInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).queue();
-            } else if (event instanceof ButtonInteractionEvent) {
-                ((ButtonInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).queue();
-            }
+            sendErrorEmbed(event, e instanceof NoEnabledOptionsException ? "No Enabled Options" : "Invalid Chances", e.getMessage());
         }
         return url;
+    }
+
+    private void sendErrorEmbed(Interaction event, String title, String description) {
+        EmbedBuilder errorEmbed = new EmbedBuilder();
+        errorEmbed.setTitle(title);
+        errorEmbed.setDescription(description);
+        errorEmbed.setColor(Color.RED);
+        if (event instanceof SlashCommandInteractionEvent) {
+            ((SlashCommandInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).queue();
+        } else if (event instanceof ButtonInteractionEvent) {
+            ((ButtonInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).queue();
+        }
     }
 
     @Override
@@ -57,12 +65,178 @@ public class getRandomImage extends ListenerAdapter {
         Bot.executor.execute(() -> {
             boolean shouldContinue = event.getOption("shouldcontinue") != null
                     && event.getOption("shouldcontinue").getAsBoolean();
-            String imageUrl = getImage(event);
-            if (imageUrl != null) { // Only continue if no exception was thrown
-                Embeds.sendImageEmbed(event, "Here is your random image:", imageUrl, shouldContinue);
+
+            String subcommand = event.getSubcommandName();
+            switch (subcommand) {
+                case "reddit":
+                    handleReddit(event, shouldContinue);
+                    break;
+                case "tenor":
+                    handleTenor(event, shouldContinue);
+                    break;
+                case "4chan":
+                    handle4Chan(event, shouldContinue);
+                    break;
+                case "picsum":
+                    handlePicSum(event, shouldContinue);
+                    break;
+                case "imgur":
+                    handleImgur(event, shouldContinue);
+                    break;
+                case "google":
+                    handleGoogle(event, shouldContinue);
+                    break;
+                case "rule34xxx":
+                    handleRule34xxx(event, shouldContinue);
+                    break;
+                case "all":
+                    handleAll(event, shouldContinue);
+                    break;
+                default:
+                    sendErrorEmbed(event, "Error", "This subcommand is not recognized");
             }
         });
     }
+
+    private boolean isOptionDisabled(String option) {
+        return !Bot.config.getOrDefault(option, true, Boolean.class);
+    }
+
+    private MessageEmbed sendDisabledEmbed() {
+        EmbedBuilder embedBuilder = new EmbedBuilder();
+        embedBuilder.setTitle("Error");
+        embedBuilder.setDescription("This command is disabled by the bot owner");
+        embedBuilder.setColor(Color.RED);
+        return embedBuilder.build();
+    }
+
+    // ----- HANDLER CODE ------
+    private void handleReddit(SlashCommandInteractionEvent event, boolean shouldContinue) {
+        if (isOptionDisabled("REDDIT")) {
+            event.getHook().sendMessageEmbeds(sendDisabledEmbed()).queue();
+            return;
+        }
+    
+        String subreddit = null;
+        if (event.getOption("subreddit") != null) {
+            subreddit = event.getOption("subreddit").getAsString();
+        }
+    
+        try {
+            if (subreddit != null && !RandomReddit.doesSubredditExist(subreddit)) {
+                sendErrorEmbed(event, "Error", "The subreddit '" + subreddit + "' does not exist.");
+                return;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    
+        try {
+            Embeds.sendImageEmbed(event, "Here is your random Reddit image:",
+                    RandomReddit.getRandomReddit(subreddit), shouldContinue);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void handleTenor(SlashCommandInteractionEvent event, boolean shouldContinue) {
+        if (isOptionDisabled("TENOR")) {
+            event.getHook().sendMessageEmbeds(sendDisabledEmbed()).queue();
+            return;
+        }
+    
+        String query = "hey";
+        if (event.getOption("query") != null) {
+            query = event.getOption(query).getAsString();
+        }
+    
+        try {
+            Embeds.sendImageEmbed(event, "Here is your random Tenor gif:", RandomImage.getTenor(query),
+                    shouldContinue);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void handle4Chan(SlashCommandInteractionEvent event, boolean shouldContinue) {
+        if (isOptionDisabled("4CHAN")) {
+            event.getHook().sendMessageEmbeds(sendDisabledEmbed()).queue();
+            return;
+        }
+    
+        String board = null;
+        if (event.getOption("board") != null) {
+            board = event.getOption("board").getAsString();
+        }
+    
+        if (board != null && !RandomImage.BOARDS.contains(board)) {
+            sendErrorEmbed(event, "Error", "The board '" + board + "' does not exist.");
+            return;
+        }
+    
+        Embeds.sendImageEmbed(event, "Here is your random 4Chan Image:",
+                RandomImage.get4ChanImage(board)[0],
+                shouldContinue);
+    }
+    
+    private void handlePicSum(SlashCommandInteractionEvent event, boolean shouldContinue) {
+        if (isOptionDisabled("PICSUM")) {
+            event.getHook().sendMessageEmbeds(sendDisabledEmbed()).queue();
+            return;
+        }
+    
+        Embeds.sendImageEmbed(event, "Here is your random Picsum Image:", RandomImage.getPicSumImage(),
+                shouldContinue);
+    }
+    
+    private void handleImgur(SlashCommandInteractionEvent event, boolean shouldContinue) {
+        if (isOptionDisabled("IMGUR")) {
+            event.getHook().sendMessageEmbeds(sendDisabledEmbed()).queue();
+            return;
+        }
+    
+        Embeds.sendImageEmbed(event, "Here is your random Imgur Image:", RandomImage.getImgurImage(),
+                shouldContinue);
+    }
+    
+    private void handleGoogle(SlashCommandInteractionEvent event, boolean shouldContinue) {
+        if (isOptionDisabled("GOOGLE")) {
+            event.getHook().sendMessageEmbeds(sendDisabledEmbed()).queue();
+            return;
+        }
+    
+        String query = event.getOption("query").getAsString();
+    
+        String image_url;
+        try {
+            image_url = RandomImage.getGoogleQueryImage(query);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+    
+        Embeds.sendImageEmbed(event, "Here is your random Google Image:", image_url, shouldContinue);
+    }
+    
+    private void handleRule34xxx(SlashCommandInteractionEvent event, boolean shouldContinue) {
+        if (isOptionDisabled("RULE34XXX")) {
+            event.getHook().sendMessageEmbeds(sendDisabledEmbed()).queue();
+            return;
+        }
+    
+        Embeds.sendImageEmbed(event, "Here is your random Rule34.xxx Image:",
+                RandomImage.getRandomRule34xxx(),
+                shouldContinue);
+    }
+    
+    private void handleAll(SlashCommandInteractionEvent event, boolean shouldContinue) {
+       String imageUrl = getImage(event);
+       if (imageUrl != null) { // Only continue if no exception was thrown
+           Embeds.sendImageEmbed(event, "Here is your random image:", imageUrl,
+                   shouldContinue);
+       }
+    }
+    // ----- END ------    
 
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {

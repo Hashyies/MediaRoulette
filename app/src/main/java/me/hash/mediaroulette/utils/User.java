@@ -173,7 +173,7 @@ public class User {
                     return RandomImage.getRandomRule34xxx();
                 case "tenor":
                     try {
-                        return RandomImage.getTenor();
+                        return RandomImage.getTenor("test");
                     } catch (IOException e) {
                         e.printStackTrace();
                     }

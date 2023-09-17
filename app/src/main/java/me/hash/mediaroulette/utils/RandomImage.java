@@ -194,9 +194,9 @@ public class RandomImage {
         return response.body().string();
     }
 
-    public static String getTenor() throws IOException {
+    public static String getTenor(String query) throws IOException {
         Request request = new Request.Builder()
-                .url("https://tenor.googleapis.com/v2/search?key=" + Main.getEnv("TENOR_API") + "&q=test&limit=50")
+                .url("https://tenor.googleapis.com/v2/search?key=" + Main.getEnv("TENOR_API") + "&q=" + URLEncoder.encode(query, "UTF-8") + "&limit=50")
                 .build();
     
         try (Response response = HTTP_CLIENT.newCall(request).execute()) {
