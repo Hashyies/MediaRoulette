@@ -26,7 +26,7 @@ public class RandomReddit {
     private static final Map<String, Boolean> SUBREDDIT_EXISTS_CACHE = new ConcurrentHashMap<>();
     private static final MediaType MEDIA_TYPE = MediaType.parse("application/x-www-form-urlencoded");
 
-    public static String getRandomReddit(String subreddit) throws IOException {
+    public static String[] getRandomReddit(String subreddit) throws IOException {
         if (subreddit == null || !doesSubredditExist(subreddit)) {
             InputStream inputStream = Main.class.getResourceAsStream("/subreddits.txt");
             subreddit = getRandomLine(inputStream);
@@ -48,7 +48,7 @@ public class RandomReddit {
             LAST_UPDATED.put(subreddit, System.currentTimeMillis());
         }
         
-        return imageQueue.poll();
+        return new String[]{ imageQueue.poll(), subreddit };
     }
     
     public static boolean doesSubredditExist(String subreddit) throws IOException {

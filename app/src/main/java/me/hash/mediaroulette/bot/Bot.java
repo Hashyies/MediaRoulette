@@ -75,6 +75,7 @@ public class Bot {
                                 .addOption(OptionType.STRING, "query", "Which board to retrieve image from?")
                                 .addOption(OptionType.BOOLEAN, "shouldcontinue", 
                                         "Should the image keep generating?")
+                                        
                         ),
                 Commands.slash("config", "Change personal, guild or bot settings")
                         .addSubcommands(
