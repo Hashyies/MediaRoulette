@@ -164,7 +164,7 @@ public class User {
                     return RandomImage.getImgurImage();
                 case "reddit":
                     try {
-                        return RandomReddit.getRandomReddit(null);
+                        return RandomReddit.getRandomReddit(null)[0];
                     } catch (IOException e) {
                         e.printStackTrace();
                         return null;
