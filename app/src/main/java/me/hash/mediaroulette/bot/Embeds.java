@@ -12,6 +12,8 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.Interaction;
+
 
 public class Embeds {
 
@@ -25,7 +27,7 @@ public class Embeds {
         return embedBuilder.build();
     }
 
-    public static void sendImageEmbed(SlashCommandInteractionEvent event, String title, String imageUrl, boolean shouldContinue) {
+    public static void sendImageEmbed(SlashCommandInteractionEvent event, String title, String description, String imageUrl, boolean shouldContinue) {
         // Check if the user is on cooldown
         long userId = event.getUser().getIdLong();
         if (Bot.COOLDOWNS.containsKey(userId)
@@ -44,6 +46,7 @@ public class Embeds {
         embedBuilder.setUrl(imageUrl);
         embedBuilder.setImage(imageUrl);
         embedBuilder.setColor(Color.CYAN);
+        embedBuilder.setDescription(description);
         embedBuilder.setFooter("Current time: "
                 + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         User user = event.getUser();
@@ -81,12 +84,13 @@ public class Embeds {
                 .add(new BigInteger(String.valueOf(1))).toString());
     }
 
-    public static void editImageEmbed(ButtonInteractionEvent event, String title, String imageUrl) {
+    public static void editImageEmbed(ButtonInteractionEvent event, String title, String description, String imageUrl) {
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle(title);
         embedBuilder.setImage(imageUrl);
         embedBuilder.setUrl(imageUrl);
         embedBuilder.setColor(Color.CYAN);
+        embedBuilder.setDescription(description);
         embedBuilder.setFooter("Current time: "
                 + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         embedBuilder.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl());
@@ -99,6 +103,18 @@ public class Embeds {
         event.getMessage().editMessageEmbeds(embedBuilder.build())
                 .setActionRow(safe, favorite, nsfw, end)
                 .queue();
+    }
+
+    public static void sendErrorEmbed(Interaction event, String title, String description) {
+        EmbedBuilder errorEmbed = new EmbedBuilder();
+        errorEmbed.setTitle(title);
+        errorEmbed.setDescription(description);
+        errorEmbed.setColor(Color.RED);
+        if (event instanceof SlashCommandInteractionEvent) {
+            ((SlashCommandInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).queue();
+        } else if (event instanceof ButtonInteractionEvent) {
+            ((ButtonInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).queue();
+        }
     }
 
 

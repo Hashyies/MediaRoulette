@@ -77,6 +77,7 @@ public class Bot {
                                         "Should the image keep generating?")
                                         
                         ),
+                Commands.slash("media", "Random media from the internet"),
                 Commands.slash("config", "Change personal, guild or bot settings")
                         .addSubcommands(
                                 new SubcommandData("bot", "Change settings for yourself")

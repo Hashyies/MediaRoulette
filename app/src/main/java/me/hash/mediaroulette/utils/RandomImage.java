@@ -20,24 +20,26 @@ import me.hash.mediaroulette.Main;
 
 public class RandomImage {
 
-    private static final Map<String, List<String>> CACHE = new ConcurrentHashMap<>();
+    private static final Map<String, List<Map<String, String>>> CACHE_4CHAN = new ConcurrentHashMap<>();
+    private static final Map<String, List<Map<String, String>>> CACHE_GOOGLE = new ConcurrentHashMap<>();
     private static final Random RANDOM = new Random();
     public static OkHttpClient HTTP_CLIENT = new OkHttpClient.Builder()
             .followRedirects(false)
             .build();
-    public static final List<String> BOARDS = Arrays.asList("a", "c", "w", "m", "cgl", "cm", "n", "jp", "vp", "v", "vg", "vr", "co",
+
+    public static final List<String> BOARDS = Arrays.asList("a", "c", "w", "m", "cgl", "cm", "n", "jp", "vp", "v", "vg",
+            "vr", "co",
             "g", "tv", "k", "o", "an", "tg", "sp", "asp", "sci", "int", "out", "toy", "biz", "i", "po", "p", "ck", "ic",
             "wg", "mu", "fa", "3", "gd", "diy", "wsg", "s", "hc", "hm", "h", "e", "u", "d", "y", "t", "hr", "gif",
             "trv", "fit", "x", "lit", "adv", "lgbt", "mlp", "b", "r", "r9k", "pol", "soc", "s4s");
 
-    public static String[] get4ChanImage(String board) {
-        // Select a board if not provided
-        if (board == null) {
+    public static Map<String, String> get4ChanImage(String board) {
+        if (board == null || !BOARDS.contains(board)) {
+            // Select a random board if the input board is null or not in the list
             board = BOARDS.get(RANDOM.nextInt(BOARDS.size()));
         }
-
         // Check if the board's catalog has already been requested
-        if (!CACHE.containsKey(board) || CACHE.get(board).isEmpty()) {
+        if (!CACHE_4CHAN.containsKey(board) || CACHE_4CHAN.get(board).isEmpty()) {
             // Request board catalog, and get a list of threads on the board
             List<Integer> threadNumbers = new ArrayList<>();
             String url = "https://a.4cdn.org/" + board + "/catalog.json";
@@ -63,7 +65,7 @@ public class RandomImage {
             int thread = threadNumbers.get(RANDOM.nextInt(threadNumbers.size()));
 
             // Request the thread information, and get a list of images in that thread
-            List<String> images = new ArrayList<>();
+            List<Map<String, String>> images = new ArrayList<>();
             url = "https://a.4cdn.org/" + board + "/thread/" + thread + ".json";
             try {
                 response = httpGet(url);
@@ -75,50 +77,52 @@ public class RandomImage {
             for (int i = 0; i < posts.length(); i++) {
                 JSONObject post = posts.getJSONObject(i);
                 if (post.has("tim") && post.has("ext")) {
-                    images.add("https://i.4cdn.org/" + board + "/" + post.getLong("tim") + post.getString("ext") +
-                            ' ' +
-                            ("https://boards.4chan.org/" + board + "/thread/" + thread));
+                    Map<String, String> imageInfo = new HashMap<>();
+                    imageInfo.put("image",
+                            "https://i.4cdn.org/" + board + "/" + post.getLong("tim") + post.getString("ext"));
+                    imageInfo.put("board", board);
+                    imageInfo.put("thread", "https://boards.4chan.org/" + board + "/thread/" + thread);
+                    images.add(imageInfo);
                 }
             }
 
             // Save images to cache
-            CACHE.put(board, images);
+            CACHE_4CHAN.put(board, images);
         }
 
-        List<String> images = CACHE.get(board);
-        String image = images.remove(RANDOM.nextInt(images.size()));
-        String threadUrl = image.split(" ")[1];
-        image = image.split(" ")[0];
-
-        // Assemble and return the urls
-        return new String[] { image, threadUrl };
+        List<Map<String, String>> images = CACHE_4CHAN.get(board);
+        Map<String, String> imageInfo = images.remove(RANDOM.nextInt(images.size()));
+        imageInfo.put("description", String.format("Source: 4Chan\n" + 
+                                                       "Board: %s\n" +
+                                                       "Thread: <%s>", 
+                                                       imageInfo.get("board"), imageInfo.get("thread")));
+        return imageInfo;
     }
 
-    public static String getPicSumImage() {
+    public static Map<String, String> getPicSumImage() {
         try {
             // Create a URL object with the specified URL
             String url = "https://picsum.photos/1920/1080";
-            
+
             // Create a new OkHttpClient and set it to not follow redirects
 
-    
             Request request = new Request.Builder()
                     .url(url)
                     .build();
             Response response = HTTP_CLIENT.newCall(request).execute();
-    
+
             // Get the redirected URL from the "Location" header field
-            String redirectedUrl = response.header("Location");
-            return redirectedUrl;
+            Map<String, String> info = new HashMap<>();
+            info.put("description", String.format("Source: Picsum\n"));
+            info.put("image", response.header("Location"));
+            return info;
         } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
     }
-    
-    
 
-    public static String getImgurImage() {
+    public static Map<String, String> getImgurImage() {
         String[] IMAGE_FORMATS = { "jpg", "png", "gif" };
         String imgurId = getRandomImgurId();
         String imageUrl = "https://i.imgur.com/" + imgurId + "." + IMAGE_FORMATS[RANDOM.nextInt(IMAGE_FORMATS.length)];
@@ -126,14 +130,18 @@ public class RandomImage {
             URL url = new URL(imageUrl);
             Image image = ImageIO.read(url);
             if (image == null || image.getWidth(null) == 161 || image.getHeight(null) == 81) {
-                // Failed to read the image or the image has invalid dimensions, try again with a different Imgur ID
+                // Failed to read the image or the image has invalid dimensions, try again with
+                // a different Imgur ID
                 return getImgurImage();
             }
         } catch (IOException e) {
             // Failed to read the image, try again with a different Imgur ID
             return getImgurImage();
         }
-        return imageUrl;
+        Map<String, String> info = new HashMap<>();
+        info.put("description", String.format("Source: Imgur"));
+        info.put("image", imageUrl);
+        return info;
     }
 
     private static String getRandomImgurId() {
@@ -148,7 +156,7 @@ public class RandomImage {
         return idBuilder.toString();
     }
 
-    public static String getRandomRule34xxx() {
+    public static Map<String, String> getRandomRule34xxx() {
         String url = "https://rule34.xxx/index.php?page=post&s=random";
         String imageUrl = null;
         try {
@@ -160,26 +168,48 @@ public class RandomImage {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return imageUrl;
+        Map<String, String> info = new HashMap<>();
+        info.put("description", String.format("Source: Rule34"));
+        info.put("image", imageUrl);
+        return info;
     }
 
-    public static String getGoogleQueryImage(String query) throws IOException {
-        String apiKey = Main.getEnv("GOOGLE_API_KEY");
-        String cseId = Main.getEnv("GOOGLE_CX");
-        Random rand = new Random();
-        int start = rand.nextInt(5) + 1;
-        // Encode the query string
-        String encodedQuery = URLEncoder.encode(query, "UTF-8");
-        String url = String.format(
-                "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&searchType=image&start=%d", apiKey,
-                cseId, encodedQuery, start);
-        String response = httpGet(url);
-        JSONObject json = new JSONObject(response);
-        JSONArray items = json.getJSONArray("items");
-        int index = rand.nextInt(items.length());
-        JSONObject randomImage = items.getJSONObject(index);
-        return randomImage.getString("link");
+    public static Map<String, String> getGoogleQueryImage(String query) throws IOException {
+        // Check if the query's results have already been requested
+        if (!CACHE_GOOGLE.containsKey(query) || CACHE_GOOGLE.get(query).isEmpty()) {
+            // Request the search results for the query
+            String apiKey = Main.getEnv("GOOGLE_API_KEY");
+            String cseId = Main.getEnv("GOOGLE_CX");
+            int start = RANDOM.nextInt(5) + 1;
+            String encodedQuery = URLEncoder.encode(query, "UTF-8");
+            String url = String.format(
+                    "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&searchType=image&start=%d", apiKey,
+                    cseId, encodedQuery, start);
+            String response = httpGet(url);
+            JSONObject json = new JSONObject(response);
+            JSONArray items = json.getJSONArray("items");
+    
+            // Save images to cache
+            List<Map<String, String>> images = new ArrayList<>();
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject item = items.getJSONObject(i);
+                Map<String, String> imageInfo = new HashMap<>();
+                Iterator<String> keys = item.keys();
+                while (keys.hasNext()) {
+                    String key = keys.next();
+                    imageInfo.put(key, item.getString(key));
+                }
+                images.add(imageInfo);
+            }
+            CACHE_GOOGLE.put(query, images);
+        }
+    
+        List<Map<String, String>> images = CACHE_GOOGLE.get(query);
+        Map<String, String> imageInfo = images.remove(RANDOM.nextInt(images.size()));
+        System.out.println(imageInfo);
+        return imageInfo;
     }
+    
 
     private static String httpGet(String url) throws IOException {
         Request request = new Request.Builder()
@@ -194,33 +224,37 @@ public class RandomImage {
         return response.body().string();
     }
 
-    public static String getTenor(String query) throws IOException {
+    public static Map<String, String> getTenor(String query) throws IOException {
         Request request = new Request.Builder()
-                .url("https://tenor.googleapis.com/v2/search?key=" + Main.getEnv("TENOR_API") + "&q=" + URLEncoder.encode(query, "UTF-8") + "&limit=50")
+                .url("https://tenor.googleapis.com/v2/search?key=" + Main.getEnv("TENOR_API") + "&q="
+                        + URLEncoder.encode(query, "UTF-8") + "&limit=50")
                 .build();
-    
+
         try (Response response = HTTP_CLIENT.newCall(request).execute()) {
-            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-    
+            if (!response.isSuccessful())
+                throw new IOException("Unexpected code " + response);
+
             JSONObject jsonObject = new JSONObject(response.body().string());
             JSONArray resultsArray = jsonObject.getJSONArray("results");
             int randomIndex = new Random().nextInt(resultsArray.length());
-            
+
             JSONObject resultObject = resultsArray.getJSONObject(randomIndex);
-            
+
             // Check if "media_formats" and "gif" keys exist
             if (resultObject.has("media_formats") && resultObject.getJSONObject("media_formats").has("gif")) {
                 String gifUrl = resultObject
                         .getJSONObject("media_formats")
                         .getJSONObject("gif").getString("url");
-                
-                return gifUrl;
+
+                Map<String, String> info = new HashMap<>();
+                info.put("query", query);
+                info.put("description", String.format("Source: Tenor\n"
+                                                        + "Query: " + query));
+                info.put("image", gifUrl);
+                return info;
             } else {
                 throw new JSONException("Key 'media_formats' or 'gif' not found in JSONObject");
             }
         }
     }
-    
-    
-
 }

@@ -21,12 +21,12 @@ public class RandomReddit {
     private static String accessToken = null;
     private static long accessTokenExpirationTime = 0;
     private static final long EXPIRATION_TIME = 15 * 60 * 1000; // 15 minutes in milliseconds
-    private static final Map<String, Queue<String>> IMAGE_QUEUES = new ConcurrentHashMap<>();
+    private static final Map<String, Queue<HashMap<String, String>>> IMAGE_QUEUES = new ConcurrentHashMap<>();
     private static final Map<String, Long> LAST_UPDATED = new ConcurrentHashMap<>();
     private static final Map<String, Boolean> SUBREDDIT_EXISTS_CACHE = new ConcurrentHashMap<>();
     private static final MediaType MEDIA_TYPE = MediaType.parse("application/x-www-form-urlencoded");
 
-    public static String[] getRandomReddit(String subreddit) throws IOException {
+    public static HashMap<String, String> getRandomReddit(String subreddit) throws IOException {
         if (subreddit == null || !doesSubredditExist(subreddit)) {
             InputStream inputStream = Main.class.getResourceAsStream("/subreddits.txt");
             subreddit = getRandomLine(inputStream);
@@ -37,7 +37,7 @@ public class RandomReddit {
             LAST_UPDATED.put(subreddit, 0L);
         }
         
-        Queue<String> imageQueue = IMAGE_QUEUES.get(subreddit);
+        Queue<HashMap<String, String>> imageQueue = IMAGE_QUEUES.get(subreddit);
         long lastUpdated = LAST_UPDATED.get(subreddit);
         
         if (imageQueue.isEmpty() || System.currentTimeMillis() - lastUpdated > EXPIRATION_TIME) {
@@ -48,7 +48,7 @@ public class RandomReddit {
             LAST_UPDATED.put(subreddit, System.currentTimeMillis());
         }
         
-        return new String[]{ imageQueue.poll(), subreddit };
+        return imageQueue.poll();
     }
     
     public static boolean doesSubredditExist(String subreddit) throws IOException {
@@ -88,9 +88,9 @@ public class RandomReddit {
         return lines.get(randomIndex);
     }    
 
-    private static void updateImageQueue(String subreddit, String accessToken, Queue<String> imageQueue) {
+    private static void updateImageQueue(String subreddit, String accessToken, Queue<HashMap<String, String>> imageQueue) {
         String after = "";
-        List<String> images = new ArrayList<>();
+        List<HashMap<String, String>> images = new ArrayList<>();
         for (int i = 0; i < 2; i++) {
             try {
                 String url = "https://oauth.reddit.com/r/" + subreddit + "/hot?limit=100&after=" + after;
@@ -108,23 +108,40 @@ public class RandomReddit {
                     shuffledPosts.add(posts.getJSONObject(j));
                 }
                 Collections.shuffle(shuffledPosts);
-
-                List<String> postUrls = shuffledPosts.parallelStream()
+    
+                List<HashMap<String, String>> postUrls = shuffledPosts.parallelStream()
                         .map(post -> post.getJSONObject("data"))
                         .filter(postData -> postData.has("post_hint")
                                 && ("image".equals(postData.getString("post_hint"))
                                         || "rich:video".equals(postData.getString("post_hint"))
                                         || "hosted:video".equals(postData.getString("post_hint"))))
-                        .map(postData -> postData.getString("url"))
-                        .filter(postUrl -> (postUrl.endsWith(".jpg") || postUrl.endsWith(".jpeg")
-                                || postUrl.endsWith(".png")
-                                || postUrl.endsWith(".gif") || postUrl.endsWith(".mp4")
-                                || postUrl.contains("gfycat.com")
-                                || postUrl.contains("redgifs.com") || postUrl.contains("streamable.com")))
+                        .map(postData -> {
+                            HashMap<String, String> postDetails = new HashMap<>();
+                            String postUrl = postData.getString("url");
+                            if (postUrl.endsWith(".jpg") || postUrl.endsWith(".jpeg")
+                                    || postUrl.endsWith(".png")
+                                    || postUrl.endsWith(".gif") || postUrl.endsWith(".mp4")
+                                    || postUrl.contains("gfycat.com")
+                                    || postUrl.contains("redgifs.com") || postUrl.contains("streamable.com")) {
+                                postDetails.put("image", postUrl);
+                                postDetails.put("title", postData.getString("title"));
+                                postDetails.put("date", postData.getBigInteger("created_utc").toString());
+                                postDetails.put("subreddit", subreddit);
+                                postDetails.put("post_link", "https://www.reddit.com" + postData.getString("permalink"));
+                                postDetails.put("description", String.format("Source: Reddit\n"
+                                                                           + "Title: %s\n"
+                                                                           + "Date: %s\n"
+                                                                           + "Subreddit: %s\n"
+                                                                           + "Link: <%s>"
+                                , postDetails.get("title"), postDetails.get("date"),  postDetails.get("subreddit"), postDetails.get("post_link")));
+                            }
+                            return postDetails;
+                        })
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toList());
-
+    
                 images.addAll(postUrls);
-
+    
                 if (json.getJSONObject("data").has("after") && !json.getJSONObject("data").isNull("after")) {
                     after = json.getJSONObject("data").getString("after");
                 } else {
@@ -137,6 +154,7 @@ public class RandomReddit {
         Collections.shuffle(images);
         imageQueue.addAll(images);
     }
+    
 
     private static String getAccessToken() throws IOException {
         String authString = Main.getEnv("REDDIT_CLIENT_ID") + ":" + Main.getEnv("REDDIT_CLIENT_SECRET");
