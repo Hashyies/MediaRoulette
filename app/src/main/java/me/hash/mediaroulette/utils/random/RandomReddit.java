@@ -76,7 +76,7 @@ public class RandomReddit {
         return exists;
     }    
 
-    private static String getRandomLine(InputStream inputStream) throws IOException {
+    public static String getRandomLine(InputStream inputStream) throws IOException {
         List<String> lines = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             String line;
@@ -124,16 +124,11 @@ public class RandomReddit {
                                     || postUrl.contains("gfycat.com")
                                     || postUrl.contains("redgifs.com") || postUrl.contains("streamable.com")) {
                                 postDetails.put("image", postUrl);
-                                postDetails.put("title", postData.getString("title"));
-                                postDetails.put("date", postData.getBigInteger("created_utc").toString());
-                                postDetails.put("subreddit", subreddit);
-                                postDetails.put("post_link", "https://www.reddit.com" + postData.getString("permalink"));
-                                postDetails.put("description", String.format("Source: Reddit\n"
-                                                                           + "Title: %s\n"
-                                                                           + "Date: %s\n"
-                                                                           + "Subreddit: %s\n"
-                                                                           + "Link: <%s>"
-                                , postDetails.get("title"), postDetails.get("date"),  postDetails.get("subreddit"), postDetails.get("post_link")));
+                                postDetails.put("description", String.format("🌐 Source: Reddit\n"
+                                                                           + "✏️ Title: %s\n"
+                                                                           + "🔎 Subreddit: %s\n"
+                                                                           + "🔗 Post Link: <%s>", 
+                                postData.getString("title"), subreddit,  "https://www.reddit.com" + postData.getString("permalink")));
                             }
                             return postDetails;
                         })

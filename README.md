@@ -32,6 +32,9 @@ I just happened to have this idea of letting users classify images as NSFW and n
 
 </details>
 
+### Contributing
+If you would like to support this project with your programming knowledge, please do! I am not professional by any means. I need help with expanidng the dictionaries and with code management as this coding style adapted at the moment is not efficient and uses functional style programming on an OOP language, which doesn't make sense. As time goes on and my skills improve, so will the codebase, I have already rewritten many methods or classes numerous times for efficiency purposes, in order to fully run this bot one day with high reliability. A known issue at the moment is with Imgur, which I am investigating using JSoup to stop invalid Imgur sites making it into the users' side.
+
 ### How to build
 1. Download a release or login to github and download one of the developer releases from [Github Actions](https://github.com/Hashyies/MediaRoulette/actions)
 2. Rename the extension from jar to zip then extract it

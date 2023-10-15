@@ -175,7 +175,13 @@ public class User {
                         return RandomImage.getRandomRule34xxx();
                     case "tenor":
                         try {
-                            return RandomImage.getTenor("test");
+                            return RandomImage.getTenor(null);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    case "google":
+                        try {
+                            return RandomImage.getGoogleQueryImage(null);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }

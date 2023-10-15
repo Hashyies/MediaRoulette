@@ -37,12 +37,13 @@ public class ImageOptions {
     public static List<ImageOptions> getDefaultOptions() {
         List<ImageOptions> options = new ArrayList<>();
 
-        options.add(new ImageOptions("reddit", true, 35));
+        options.add(new ImageOptions("reddit", true, 25));
         options.add(new ImageOptions("imgur", true, 20));
-        options.add(new ImageOptions("tenor", true, 20));
-        options.add(new ImageOptions("rule34xxx", true, 15));
-        options.add(new ImageOptions("4chan", true, 15));
+        options.add(new ImageOptions("tenor", true, 15));
+        options.add(new ImageOptions("rule34xxx", true, 10));
+        options.add(new ImageOptions("4chan", true, 10));
         options.add(new ImageOptions("picsum", true, 5));
+        options.add(new ImageOptions("google", true, 15));
 
         return options;
     }

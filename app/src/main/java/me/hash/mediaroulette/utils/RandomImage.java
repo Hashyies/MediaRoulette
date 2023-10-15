@@ -17,6 +17,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import me.hash.mediaroulette.Main;
+import me.hash.mediaroulette.utils.random.RandomReddit;
 
 public class RandomImage {
 
@@ -80,8 +81,10 @@ public class RandomImage {
                     Map<String, String> imageInfo = new HashMap<>();
                     imageInfo.put("image",
                             "https://i.4cdn.org/" + board + "/" + post.getLong("tim") + post.getString("ext"));
-                    imageInfo.put("board", board);
-                    imageInfo.put("thread", "https://boards.4chan.org/" + board + "/thread/" + thread);
+                    imageInfo.put("description", String.format("🌐 Source: 4Chan\n" +
+                            "🔎 Board: %s\n" +
+                            "🔗 Thread: <%s>",
+                            board, "https://boards.4chan.org/" + board + "/thread/" + thread));
                     images.add(imageInfo);
                 }
             }
@@ -92,10 +95,6 @@ public class RandomImage {
 
         List<Map<String, String>> images = CACHE_4CHAN.get(board);
         Map<String, String> imageInfo = images.remove(RANDOM.nextInt(images.size()));
-        imageInfo.put("description", String.format("Source: 4Chan\n" + 
-                                                       "Board: %s\n" +
-                                                       "Thread: <%s>", 
-                                                       imageInfo.get("board"), imageInfo.get("thread")));
         return imageInfo;
     }
 
@@ -113,7 +112,7 @@ public class RandomImage {
 
             // Get the redirected URL from the "Location" header field
             Map<String, String> info = new HashMap<>();
-            info.put("description", String.format("Source: Picsum\n"));
+            info.put("description", String.format("🌐 Source: Picsum\n"));
             info.put("image", response.header("Location"));
             return info;
         } catch (Exception e) {
@@ -139,7 +138,7 @@ public class RandomImage {
             return getImgurImage();
         }
         Map<String, String> info = new HashMap<>();
-        info.put("description", String.format("Source: Imgur"));
+        info.put("description", String.format("🌐 Source: Imgur"));
         info.put("image", imageUrl);
         return info;
     }
@@ -169,12 +168,16 @@ public class RandomImage {
             e.printStackTrace();
         }
         Map<String, String> info = new HashMap<>();
-        info.put("description", String.format("Source: Rule34"));
+        info.put("description", String.format("🌐 Source: Rule34"));
         info.put("image", imageUrl);
         return info;
     }
 
     public static Map<String, String> getGoogleQueryImage(String query) throws IOException {
+        if (query == null) {
+            InputStream inputStream = Main.class.getResourceAsStream("/basic_dictionary.txt");
+            query = RandomReddit.getRandomLine(inputStream);
+        }
         // Check if the query's results have already been requested
         if (!CACHE_GOOGLE.containsKey(query) || CACHE_GOOGLE.get(query).isEmpty()) {
             // Request the search results for the query
@@ -188,28 +191,26 @@ public class RandomImage {
             String response = httpGet(url);
             JSONObject json = new JSONObject(response);
             JSONArray items = json.getJSONArray("items");
-    
+
             // Save images to cache
             List<Map<String, String>> images = new ArrayList<>();
             for (int i = 0; i < items.length(); i++) {
                 JSONObject item = items.getJSONObject(i);
                 Map<String, String> imageInfo = new HashMap<>();
-                Iterator<String> keys = item.keys();
-                while (keys.hasNext()) {
-                    String key = keys.next();
-                    imageInfo.put(key, item.getString(key));
-                }
+                // Only add the title, link, and date keys to the imageInfo map
+                imageInfo.put("image", item.getString("link"));
+                imageInfo.put("description", String.format("🌐 Source: Google\n"
+                        + "🔎 Query: %s\n"
+                        + "✏️ Title: %s", query, item.getString("snippet")));
                 images.add(imageInfo);
             }
             CACHE_GOOGLE.put(query, images);
         }
-    
+
         List<Map<String, String>> images = CACHE_GOOGLE.get(query);
         Map<String, String> imageInfo = images.remove(RANDOM.nextInt(images.size()));
-        System.out.println(imageInfo);
         return imageInfo;
     }
-    
 
     private static String httpGet(String url) throws IOException {
         Request request = new Request.Builder()
@@ -225,6 +226,11 @@ public class RandomImage {
     }
 
     public static Map<String, String> getTenor(String query) throws IOException {
+        if (query == null) {
+            InputStream inputStream = Main.class.getResourceAsStream("/basic_dictionary.txt");
+            query = RandomReddit.getRandomLine(inputStream);
+        }
+
         Request request = new Request.Builder()
                 .url("https://tenor.googleapis.com/v2/search?key=" + Main.getEnv("TENOR_API") + "&q="
                         + URLEncoder.encode(query, "UTF-8") + "&limit=50")
@@ -248,8 +254,8 @@ public class RandomImage {
 
                 Map<String, String> info = new HashMap<>();
                 info.put("query", query);
-                info.put("description", String.format("Source: Tenor\n"
-                                                        + "Query: " + query));
+                info.put("description", String.format("🌐 Source: Tenor\n"
+                        + "🔎 Query: " + query));
                 info.put("image", gifUrl);
                 return info;
             } else {

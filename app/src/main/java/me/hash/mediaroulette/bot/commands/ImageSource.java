@@ -54,16 +54,13 @@ public enum ImageSource {
                     return s;
 
                 case TENOR:
-                    String query = option != null ? option : "test";
-                    return RandomImage.getTenor(query);
+                    return RandomImage.getTenor(option);
 
                 case _4CHAN:
-                    String board = option != null ? option : "r";
-                    return RandomImage.get4ChanImage(board);
+                    return RandomImage.get4ChanImage(option);
 
                 case GOOGLE:
-                    query = option != null ? option : "test";
-                    return RandomImage.getGoogleQueryImage(query);
+                    return RandomImage.getGoogleQueryImage(option);
 
                 case PICSUM:
                     return RandomImage.getPicSumImage();
