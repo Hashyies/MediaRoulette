@@ -33,7 +33,7 @@ public class Embeds {
         if (Bot.COOLDOWNS.containsKey(userId)
                 && System.currentTimeMillis() - Bot.COOLDOWNS.get(userId) < Bot.COOLDOWN_DURATION) {
             // The user is on cooldown, reply with an embed
-            event.replyEmbeds(cooldownEmbed()).setEphemeral(true).queue();
+            event.getHook().sendMessageEmbeds(cooldownEmbed()).setEphemeral(true).queue();
             return;
         }
     

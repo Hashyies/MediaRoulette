@@ -9,6 +9,7 @@ import me.hash.mediaroulette.utils.exceptions.NoEnabledOptionsException;
 import me.hash.mediaroulette.utils.random.RandomReddit;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,7 @@ public class User {
     private final Database db;
     private final String userId;
     private Document userData;
+    private static final int DEFAULT_FAVORITE_LIMIT = 25;
 
     static {
         executor.scheduleAtFixedRate(() -> {
@@ -52,6 +54,8 @@ public class User {
             userDoc = new Document("_id", userId);
             userDoc.append("images", new Document());
             userDoc.append("nsfw", false);
+            userDoc.append("favorites", null);
+            userDoc.append("favoriteLimit", DEFAULT_FAVORITE_LIMIT);
             userCollection.insertOne(userDoc);
         }
 
@@ -99,6 +103,54 @@ public class User {
 
     public boolean isNsfwEnabled() {
         return userData.getBoolean("nsfw");
+    }
+
+    public void addFavorite(String description, String image, String type) {
+        List<Document> favorites = (List<Document>) userData.getOrDefault("favorites", new ArrayList<>());
+        if (favorites.size() >= getFavoriteLimit()) {
+            System.out.println("Favorite limit reached. Cannot add more favorites.");
+            return;
+        }
+        int id = favorites.size();
+        favorites.add(new Document()
+                .append("id", id)
+                .append("description", description)
+                .append("image", image)
+                .append("type", type));
+        userData.append("favorites", favorites);
+    }
+
+    public void removeFavorite(int id) {
+        List<Document> favorites = (List<Document>) userData.getOrDefault("favorites", new ArrayList<>());
+        if (id >= 0 && id < favorites.size()) {
+            favorites.remove(id);
+            // Update IDs
+            for (int i = id; i < favorites.size(); i++) {
+                Document favorite = favorites.get(i);
+                favorite.append("id", i);
+            }
+        }
+        userData.append("favorites", favorites);
+    }
+
+    public Document getFavorite(int id) {
+        List<Document> favorites = (List<Document>) userData.getOrDefault("favorites", new ArrayList<>());
+        if (id >= 0 && id < favorites.size()) {
+            return favorites.get(id);
+        }
+        return null;
+    }
+
+    public List<Document> getFavorites() {
+        return (List<Document>) userData.getOrDefault("favorites", new ArrayList<>());
+    }
+
+    public void setFavoriteLimit(int limit) {
+        userData.append("favoriteLimit", limit);
+    }
+
+    public int getFavoriteLimit() {
+        return userData.getInteger("favoriteLimit", DEFAULT_FAVORITE_LIMIT);
     }
 
     private void updateDatabase() {

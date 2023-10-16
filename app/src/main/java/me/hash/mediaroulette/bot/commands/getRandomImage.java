@@ -6,6 +6,7 @@ import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
+import me.hash.mediaroulette.utils.User;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -57,7 +58,11 @@ public class getRandomImage extends ListenerAdapter {
         String buttonId = buttonIdParts[0];
         boolean shouldContinue = buttonIdParts.length > 1 && "continue".equals(buttonIdParts[1]);
 
-        if (!buttonId.equals("nsfw") && !buttonId.equals("safe") && !buttonId.equals("end") && !buttonId.equals("favorite")) return;
+        if (!buttonId.equals("nsfw") && !buttonId.equals("safe") && !buttonId.equals("end") && !buttonId.equals("favorite") && event.getButton().getId().startsWith("favorite:")) 
+            return;
+
+        if (event.getButton().getId().startsWith("favorite:"))
+            return;
 
         event.deferEdit().queue();
 
@@ -68,8 +73,20 @@ public class getRandomImage extends ListenerAdapter {
             }
 
             // Handle favorite button click
-            if (buttonId.equals("favorite")) {
-                // Add to favorites
+            if (buttonId.equals("favorite") ) {
+                User user = User.get(Main.database, event.getUser().getId());
+                user.addFavorite(event.getMessage().getEmbeds().get(0).getDescription(),
+                    event.getMessage().getEmbeds().get(0).getImage().getUrl(), "image");
+                
+                    List<Button> buttons = event.getMessage().getButtons();
+                    List<Button> disabledButtons = new ArrayList<>();
+                    for (Button button : buttons) {
+                        if (button.getId().equals("favorite"))
+                            disabledButtons.add(button.asDisabled());
+                        else disabledButtons.add(button);
+                    }
+        
+                    event.getMessage().editMessageComponents(ActionRow.of(disabledButtons)).queue();
                 return;
             }
 

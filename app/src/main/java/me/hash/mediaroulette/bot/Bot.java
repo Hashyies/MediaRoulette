@@ -37,6 +37,7 @@ public class Bot {
         }
 
         jda.addEventListener(
+                new FavoritesCommand(),
                 new getRandomImage(),
                 new ConfigCommand()
         );
@@ -78,6 +79,7 @@ public class Bot {
                                         
                         ),
                 Commands.slash("media", "Random media from the internet"),
+                Commands.slash("favorites", "Shows your favorites"),
                 Commands.slash("config", "Change personal, guild or bot settings")
                         .addSubcommands(
                                 new SubcommandData("bot", "Change settings for yourself")
