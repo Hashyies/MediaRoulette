@@ -24,7 +24,8 @@ public class getRandomImage extends ListenerAdapter {
 
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-        if (!event.getName().equals("random")) return;
+        if (!event.getName().equals("random"))
+            return;
 
         event.deferReply().queue();
         Bot.executor.execute(() -> {
@@ -36,7 +37,8 @@ public class getRandomImage extends ListenerAdapter {
                 return;
             }
 
-            boolean shouldContinue = event.getOption("shouldcontinue") != null && event.getOption("shouldcontinue").getAsBoolean();
+            boolean shouldContinue = event.getOption("shouldcontinue") != null
+                    && event.getOption("shouldcontinue").getAsBoolean();
             String subcommand = event.getSubcommandName();
             String option = null;
             try {
@@ -47,14 +49,15 @@ public class getRandomImage extends ListenerAdapter {
             } catch (IndexOutOfBoundsException e) {
                 // Option was not provided, so it remains null
             }
-    
+
             // Declare new final variables
             final String finalOption = option;
 
             ImageSource.fromName(subcommand.toUpperCase()).ifPresent(source -> {
                 Map<String, String> image = source.handle(event, shouldContinue, finalOption);
                 if (image.get("image") != null) {
-                    Embeds.sendImageEmbed(event, "Here is your random " + subcommand + " image:", image.get("description"), image.get("image"), shouldContinue);
+                    Embeds.sendImageEmbed(event, "Here is your random " + subcommand + " image:",
+                            image.get("description"), image.get("image"), shouldContinue);
                 } else {
                     Embeds.sendErrorEmbed(event, "Error", "This subcommand is not recognized");
                 }
@@ -68,7 +71,8 @@ public class getRandomImage extends ListenerAdapter {
         String buttonId = buttonIdParts[0];
         boolean shouldContinue = buttonIdParts.length > 1 && "continue".equals(buttonIdParts[1]);
 
-        if (!buttonId.equals("nsfw") && !buttonId.equals("safe") && !buttonId.equals("end") && !buttonId.equals("favorite") && event.getButton().getId().startsWith("favorite:")) 
+        if (!buttonId.equals("nsfw") && !buttonId.equals("safe") && !buttonId.equals("end")
+                && !buttonId.equals("favorite") && event.getButton().getId().startsWith("favorite:"))
             return;
 
         if (event.getButton().getId().startsWith("favorite:"))
@@ -84,33 +88,37 @@ public class getRandomImage extends ListenerAdapter {
             }
 
             // Handle favorite button click
-            if (buttonId.equals("favorite") ) {
+            if (buttonId.equals("favorite")) {
                 User user = User.get(Main.database, event.getUser().getId());
                 user.addFavorite(event.getMessage().getEmbeds().get(0).getDescription(),
-                    event.getMessage().getEmbeds().get(0).getImage().getUrl(), "image");
-                
-                    List<Button> buttons = event.getMessage().getButtons();
-                    List<Button> disabledButtons = new ArrayList<>();
-                    for (Button button : buttons) {
-                        if (button.getId().equals("favorite"))
-                            disabledButtons.add(button.asDisabled());
-                        else disabledButtons.add(button);
-                    }
-        
-                    event.getMessage().editMessageComponents(ActionRow.of(disabledButtons)).queue();
+                        event.getMessage().getEmbeds().get(0).getImage().getUrl(), "image");
+
+                List<Button> buttons = event.getMessage().getButtons();
+                List<Button> disabledButtons = new ArrayList<>();
+                for (Button button : buttons) {
+                    if (button.getId().equals("favorite"))
+                        disabledButtons.add(button.asDisabled());
+                    else
+                        disabledButtons.add(button);
+                }
+
+                event.getMessage().editMessageComponents(ActionRow.of(disabledButtons)).queue();
                 return;
             }
 
             // Send message to webhook
             if (Bot.config.get("NSFW_WEBHOOK", Boolean.class) && Bot.config.get("SAFE_WEBHOOK", Boolean.class)) {
-                String webhookUrl = buttonId.equals("nsfw") ? Main.getEnv("DISCORD_NSFW_WEBHOOK") : Main.getEnv("DISCORD_SAFE_WEBHOOK");
+                String webhookUrl = buttonId.equals("nsfw") ? Main.getEnv("DISCORD_NSFW_WEBHOOK")
+                        : Main.getEnv("DISCORD_SAFE_WEBHOOK");
                 int color = buttonId.equals("nsfw") ? Color.RED.getRGB() : Color.GREEN.getRGB();
 
                 WebhookEmbedBuilder embedBuilder = new WebhookEmbedBuilder();
                 try {
                     embedBuilder.setImageUrl(event.getMessage().getEmbeds().get(0).getImage().getUrl());
                 } catch (NullPointerException e) {
-                    event.getHook().sendMessage("It seems that the image did not load... The error messsage has been saved!").queue();
+                    event.getHook()
+                            .sendMessage("It seems that the image did not load... The error messsage has been saved!")
+                            .queue();
                     embedBuilder.setDescription(e.getMessage());
                 }
                 embedBuilder.setColor(color);
@@ -131,24 +139,32 @@ public class getRandomImage extends ListenerAdapter {
             // Handle continue button click
             if (shouldContinue) {
                 String subcommand = event.getMessage().getEmbeds().get(0).getTitle().split(" ")[4];
-                
+
                 ImageSource.fromName(subcommand.toUpperCase()).ifPresent(source -> {
-                    
+
                     String option = null;
                     String description = event.getMessage().getEmbeds().get(0).getDescription();
                     if (description != null) {
-                        String[] parts = description.split("\n")[1].split(":");
-                        if (parts.length >= 2 && Arrays.asList("🔎 Query", "🔎 Board", "🔎 Subreddit").contains(parts[0])) {
-                            option = parts[1].trim();
+                        if (description.split("\n").length < 2)
+                            option = null;
+                        else {
+                            String[] parts = description.split("\n")[1].split(":");
+                            if (parts.length >= 2
+                                    && Arrays.asList("🔎 Query", "🔎 Board", "🔎 Subreddit").contains(parts[0])) {
+                                option = parts[1].trim();
+                            }
                         }
                     }
 
                     Map<String, String> image = source.handle(event, true, option);
-                    
+
                     if (image.get("image") != null) {
-                        Embeds.editImageEmbed(event, "Here is your random " + subcommand + " image:", image.get("description"), image.get("image"));
+                        Embeds.editImageEmbed(event, "Here is your random " + subcommand + " image:",
+                                image.get("description"), image.get("image"));
                     } else {
-                        Embeds.sendErrorEmbed(event, "Error", "This subcommand is not recognized (Or the image you encountered was null... You were using: " + source + ")");
+                        Embeds.sendErrorEmbed(event, "Error",
+                                "This subcommand is not recognized (Or the image you encountered was null... You were using: "
+                                        + source + ")");
                     }
                 });
             }
