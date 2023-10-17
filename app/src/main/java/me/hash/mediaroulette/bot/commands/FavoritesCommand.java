@@ -4,6 +4,7 @@ import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.utils.User;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -13,9 +14,9 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.awt.Color;
 
 import org.bson.Document;
-
 
 public class FavoritesCommand extends ListenerAdapter {
     private static final int ITEMS_PER_PAGE = 3;
@@ -26,6 +27,9 @@ public class FavoritesCommand extends ListenerAdapter {
 
         event.deferReply().queue();
         User user = User.get(Main.database, event.getUser().getId());
+        if (user.getFavorites().size() == 0 || user.getFavorites() == null) {
+            event.reply("You do not have any favorites yet!").queue();
+        }
         sendPaginator(event.getHook(), user.getFavorites(), 0, true);
     }
 
@@ -48,14 +52,15 @@ public class FavoritesCommand extends ListenerAdapter {
         List<Document> favoritesOnPage = favorites.subList(start, end);
 
         EmbedBuilder embedBuilder = new EmbedBuilder();
-        embedBuilder.setTitle("Your Favorites (Page: " + (page + 1) + ")"); // Added title
+        embedBuilder.setTitle("⭐ Your Favorites (Page: " + (page + 1) + ")"); // Added title
         embedBuilder.setAuthor(hook.getInteraction().getUser().getName());
+        embedBuilder.setColor(Color.getColor("FFD700")); // GOLD
 
         List<Button> buttons = new ArrayList<>();
 
         // Add the "back" button at the beginning if there is a previous page
         if (page > 0) {
-            buttons.add(Button.primary("favorite:" + page + ":back", "Back")); // Include page number
+            buttons.add(Button.primary("favorite:" + page + ":back", "Back").withEmoji(Emoji.fromUnicode("⬅️"))); // Include page number
         }
 
         // Add the "show" buttons in the middle
@@ -63,13 +68,13 @@ public class FavoritesCommand extends ListenerAdapter {
         for (Document favorite : favoritesOnPage) {
             String id = favorite.getInteger("id").toString();
             embedBuilder.addField(index + ". " + favorite.getString("description"), favorite.getString("image"), false);
-            buttons.add(Button.primary("favorite:" + id + ":show:" + index, index + ". Show")); // Include index in button ID
+            buttons.add(Button.primary("favorite:" + id + ":show:" + index, index + "")); // Include index in button ID
             index++;
         }
 
         // Add the "next" button at the end if there is a next page
         if (end < favorites.size()) {
-            buttons.add(Button.primary("favorite:" + page + ":next", "Next")); // Include page number
+            buttons.add(Button.primary("favorite:" + page + ":next", "Next").withEmoji(Emoji.fromUnicode("➡️"))); // Include page number
         }
 
         User user = User.get(Main.database, hook.getInteraction().getUser().getId()); // Get user to access getMaxFavorites()
@@ -85,6 +90,11 @@ public class FavoritesCommand extends ListenerAdapter {
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (!event.getButton().getId().startsWith("favorite:"))
             return;
+        
+        if (!event.getUser().getName().equals(event.getMessage().getEmbeds().get(0).getAuthor().getName())) {
+            event.getHook().sendMessage("This is not your menu!").setEphemeral(true).queue();
+            return;
+        }
     
         String[] buttonIdParts = event.getButton().getId().split(":");
         String action = buttonIdParts[2];
@@ -119,11 +129,12 @@ public class FavoritesCommand extends ListenerAdapter {
                 embedBuilder.setDescription(favorite.getString("description"));
                 embedBuilder.setImage(favorite.getString("image"));
                 embedBuilder.setAuthor(event.getUser().getName());
+                embedBuilder.setColor(Color.CYAN);
                 event.getHook().editOriginalEmbeds(embedBuilder.build()).queue();
                 int page = Integer.parseInt(buttonIdParts[1]);
                 event.getHook().editOriginalComponents(ActionRow.of(
-                    Button.danger("favorite:" + index + ":delete", "Delete"), // Added 'favorite' at the beginning
-                    Button.secondary("favorite:" + page + ":back", "Back") // Added 'favorite' at the beginning
+                    Button.danger("favorite:" + index + ":delete", "Delete").withEmoji(Emoji.fromUnicode("❌")), // Added 'favorite' at the beginning
+                    Button.secondary("favorite:" + page + ":back", "Back").withEmoji(Emoji.fromUnicode("⬅️")) // Added 'favorite' at the beginning
                 )).queue();
             }
         });

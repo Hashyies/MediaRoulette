@@ -54,7 +54,7 @@ public class Main {
         configMap.put("DISCORD_NSFW_WEBHOOK", "NSFW_WEBHOOK");
         configMap.put("DISCORD_SAFE_WEBHOOK", "SAFE_WEBHOOK");
         configMap.put("TENOR_API", "TENOR");
-
+        configMap.put("TMDB_API", "TMDB");
 
 
         for (Map.Entry<String, String> entry : configMap.entrySet()) {

@@ -6,6 +6,7 @@ import com.mongodb.client.MongoCollection;
 
 import me.hash.mediaroulette.utils.exceptions.InvalidChancesException;
 import me.hash.mediaroulette.utils.exceptions.NoEnabledOptionsException;
+import me.hash.mediaroulette.utils.random.RandomImage;
 import me.hash.mediaroulette.utils.random.RandomReddit;
 
 import java.io.IOException;

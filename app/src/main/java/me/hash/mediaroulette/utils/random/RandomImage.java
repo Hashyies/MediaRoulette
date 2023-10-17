@@ -1,6 +1,6 @@
-package me.hash.mediaroulette.utils;
+package me.hash.mediaroulette.utils.random;
 
-import java.awt.Image;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -17,7 +17,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import me.hash.mediaroulette.Main;
-import me.hash.mediaroulette.utils.random.RandomReddit;
 
 public class RandomImage {
 
@@ -121,27 +120,38 @@ public class RandomImage {
         return null;
     }
 
-    public static Map<String, String> getImgurImage() {
-        String[] IMAGE_FORMATS = { "jpg", "png", "gif" };
+public static Map<String, String> getImgurImage() {
+    String[] IMAGE_FORMATS = { "jpg", "png", "gif" };
+    int i = 0;
+    int maxAttempts = 120; // Set a limit for the number of attempts
+
+    while (i < maxAttempts) {
         String imgurId = getRandomImgurId();
         String imageUrl = "https://i.imgur.com/" + imgurId + "." + IMAGE_FORMATS[RANDOM.nextInt(IMAGE_FORMATS.length)];
         try {
             URL url = new URL(imageUrl);
-            Image image = ImageIO.read(url);
-            if (image == null || image.getWidth(null) == 161 || image.getHeight(null) == 81) {
-                // Failed to read the image or the image has invalid dimensions, try again with
-                // a different Imgur ID
-                return getImgurImage();
+            BufferedImage image = ImageIO.read(url);
+            if (image == null || 
+                (image.getWidth() == 198 && image.getHeight() == 160) || 
+                (image.getWidth() == 161 && image.getHeight() == 81) || 
+                image.getWidth() < 64 || 
+                image.getHeight() < 64) {
+                i++;
+                continue; // The image has invalid dimensions or is an Imgur error image, try again with a different Imgur ID
             }
+            Map<String, String> info = new HashMap<>();
+            info.put("description", String.format("🌐 Source: Imgur\n"
+                                                    + "🔁 Failed Image Count: %s", 
+                                                    i));
+            info.put("image", imageUrl);
+            return info;
         } catch (IOException e) {
-            // Failed to read the image, try again with a different Imgur ID
-            return getImgurImage();
+            i++; // Failed to read the image, try again with a different Imgur ID
         }
-        Map<String, String> info = new HashMap<>();
-        info.put("description", String.format("🌐 Source: Imgur"));
-        info.put("image", imageUrl);
-        return info;
     }
+    return null; // Return null or a default image if a valid image could not be found after maxAttempts
+}
+
 
     private static String getRandomImgurId() {
         String IMGUR_ID_CHARACTERS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";

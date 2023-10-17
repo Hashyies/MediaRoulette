@@ -14,7 +14,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import me.hash.mediaroulette.Main;
-import me.hash.mediaroulette.utils.RandomImage;
 
 public class RandomReddit {
 

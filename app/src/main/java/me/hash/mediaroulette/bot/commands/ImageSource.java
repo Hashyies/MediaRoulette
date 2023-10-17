@@ -9,7 +9,7 @@ import java.util.Optional;
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
-import me.hash.mediaroulette.utils.RandomImage;
+import me.hash.mediaroulette.utils.random.RandomImage;
 import me.hash.mediaroulette.utils.random.RandomReddit;
 import me.hash.mediaroulette.utils.exceptions.*;
 
@@ -18,6 +18,7 @@ public enum ImageSource {
     TENOR("TENOR"),
     _4CHAN("_4CHAN"),
     GOOGLE("GOOGLE"),
+    IMGUR("IMGUR"),
     PICSUM("PICSUM"),
     RULE34XXX("RULE34XXX"),
     ALL("ALL");
@@ -56,6 +57,9 @@ public enum ImageSource {
                 case TENOR:
                     return RandomImage.getTenor(option);
 
+                case IMGUR:
+                    return RandomImage.getImgurImage();
+
                 case _4CHAN:
                     return RandomImage.get4ChanImage(option);
 
@@ -70,7 +74,7 @@ public enum ImageSource {
 
                 case ALL:
                     me.hash.mediaroulette.utils.User user = me.hash.mediaroulette.utils.User.get(Main.database,
-                            event.getMember().getId());
+                            event.getUser().getId());
                     return user.getImage();
 
                 default:

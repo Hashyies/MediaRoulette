@@ -7,6 +7,7 @@ import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
 import me.hash.mediaroulette.utils.User;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -15,6 +16,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +28,14 @@ public class getRandomImage extends ListenerAdapter {
 
         event.deferReply().queue();
         Bot.executor.execute(() -> {
+            if (!event.getChannelType().equals(ChannelType.PRIVATE) &&
+                    (!event.getChannelType().equals(ChannelType.TEXT)
+                            || !event.getGuildChannel().asTextChannel().isNSFW())) {
+                Embeds.sendErrorEmbed(event, "Not an NSFW channel!",
+                        "This channel must be set as NSFW or the message must be set in DMs!");
+                return;
+            }
+
             boolean shouldContinue = event.getOption("shouldcontinue") != null && event.getOption("shouldcontinue").getAsBoolean();
             String subcommand = event.getSubcommandName();
             String option = null;
@@ -69,7 +79,8 @@ public class getRandomImage extends ListenerAdapter {
         Bot.executor.execute(() -> {
             // Check if the user who clicked the button is the author of the embed
             if (!event.getUser().getName().equals(event.getMessage().getEmbeds().get(0).getAuthor().getName())) {
-                event.getHook().sendMessage("This is not your image!").setEphemeral(true).queue();                return;
+                event.getHook().sendMessage("This is not your image!").setEphemeral(true).queue();
+                return;
             }
 
             // Handle favorite button click
@@ -122,7 +133,18 @@ public class getRandomImage extends ListenerAdapter {
                 String subcommand = event.getMessage().getEmbeds().get(0).getTitle().split(" ")[4];
                 
                 ImageSource.fromName(subcommand.toUpperCase()).ifPresent(source -> {
-                    Map<String, String> image = source.handle(event, true, null);
+                    
+                    String option = null;
+                    String description = event.getMessage().getEmbeds().get(0).getDescription();
+                    if (description != null) {
+                        String[] parts = description.split("\n")[1].split(":");
+                        if (parts.length >= 2 && Arrays.asList("🔎 Query", "🔎 Board", "🔎 Subreddit").contains(parts[0])) {
+                            option = parts[1].trim();
+                        }
+                    }
+
+                    Map<String, String> image = source.handle(event, true, option);
+                    
                     if (image.get("image") != null) {
                         Embeds.editImageEmbed(event, "Here is your random " + subcommand + " image:", image.get("description"), image.get("image"));
                     } else {

@@ -181,6 +181,7 @@ public class ConfigCommand extends ListenerAdapter {
             case "NSFW_WEBHOOK":
             case "SFW_WEBHOOK":
             case "TENOR":
+            case "TMDB":
             case "REDDIT":
                 if (!Main.checkCredentialsBoolean(Main.env.entries(), "REDDIT", "REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET", "REDDIT_USERNAME",
                 "REDDIT_PASSWORD")) {
