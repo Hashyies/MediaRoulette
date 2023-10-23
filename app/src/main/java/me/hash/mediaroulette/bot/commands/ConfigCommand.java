@@ -101,9 +101,6 @@ public class ConfigCommand extends ListenerAdapter {
         User user = User.get(Main.database, event.getUser().getId());
     
         switch (option) {
-            case "nsfw":
-                handleNsfwOption(event, user, value);
-                break;
             case "chances":
                 handleChancesOption(event, user, value);
                 break;
@@ -115,16 +112,6 @@ public class ConfigCommand extends ListenerAdapter {
                 sendErrorEmbed(event, "Invalid option: " + option);
                 break;
         }
-    }
-    
-    private void handleNsfwOption(SlashCommandInteractionEvent event, User user, String value) {
-        if (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false")) {
-            sendErrorEmbed(event, "Invalid value for NSFW: " + value);
-            return;
-        }
-        boolean nsfwEnabled = Boolean.parseBoolean(value);
-        user.setNsfwEnabled(nsfwEnabled);
-        sendSuccessEmbed(event, "Set NSFW to: " + value);
     }
     
     private void handleChancesOption(SlashCommandInteractionEvent event, User user, String value) {

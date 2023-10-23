@@ -10,17 +10,20 @@ import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
 import me.hash.mediaroulette.utils.random.RandomImage;
+import me.hash.mediaroulette.utils.random.RandomMedia;
 import me.hash.mediaroulette.utils.random.RandomReddit;
 import me.hash.mediaroulette.utils.exceptions.*;
 
 public enum ImageSource {
     REDDIT("REDDIT"),
     TENOR("TENOR"),
-    _4CHAN("_4CHAN"),
+    _4CHAN("4CHAN"),
     GOOGLE("GOOGLE"),
     IMGUR("IMGUR"),
     PICSUM("PICSUM"),
     RULE34XXX("RULE34XXX"),
+    MOVIE("MOVIE"),
+    TVSHOW("TVSHOW"),
     ALL("ALL");
 
     private final String name;
@@ -45,12 +48,12 @@ public enum ImageSource {
                     String subreddit = option != null ? option : "funny";
                     if (!RandomReddit.doesSubredditExist(subreddit)) {
                         Embeds.sendErrorEmbed(event, "Hey...", "Sadly this subreddit doesn't exist...");
-                        return null;
+                        return Map.of("image", "end");
                     }
                     Map<String, String> s = RandomReddit.getRandomReddit(subreddit);
                     if (s.get("image") == null) {
                         Embeds.sendErrorEmbed(event, "This subreddit is invalid or an error occurred, please contact the owner!", "This subreddit has issues: " + s.get("subreddit"));
-                        return null;
+                        return Map.of("image", "end");
                     }
                     return s;
 
@@ -61,7 +64,12 @@ public enum ImageSource {
                     return RandomImage.getImgurImage();
 
                 case _4CHAN:
-                    return RandomImage.get4ChanImage(option);
+                String board = option != null ? option : null;
+                    if (!RandomImage.BOARDS.contains(board)) {
+                        Embeds.sendErrorEmbed(event, "Hey...", "This board doesn't exist...");
+                        return Map.of("image", "end");
+                    }
+                    return RandomImage.get4ChanImage(board);
 
                 case GOOGLE:
                     return RandomImage.getGoogleQueryImage(option);
@@ -71,6 +79,10 @@ public enum ImageSource {
 
                 case RULE34XXX:
                     return RandomImage.getRandomRule34xxx();
+                case MOVIE:
+                    return RandomMedia.randomMovie();
+                case TVSHOW:
+                    return RandomMedia.randomTVShow();
 
                 case ALL:
                     me.hash.mediaroulette.utils.User user = me.hash.mediaroulette.utils.User.get(Main.database,
@@ -82,7 +94,7 @@ public enum ImageSource {
             }
         } catch (IOException | NoEnabledOptionsException | InvalidChancesException e) {
             Embeds.sendErrorEmbed(event, "Error", e.getMessage());
-            return null;
+            return Map.of("image", "end");
         }
     }
 

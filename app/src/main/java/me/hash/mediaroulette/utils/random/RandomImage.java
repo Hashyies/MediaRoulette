@@ -42,54 +42,61 @@ public class RandomImage {
         if (!CACHE_4CHAN.containsKey(board) || CACHE_4CHAN.get(board).isEmpty()) {
             // Request board catalog, and get a list of threads on the board
             List<Integer> threadNumbers = new ArrayList<>();
-            String url = "https://a.4cdn.org/" + board + "/catalog.json";
-            String response = null;
+            String url = String.format("https://a.4cdn.org/%s/catalog.json", board);
+
+            String response;
             try {
                 response = httpGet(url);
+                JSONArray data = new JSONArray(response);
+
+                // Get a list of threads in the data
+                for (int i = 0; i < data.length(); i++) {
+                    JSONObject page = data.getJSONObject(i);
+                    JSONArray threads = page.getJSONArray("threads");
+                    for (int j = 0; j < threads.length(); j++) {
+                        JSONObject thread = threads.getJSONObject(j);
+                        threadNumbers.add(thread.getInt("no"));
+                    }
+                }
+
+                // Select a thread
+                int thread = threadNumbers.get(RANDOM.nextInt(threadNumbers.size()));
+
+                // Request the thread information, and get a list of images in that thread
+                List<Map<String, String>> images = new ArrayList<>();
+                url = String.format("https://a.4cdn.org/%s/thread/%d.json", board, thread);
+
+                response = httpGet(url);
+
+                JSONObject postData = new JSONObject(response);
+                JSONArray posts = postData.getJSONArray("posts");
+                for (int i = 0; i < posts.length(); i++) {
+                    JSONObject post = posts.getJSONObject(i);
+                    if (post.has("tim") && post.has("ext")) {
+                        Map<String, String> imageInfo = new HashMap<>();
+                        imageInfo.put("image",
+                                String.format("https://i.4cdn.org/%s/%d%s",
+                                        board,
+                                        post.getLong("tim"),
+                                        post.getString("ext")));
+                        imageInfo.put("description",
+                                String.format("🌐 Source: 4Chan\n" +
+                                        "\uD83D\uDD0D Board: %s\n" +
+                                        "\uD83D\uDD17 Thread: <%s>",
+                                        board,
+                                        String.format("https://boards.4chan.org/%s/thread/%d",
+                                                board,
+                                                thread)));
+                        images.add(imageInfo);
+                    }
+                }
+
+                // Save images to cache
+                CACHE_4CHAN.put(board, images);
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            JSONArray data = new JSONArray(response);
-
-            // Get a list of threads in the data
-            for (int i = 0; i < data.length(); i++) {
-                JSONObject page = data.getJSONObject(i);
-                JSONArray threads = page.getJSONArray("threads");
-                for (int j = 0; j < threads.length(); j++) {
-                    JSONObject thread = threads.getJSONObject(j);
-                    threadNumbers.add(thread.getInt("no"));
-                }
-            }
-
-            // Select a thread
-            int thread = threadNumbers.get(RANDOM.nextInt(threadNumbers.size()));
-
-            // Request the thread information, and get a list of images in that thread
-            List<Map<String, String>> images = new ArrayList<>();
-            url = "https://a.4cdn.org/" + board + "/thread/" + thread + ".json";
-            try {
-                response = httpGet(url);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            JSONObject postData = new JSONObject(response);
-            JSONArray posts = postData.getJSONArray("posts");
-            for (int i = 0; i < posts.length(); i++) {
-                JSONObject post = posts.getJSONObject(i);
-                if (post.has("tim") && post.has("ext")) {
-                    Map<String, String> imageInfo = new HashMap<>();
-                    imageInfo.put("image",
-                            "https://i.4cdn.org/" + board + "/" + post.getLong("tim") + post.getString("ext"));
-                    imageInfo.put("description", String.format("🌐 Source: 4Chan\n" +
-                            "🔎 Board: %s\n" +
-                            "🔗 Thread: <%s>",
-                            board, "https://boards.4chan.org/" + board + "/thread/" + thread));
-                    images.add(imageInfo);
-                }
-            }
-
-            // Save images to cache
-            CACHE_4CHAN.put(board, images);
         }
 
         List<Map<String, String>> images = CACHE_4CHAN.get(board);
@@ -120,38 +127,40 @@ public class RandomImage {
         return null;
     }
 
-public static Map<String, String> getImgurImage() {
-    String[] IMAGE_FORMATS = { "jpg", "png", "gif" };
-    int i = 0;
-    int maxAttempts = 120; // Set a limit for the number of attempts
+    public static Map<String, String> getImgurImage() {
+        String[] IMAGE_FORMATS = { "jpg", "png", "gif" };
+        int i = 0;
+        int maxAttempts = 120; // Set a limit for the number of attempts
 
-    while (i < maxAttempts) {
-        String imgurId = getRandomImgurId();
-        String imageUrl = "https://i.imgur.com/" + imgurId + "." + IMAGE_FORMATS[RANDOM.nextInt(IMAGE_FORMATS.length)];
-        try {
-            URL url = new URL(imageUrl);
-            BufferedImage image = ImageIO.read(url);
-            if (image == null || 
-                (image.getWidth() == 198 && image.getHeight() == 160) || 
-                (image.getWidth() == 161 && image.getHeight() == 81) || 
-                image.getWidth() < 64 || 
-                image.getHeight() < 64) {
-                i++;
-                continue; // The image has invalid dimensions or is an Imgur error image, try again with a different Imgur ID
+        while (i < maxAttempts) {
+            String imgurId = getRandomImgurId();
+            String imageUrl = "https://i.imgur.com/" + imgurId + "."
+                    + IMAGE_FORMATS[RANDOM.nextInt(IMAGE_FORMATS.length)];
+            try {
+                URL url = new URL(imageUrl);
+                BufferedImage image = ImageIO.read(url);
+                if (image == null ||
+                        (image.getWidth() == 198 && image.getHeight() == 160) ||
+                        (image.getWidth() == 161 && image.getHeight() == 81) ||
+                        image.getWidth() < 64 ||
+                        image.getHeight() < 64) {
+                    i++;
+                    continue; // The image has invalid dimensions or is an Imgur error image, try again with a
+                              // different Imgur ID
+                }
+                Map<String, String> info = new HashMap<>();
+                info.put("description", String.format("🌐 Source: Imgur\n"
+                        + "🔁 Failed Image Count: %s",
+                        i));
+                info.put("image", imageUrl);
+                return info;
+            } catch (IOException e) {
+                i++; // Failed to read the image, try again with a different Imgur ID
             }
-            Map<String, String> info = new HashMap<>();
-            info.put("description", String.format("🌐 Source: Imgur\n"
-                                                    + "🔁 Failed Image Count: %s", 
-                                                    i));
-            info.put("image", imageUrl);
-            return info;
-        } catch (IOException e) {
-            i++; // Failed to read the image, try again with a different Imgur ID
         }
+        return null; // Return null or a default image if a valid image could not be found after
+                     // maxAttempts
     }
-    return null; // Return null or a default image if a valid image could not be found after maxAttempts
-}
-
 
     private static String getRandomImgurId() {
         String IMGUR_ID_CHARACTERS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -222,17 +231,16 @@ public static Map<String, String> getImgurImage() {
         return imageInfo;
     }
 
-    private static String httpGet(String url) throws IOException {
+    public static String httpGet(String url) throws IOException {
+        OkHttpClient client = new OkHttpClient();
+    
         Request request = new Request.Builder()
                 .url(url)
                 .build();
-        Response response = HTTP_CLIENT.newCall(request).execute();
-        if (!response.isSuccessful()) {
-            // An error occurred, print the error message
-            System.err.println("Error: " + response.body().string());
-            return null;
+    
+        try (Response response = client.newCall(request).execute()) {
+            return response.body().string();
         }
-        return response.body().string();
     }
 
     public static Map<String, String> getTenor(String query) throws IOException {

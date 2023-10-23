@@ -55,6 +55,8 @@ public class getRandomImage extends ListenerAdapter {
 
             ImageSource.fromName(subcommand.toUpperCase()).ifPresent(source -> {
                 Map<String, String> image = source.handle(event, shouldContinue, finalOption);
+                if (image.get("image").equals("end"))
+                    return;
                 if (image.get("image") != null) {
                     Embeds.sendImageEmbed(event, "Here is your random " + subcommand + " image:",
                             image.get("description"), image.get("image"), shouldContinue);
@@ -158,6 +160,9 @@ public class getRandomImage extends ListenerAdapter {
 
                     Map<String, String> image = source.handle(event, true, option);
 
+                    if (image.get("image").equals("end"))
+                        return;
+                        
                     if (image.get("image") != null) {
                         Embeds.editImageEmbed(event, "Here is your random " + subcommand + " image:",
                                 image.get("description"), image.get("image"));

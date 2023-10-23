@@ -124,9 +124,9 @@ public class RandomReddit {
                                     || postUrl.contains("redgifs.com") || postUrl.contains("streamable.com")) {
                                 postDetails.put("image", postUrl);
                                 postDetails.put("description", String.format("🌐 Source: Reddit\n"
-                                                                           + "✏️ Title: %s\n"
-                                                                           + "🔎 Subreddit: %s\n"
-                                                                           + "🔗 Post Link: <%s>", 
+                                                                            + "🔎 Subreddit: %s\n"
+                                                                            + "✏️ Title: %s\n"
+                                                                            + "🔗 Post Link: <%s>", 
                                 postData.getString("title"), subreddit,  "https://www.reddit.com" + postData.getString("permalink")));
                             }
                             return postDetails;

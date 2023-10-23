@@ -5,6 +5,7 @@ import me.hash.mediaroulette.bot.commands.*;
 import me.hash.mediaroulette.utils.Config;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
@@ -27,7 +28,8 @@ public class Bot {
 
     public Bot(String token) {
         jda = JDABuilder.createDefault(token)
-                .setActivity(Activity.playing("The Media Roulette | CODE BUILD"))
+                .setActivity(Activity.playing("Gomen... Maintenance is happening :<"))
+                .setStatus(OnlineStatus.DO_NOT_DISTURB)
                 .build();
 
         try {
@@ -39,7 +41,8 @@ public class Bot {
         jda.addEventListener(
                 new FavoritesCommand(),
                 new getRandomImage(),
-                new ConfigCommand()
+                new ConfigCommand(),
+                new ChannelNuke()
         );
 
         jda.updateCommands().addCommands(
@@ -75,10 +78,15 @@ public class Bot {
                                 new SubcommandData("4chan", "Sends a random image from 4chan")
                                 .addOption(OptionType.STRING, "query", "Which board to retrieve image from?")
                                 .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?")
-                                        
+                                        "Should the image keep generating?"),
+                                new SubcommandData("movie", "Sends a random movie from TMDB")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the image keep generating?"),
+                                new SubcommandData("tvshow", "Sends a random TV Show from TMDB")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the image keep generating?")          
                         ),
-                Commands.slash("media", "Random media from the internet"),
+                Commands.slash("nuke", "Nukes and throws white fluids on old channel"),
                 Commands.slash("favorites", "Shows your favorites"),
                 Commands.slash("config", "Change personal, guild or bot settings")
                         .addSubcommands(
@@ -96,7 +104,6 @@ public class Bot {
                                         .addOption(OptionType.STRING, "value", "Value to set", false),
                                 new SubcommandData("user", "Change settings for yourself")
                                         .addOptions(new OptionData(OptionType.STRING, "option", "Field to change", true)
-                                                .addChoice("Toggle NSFW", "nsfw")
                                                 .addChoice("Set Chances for Images", "chances")
                                                 .addChoice("Enable Image Option", "enable")
                                                 .addChoice("Disable Image Option", "disable"))

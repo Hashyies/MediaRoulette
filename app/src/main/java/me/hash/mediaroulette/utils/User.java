@@ -7,6 +7,7 @@ import com.mongodb.client.MongoCollection;
 import me.hash.mediaroulette.utils.exceptions.InvalidChancesException;
 import me.hash.mediaroulette.utils.exceptions.NoEnabledOptionsException;
 import me.hash.mediaroulette.utils.random.RandomImage;
+import me.hash.mediaroulette.utils.random.RandomMedia;
 import me.hash.mediaroulette.utils.random.RandomReddit;
 
 import java.io.IOException;
@@ -238,6 +239,10 @@ public class User {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+                    case "movies":
+                        return RandomMedia.randomMovie();
+                    case "tvshow":
+                        return RandomMedia.randomMovie();
                     default:
                         throw new IllegalArgumentException("Unknown image type: " + imageType);
                 }
