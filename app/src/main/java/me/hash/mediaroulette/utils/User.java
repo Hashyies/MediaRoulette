@@ -9,12 +9,15 @@ import me.hash.mediaroulette.utils.exceptions.NoEnabledOptionsException;
 import me.hash.mediaroulette.utils.random.RandomImage;
 import me.hash.mediaroulette.utils.random.RandomMedia;
 import me.hash.mediaroulette.utils.random.RandomReddit;
+import me.hash.mediaroulette.utils.random.RandomText;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.concurrent.*;
 
@@ -160,16 +163,17 @@ public class User {
         userCollection.updateOne(new Document("_id", userId), new Document("$set", userData));
     }
 
+
     public Map<String, String> getImage() throws NoEnabledOptionsException, InvalidChancesException {
         // Get the user's image options
         Map<String, ImageOptions> userImageOptions = getAllImageOptions();
-
+    
         // Get the default image options
         List<ImageOptions> defaultImageOptions = ImageOptions.getDefaultOptions();
-
-        // Create a map to store the final probabilities for each image source
-        Map<String, Double> probabilities = new HashMap<>();
-
+    
+        // Create a priority queue to store the image sources and their probabilities
+        PriorityQueue<ImageOptions> queue = new PriorityQueue<>(Comparator.comparingDouble(ImageOptions::getChance));
+    
         // Calculate the total chance of all enabled options
         double totalChance = 0;
         for (ImageOptions defaultOption : defaultImageOptions) {
@@ -177,80 +181,78 @@ public class User {
             ImageOptions userOption = userImageOptions.get(imageType);
             if (userOption != null && userOption.isEnabled()) {
                 totalChance += userOption.getChance();
-                probabilities.put(imageType, userOption.getChance());
+                queue.add(userOption);
             } else if (userOption == null && defaultOption.isEnabled()) {
                 totalChance += defaultOption.getChance();
-                probabilities.put(imageType, defaultOption.getChance());
+                queue.add(defaultOption);
             }
         }
-
+    
         // Check if all options are disabled
-        if (probabilities.isEmpty()) {
+        if (queue.isEmpty()) {
             throw new NoEnabledOptionsException("All image options are disabled");
         }
-
-        // Normalize the probabilities if the total chance exceeds 100
-        if (totalChance > 100) {
-            double exceededChance = totalChance - 100;
-            double minusChance = exceededChance / probabilities.size();
-            for (Map.Entry<String, Double> entry : probabilities.entrySet()) {
-                double newChance = entry.getValue() - minusChance;
-                if (newChance < 0) {
-                    throw new InvalidChancesException("Invalid chances: one or more chances are less than 0");
-                }
-                entry.setValue(newChance);
+    
+        // Normalize the probabilities if the total chance is not 100
+        if (totalChance != 100) {
+            double difference = 100 - totalChance;
+            double additionalChance = difference / queue.size();
+            for (ImageOptions option : queue) {
+                double newChance = option.getChance() + additionalChance;
+                option.setChance(newChance);
             }
+            totalChance = 100; // Reset the total chance to 100
         }
-
+    
         // Generate a random number
-        double rand = new Random().nextDouble() * 100;
-
+        double rand = new Random().nextDouble() * totalChance;
+    
         // Select an image source based on the random number and the probabilities
         double cumulativeProbability = 0;
-        for (Map.Entry<String, Double> entry : probabilities.entrySet()) {
-            cumulativeProbability += entry.getValue();
-            if (rand < cumulativeProbability) {
-                String imageType = entry.getKey();
-                switch (imageType) {
-                    case "4chan":
-                        return RandomImage.get4ChanImage(null);
-                    case "picsum":
-                        return RandomImage.getPicSumImage();
-                    case "imgur":
-                        return RandomImage.getImgurImage();
-                    case "reddit":
-                        try {
-                            return RandomReddit.getRandomReddit(null);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            return null;
-                        }
-                    case "rule34xxx":
-                        return RandomImage.getRandomRule34xxx();
-                    case "tenor":
-                        try {
-                            return RandomImage.getTenor(null);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    case "google":
-                        try {
-                            return RandomImage.getGoogleQueryImage(null);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    case "movies":
-                        return RandomMedia.randomMovie();
-                    case "tvshow":
-                        return RandomMedia.randomMovie();
-                    default:
-                        throw new IllegalArgumentException("Unknown image type: " + imageType);
-                }
+        ImageOptions selectedOption = null;
+        while (!queue.isEmpty()) {
+            selectedOption = queue.poll();
+            cumulativeProbability += selectedOption.getChance();
+            if (rand <= cumulativeProbability) {
+                break;
             }
         }
-
-        // This should never happen (Hopefully...)
-        throw new IllegalStateException("Failed to select an image source");
+    
+        // Get the image from the selected source
+        try {
+            return getImageByType(selectedOption.getImageType());
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Failed to get image from source: " + selectedOption.getImageType(), e);
+        }
     }
+    
+    
+        
+    private Map<String, String> getImageByType(String imageType) throws IOException {
+        switch (imageType) {
+            case "4chan":
+                return RandomImage.get4ChanImage(null);
+            case "picsum":
+                return RandomImage.getPicSumImage();
+            case "imgur":
+                return RandomImage.getImgurImage();
+            case "reddit":
+                return RandomReddit.getRandomReddit(null);
+            case "rule34xxx":
+                return RandomImage.getRandomRule34xxx();
+            case "tenor":
+                return RandomImage.getTenor(null);
+            case "google":
+                return RandomImage.getGoogleQueryImage(null);
+            case "movies":
+            case "tvshow":
+                return RandomMedia.randomMovie();
+            case "urban":
+                return RandomText.getRandomUrbanWord();
+            default:
+                throw new IllegalArgumentException("Unknown image type: " + imageType);
+        }
+    }    
 
 }

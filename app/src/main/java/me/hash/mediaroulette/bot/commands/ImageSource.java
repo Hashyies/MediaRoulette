@@ -12,6 +12,7 @@ import me.hash.mediaroulette.bot.Embeds;
 import me.hash.mediaroulette.utils.random.RandomImage;
 import me.hash.mediaroulette.utils.random.RandomMedia;
 import me.hash.mediaroulette.utils.random.RandomReddit;
+import me.hash.mediaroulette.utils.random.RandomText;
 import me.hash.mediaroulette.utils.exceptions.*;
 
 public enum ImageSource {
@@ -24,6 +25,7 @@ public enum ImageSource {
     RULE34XXX("RULE34XXX"),
     MOVIE("MOVIE"),
     TVSHOW("TVSHOW"),
+    URBAN("URBAN"),
     ALL("ALL");
 
     private final String name;
@@ -83,7 +85,12 @@ public enum ImageSource {
                     return RandomMedia.randomMovie();
                 case TVSHOW:
                     return RandomMedia.randomTVShow();
-
+                case URBAN:
+                    Map<String, String> map = RandomText.getRandomUrbanWord(option);
+                    if (map.containsKey("error")) {
+                        Embeds.sendErrorEmbed(event, "Error", map.get("error"));
+                        return Map.of("image", "end");
+                    } else return map;
                 case ALL:
                     me.hash.mediaroulette.utils.User user = me.hash.mediaroulette.utils.User.get(Main.database,
                             event.getUser().getId());

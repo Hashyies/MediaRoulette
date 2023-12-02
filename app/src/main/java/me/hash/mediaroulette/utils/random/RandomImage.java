@@ -87,6 +87,7 @@ public class RandomImage {
                                         String.format("https://boards.4chan.org/%s/thread/%d",
                                                 board,
                                                 thread)));
+                        imageInfo.put("title", "Here is your random 4Chan image!");
                         images.add(imageInfo);
                     }
                 }
@@ -120,6 +121,7 @@ public class RandomImage {
             Map<String, String> info = new HashMap<>();
             info.put("description", String.format("🌐 Source: Picsum\n"));
             info.put("image", response.header("Location"));
+            info.put("title", "Here is your random Picsum image!");
             return info;
         } catch (Exception e) {
             e.printStackTrace();
@@ -152,6 +154,8 @@ public class RandomImage {
                 info.put("description", String.format("🌐 Source: Imgur\n"
                         + "🔁 Failed Image Count: %s",
                         i));
+                info.put("title", "Here is your random Imgur picture!");
+
                 info.put("image", imageUrl);
                 return info;
             } catch (IOException e) {
@@ -189,6 +193,8 @@ public class RandomImage {
         Map<String, String> info = new HashMap<>();
         info.put("description", String.format("🌐 Source: Rule34"));
         info.put("image", imageUrl);
+        info.put("title", "Here is your random Rule34xxx (NSFW) picture!");
+
         return info;
     }
 
@@ -221,6 +227,8 @@ public class RandomImage {
                 imageInfo.put("description", String.format("🌐 Source: Google\n"
                         + "🔎 Query: %s\n"
                         + "✏️ Title: %s", query, item.getString("snippet")));
+                imageInfo.put("title", "Here is your random Google search image!");
+
                 images.add(imageInfo);
             }
             CACHE_GOOGLE.put(query, images);
@@ -275,6 +283,7 @@ public class RandomImage {
                 info.put("description", String.format("🌐 Source: Tenor\n"
                         + "🔎 Query: " + query));
                 info.put("image", gifUrl);
+                info.put("title", "Here is your random Imgur image!");
                 return info;
             } else {
                 throw new JSONException("Key 'media_formats' or 'gif' not found in JSONObject");

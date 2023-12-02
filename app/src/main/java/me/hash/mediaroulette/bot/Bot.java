@@ -84,7 +84,11 @@ public class Bot {
                                         "Should the image keep generating?"),
                                 new SubcommandData("tvshow", "Sends a random TV Show from TMDB")
                                 .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?")          
+                                        "Should the image keep generating?"),
+                                new SubcommandData("urban", "Sends a random word from The Urban Dictionary")
+                                .addOption(OptionType.STRING, "query", "What word should be defined?")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the word keep generating?")         
                         ),
                 Commands.slash("nuke", "Nukes and throws white fluids on old channel"),
                 Commands.slash("favorites", "Shows your favorites"),
@@ -109,7 +113,8 @@ public class Bot {
                                                 .addChoice("Disable Image Option", "disable"))
                                         .addOption(OptionType.STRING, "value", "Value to set", true),
                                 new SubcommandData("send", "Send your configuration to the current channel")
-                                        .addOption(OptionType.STRING, "description", "Description for configuration", true)
+                                        .addOption(OptionType.STRING, "description", "Description for configuration", true),
+                                new SubcommandData("reset_configuration", "Resets your configuration to default (Chances)")
                         )
         ).queue();
 

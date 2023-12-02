@@ -55,11 +55,13 @@ public class getRandomImage extends ListenerAdapter {
 
             ImageSource.fromName(subcommand.toUpperCase()).ifPresent(source -> {
                 Map<String, String> image = source.handle(event, shouldContinue, finalOption);
+                while (image.get("image") == null)
+                    image = source.handle(event, shouldContinue, finalOption);
                 if (image.get("image").equals("end"))
                     return;
+                    image.put("type", subcommand.toUpperCase());
                 if (image.get("image") != null) {
-                    Embeds.sendImageEmbed(event, "Here is your random " + subcommand + " image:",
-                            image.get("description"), image.get("image"), shouldContinue);
+                    Embeds.sendImageEmbed(event, image, shouldContinue);
                 } else {
                     Embeds.sendErrorEmbed(event, "Error", "This subcommand is not recognized");
                 }
@@ -73,7 +75,7 @@ public class getRandomImage extends ListenerAdapter {
         String buttonId = buttonIdParts[0];
         boolean shouldContinue = buttonIdParts.length > 1 && "continue".equals(buttonIdParts[1]);
 
-        if (!buttonId.equals("nsfw") && !buttonId.equals("safe") && !buttonId.equals("end")
+        if (!buttonId.equals("nsfw") && !buttonId.equals("safe") && !buttonId.startsWith("exit:")
                 && !buttonId.equals("favorite") && event.getButton().getId().startsWith("favorite:"))
             return;
 
@@ -140,8 +142,8 @@ public class getRandomImage extends ListenerAdapter {
 
             // Handle continue button click
             if (shouldContinue) {
-                String subcommand = event.getMessage().getEmbeds().get(0).getTitle().split(" ")[4];
-
+                String subcommand = event.getMessage().getButtonsByLabel("Exit", true).get(0).getId().split(":")[1];
+System.out.println(subcommand);
                 ImageSource.fromName(subcommand.toUpperCase()).ifPresent(source -> {
 
                     String option = null;
@@ -159,13 +161,14 @@ public class getRandomImage extends ListenerAdapter {
                     }
 
                     Map<String, String> image = source.handle(event, true, option);
-
+                    while (image.get("image") == null)
+                        image = source.handle(event, shouldContinue, option);
+                    image.put("type", subcommand.toUpperCase());
                     if (image.get("image").equals("end"))
                         return;
                         
                     if (image.get("image") != null) {
-                        Embeds.editImageEmbed(event, "Here is your random " + subcommand + " image:",
-                                image.get("description"), image.get("image"));
+                        Embeds.editImageEmbed(event, image);
                     } else {
                         Embeds.sendErrorEmbed(event, "Error",
                                 "This subcommand is not recognized (Or the image you encountered was null... You were using: "

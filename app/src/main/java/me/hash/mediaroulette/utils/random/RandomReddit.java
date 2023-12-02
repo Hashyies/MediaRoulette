@@ -128,6 +128,7 @@ public class RandomReddit {
                                                                             + "✏️ Title: %s\n"
                                                                             + "🔗 Post Link: <%s>", 
                                 postData.getString("title"), subreddit,  "https://www.reddit.com" + postData.getString("permalink")));
+                                postDetails.put("title", "Here is your random Reddit image!");
                             }
                             return postDetails;
                         })

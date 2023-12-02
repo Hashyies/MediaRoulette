@@ -2,6 +2,7 @@ package me.hash.mediaroulette.bot.commands;
 
 import java.awt.Color;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import me.hash.mediaroulette.Main;
@@ -31,7 +32,11 @@ public class ConfigCommand extends ListenerAdapter {
             userConfigChange(event);
         } else if (subcommand.equals("send")) {
             sendUserConfig(event);
-        }
+        } else if (subcommand.equals("reset_configuration")) {
+            User user = User.get(Main.database, event.getUser().getId());
+            List<ImageOptions> list = ImageOptions.getDefaultOptions();
+            ImageOptions[] array = list.toArray(new ImageOptions[list.size()]);
+            user.setChances(array);        }
     }
 
     @Override
