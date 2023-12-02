@@ -16,7 +16,6 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.MessageEditAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
-import net.dv8tion.jda.api.requests.restaction.WebhookMessageEditAction;
 import net.dv8tion.jda.api.utils.FileUpload;
 import net.dv8tion.jda.api.interactions.Interaction;
 
@@ -49,7 +48,9 @@ public class Embeds {
         // Reply with an embed containing the image
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle(map.get("title"));
-        if (!map.get("image").equals("none") && !map.get("image").startsWith("attachment://"))
+        if (map.containsKey("link"))
+                embedBuilder.setUrl(map.get("link"));
+        else if (!map.get("image").equals("none") && !map.get("image").startsWith("attachment://"))
                 embedBuilder.setUrl(map.get("image"));
         if (!map.get("image").equals("none"))
                 embedBuilder.setImage(map.get("image"));
@@ -79,7 +80,7 @@ public class Embeds {
         if (shouldContinue) {
             Button exit = Button.secondary("exit:" + map.get("type"), "Exit")
                     .withEmoji(Emoji.fromUnicode("❌"));
-            WebhookMessageCreateAction action = event.getHook().sendMessageEmbeds(embedBuilder.build())
+            WebhookMessageCreateAction<?> action = event.getHook().sendMessageEmbeds(embedBuilder.build())
                     .addActionRow(safe, favorite, nsfw, exit)
                     .addFiles();
                     if (map.getOrDefault("image_type", "null").equals("create"))
@@ -87,7 +88,7 @@ public class Embeds {
 
                     action.queue();
         } else {
-                WebhookMessageCreateAction action = event.getHook().sendMessageEmbeds(embedBuilder.build())
+                WebhookMessageCreateAction<?> action = event.getHook().sendMessageEmbeds(embedBuilder.build())
                 .addActionRow(safe, favorite, nsfw);
                 if (map.getOrDefault("image_type", "null").equals("create")) {
                         byte[] imageData = RandomText.generateImage(map.get("image_content"));
@@ -104,7 +105,9 @@ public class Embeds {
     public static void editImageEmbed(ButtonInteractionEvent event, Map<String, String> map) {
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle(map.get("title"));
-        if (!map.get("image").equals("none") && !map.get("image").startsWith("attachment://"))
+        if (map.containsKey("link"))
+                embedBuilder.setUrl(map.get("link"));
+        else if (!map.get("image").equals("none") && !map.get("image").startsWith("attachment://"))
                 embedBuilder.setUrl(map.get("image"));
         if (!map.get("image").equals("none"))
                 embedBuilder.setImage(map.get("image"));

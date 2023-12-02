@@ -111,7 +111,7 @@ public class User {
     }
 
     public void addFavorite(String description, String image, String type) {
-        List<Document> favorites = (List<Document>) userData.getOrDefault("favorites", new ArrayList<>());
+        List<Document> favorites = getFavoritesList();
         if (favorites.size() >= getFavoriteLimit()) {
             System.out.println("Favorite limit reached. Cannot add more favorites.");
             return;
@@ -126,7 +126,7 @@ public class User {
     }
 
     public void removeFavorite(int id) {
-        List<Document> favorites = (List<Document>) userData.getOrDefault("favorites", new ArrayList<>());
+        List<Document> favorites = getFavoritesList();
         if (id >= 0 && id < favorites.size()) {
             favorites.remove(id);
             // Update IDs
@@ -139,7 +139,7 @@ public class User {
     }
 
     public Document getFavorite(int id) {
-        List<Document> favorites = (List<Document>) userData.getOrDefault("favorites", new ArrayList<>());
+        List<Document> favorites = getFavoritesList();
         if (id >= 0 && id < favorites.size()) {
             return favorites.get(id);
         }
@@ -147,7 +147,17 @@ public class User {
     }
 
     public List<Document> getFavorites() {
-        return (List<Document>) userData.getOrDefault("favorites", new ArrayList<>());
+        return getFavoritesList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Document> getFavoritesList() {
+        Object favoritesObj = userData.get("favorites");
+        if (favoritesObj instanceof List) {
+            return (List<Document>) favoritesObj;
+        } else {
+            return new ArrayList<>();
+        }
     }
 
     public void setFavoriteLimit(int limit) {
@@ -163,17 +173,16 @@ public class User {
         userCollection.updateOne(new Document("_id", userId), new Document("$set", userData));
     }
 
-
     public Map<String, String> getImage() throws NoEnabledOptionsException, InvalidChancesException {
         // Get the user's image options
         Map<String, ImageOptions> userImageOptions = getAllImageOptions();
-    
+
         // Get the default image options
         List<ImageOptions> defaultImageOptions = ImageOptions.getDefaultOptions();
-    
+
         // Create a priority queue to store the image sources and their probabilities
         PriorityQueue<ImageOptions> queue = new PriorityQueue<>(Comparator.comparingDouble(ImageOptions::getChance));
-    
+
         // Calculate the total chance of all enabled options
         double totalChance = 0;
         for (ImageOptions defaultOption : defaultImageOptions) {
@@ -187,12 +196,12 @@ public class User {
                 queue.add(defaultOption);
             }
         }
-    
+
         // Check if all options are disabled
         if (queue.isEmpty()) {
             throw new NoEnabledOptionsException("All image options are disabled");
         }
-    
+
         // Normalize the probabilities if the total chance is not 100
         if (totalChance != 100) {
             double difference = 100 - totalChance;
@@ -203,10 +212,10 @@ public class User {
             }
             totalChance = 100; // Reset the total chance to 100
         }
-    
+
         // Generate a random number
         double rand = new Random().nextDouble() * totalChance;
-    
+
         // Select an image source based on the random number and the probabilities
         double cumulativeProbability = 0;
         ImageOptions selectedOption = null;
@@ -217,7 +226,7 @@ public class User {
                 break;
             }
         }
-    
+
         // Get the image from the selected source
         try {
             return getImageByType(selectedOption.getImageType());
@@ -226,9 +235,7 @@ public class User {
             throw new IllegalStateException("Failed to get image from source: " + selectedOption.getImageType(), e);
         }
     }
-    
-    
-        
+
     private Map<String, String> getImageByType(String imageType) throws IOException {
         switch (imageType) {
             case "4chan":
@@ -246,13 +253,18 @@ public class User {
             case "google":
                 return RandomImage.getGoogleQueryImage(null);
             case "movies":
-            case "tvshow":
                 return RandomMedia.randomMovie();
+            case "tvshow":
+                return RandomMedia.randomTVShow();
+            case "youtube":
+            return RandomMedia.getRandomYoutube();
+            case "short":
+                return RandomMedia.getRandomYoutubeShorts();
             case "urban":
                 return RandomText.getRandomUrbanWord();
             default:
                 throw new IllegalArgumentException("Unknown image type: " + imageType);
         }
-    }    
+    }
 
 }

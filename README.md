@@ -12,6 +12,10 @@ I just happened to have this idea of letting users classify images as NSFW and n
 - Reddit (Subreddit dictionary needs to be higher)
 - Rule34xxx
 - Tenor (v1 API had random but not v2, therefore needs a dictionary ASAP!!!!!!)
+- Movies (TMDB)
+- TV Shows (TMDB)
+- Youtube Videos
+- Youtube Shorts
 
 ### Roadmap
 **Ongoing tasks**

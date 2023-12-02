@@ -26,6 +26,8 @@ public enum ImageSource {
     MOVIE("MOVIE"),
     TVSHOW("TVSHOW"),
     URBAN("URBAN"),
+    YOUTUBE("YOUTUBE"),
+    SHORT("SHORT"),
     ALL("ALL");
 
     private final String name;
@@ -67,7 +69,7 @@ public enum ImageSource {
 
                 case _4CHAN:
                 String board = option != null ? option : null;
-                    if (!RandomImage.BOARDS.contains(board)) {
+                    if (!RandomImage.BOARDS.contains(board) && !(option == null)) {
                         Embeds.sendErrorEmbed(event, "Hey...", "This board doesn't exist...");
                         return Map.of("image", "end");
                     }
@@ -91,6 +93,10 @@ public enum ImageSource {
                         Embeds.sendErrorEmbed(event, "Error", map.get("error"));
                         return Map.of("image", "end");
                     } else return map;
+                case YOUTUBE:
+                    return RandomMedia.getRandomYoutube();
+                case SHORT:
+                    return RandomMedia.getRandomYoutubeShorts();
                 case ALL:
                     me.hash.mediaroulette.utils.User user = me.hash.mediaroulette.utils.User.get(Main.database,
                             event.getUser().getId());

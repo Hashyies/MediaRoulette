@@ -45,7 +45,7 @@ public class Main {
 
         init();
 
-        // System.out.println(RandomImage.getPicSumImage());
+        // System.out.println(RandomMedia.getRandomYoutube());
     }
 
     static void init() {

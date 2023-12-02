@@ -85,6 +85,12 @@ public class Bot {
                                 new SubcommandData("tvshow", "Sends a random TV Show from TMDB")
                                 .addOption(OptionType.BOOLEAN, "shouldcontinue", 
                                         "Should the image keep generating?"),
+                                new SubcommandData("youtube", "Sends a random YouTube video")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the image keep generating?"),
+                                new SubcommandData("short", "Sends a random Short from TMDB")
+                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
+                                        "Should the image keep generating?"),
                                 new SubcommandData("urban", "Sends a random word from The Urban Dictionary")
                                 .addOption(OptionType.STRING, "query", "What word should be defined?")
                                 .addOption(OptionType.BOOLEAN, "shouldcontinue", 
