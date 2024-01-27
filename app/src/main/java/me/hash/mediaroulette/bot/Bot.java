@@ -126,6 +126,11 @@ public class Bot {
                                         .addOptions(new OptionData(OptionType.STRING, "option", "Something to add", true)
                                                 .addChoice("Premium", "PREMIUM")
                                                 .addChoice("Admin", "ADMIN"))
+                                        .addOption(OptionType.USER, "value", "Whom to add to", true),
+                                new SubcommandData("remove", "Add something to the bot")
+                                        .addOptions(new OptionData(OptionType.STRING, "option", "Something to add", true)
+                                                .addChoice("Premium", "PREMIUM")
+                                                .addChoice("Admin", "ADMIN"))
                                         .addOption(OptionType.USER, "value", "Whom to add to", true)),
                 
                 Commands.slash("info", "Change personal, guild or bot settings")
