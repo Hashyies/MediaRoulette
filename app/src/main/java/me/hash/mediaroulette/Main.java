@@ -23,6 +23,7 @@ public class Main {
     public static Dotenv env;
     public static Database database;
     public static List<String> CHOICES_BOT = new ArrayList<>();
+    public static final long startTime = System.currentTimeMillis();
 
     public static void main(String[] args) throws Exception {
         // Get an InputStream for the .env file

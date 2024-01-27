@@ -7,6 +7,7 @@ import java.util.Map;
 
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
+import me.hash.mediaroulette.bot.Embeds;
 import me.hash.mediaroulette.utils.Hastebin;
 import me.hash.mediaroulette.utils.ImageOptions;
 import me.hash.mediaroulette.utils.User;
@@ -23,10 +24,29 @@ public class ConfigCommand extends ListenerAdapter {
 
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-        if (!event.getName().equals("config")) return;
+        if (!event.getName().equals("config"))
+            return;
+
+        // Get the current time and the user's ID
+        long now = System.currentTimeMillis();
+        long userId = event.getUser().getIdLong();
+
+        // Check if the user is on cooldown
+        if (Bot.COOLDOWNS.containsKey(userId) && now - Bot.COOLDOWNS.get(userId) < Bot.COOLDOWN_DURATION) {
+            // The user is on cooldown, reply with an embed and return
+            Embeds.sendErrorEmbed(event, "Slow down dude", "Please wait for 2 seconds before using this command again!...");
+            return;
+        }
+
+        // Update the user's cooldown
+        Bot.COOLDOWNS.put(userId, now);
 
         String subcommand = event.getSubcommandName();
         if (subcommand.equals("bot")) {
+            if (!User.get(Main.database, event.getUser().getId()).isAdmin()) {
+                Embeds.sendErrorEmbed(event, "No permission", "Only Bot Admins can use this command");
+                return;
+            }
             botConfigChange(event, event.getOption("option").getAsString());
         } else if (subcommand.equals("user")) {
             userConfigChange(event);
@@ -36,12 +56,26 @@ public class ConfigCommand extends ListenerAdapter {
             User user = User.get(Main.database, event.getUser().getId());
             List<ImageOptions> list = ImageOptions.getDefaultOptions();
             ImageOptions[] array = list.toArray(new ImageOptions[list.size()]);
-            user.setChances(array);        }
+            user.setChances(array);
+        } else if (subcommand.equals("add")) {
+            if (!User.get(Main.database, event.getUser().getId()).isAdmin()) {
+                Embeds.sendErrorEmbed(event, "No permission", "Only Bot Admins can use this command");
+                return;
+            }
+            add(event);
+        } else if (subcommand.equals("remove")) {
+            if (!User.get(Main.database, event.getUser().getId()).isAdmin()) {
+                Embeds.sendErrorEmbed(event, "No permission", "Only Bot Admins can use this command");
+                return;
+            }
+            remove(event);
+        }
     }
 
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
-        if (!event.getComponentId().startsWith("set-config:")) return;
+        if (!event.getComponentId().startsWith("set-config:"))
+            return;
 
         String pasteId = event.getComponentId().substring("set-config:".length());
         try {
@@ -50,6 +84,28 @@ public class ConfigCommand extends ListenerAdapter {
             event.reply("Your configuration has been updated!").queue();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void add(SlashCommandInteractionEvent event) {
+        User user = User.get(Main.database, event.getOption("value").getAsUser().getId());
+        switch (event.getOption("option").getAsString()) {
+            case "PREMIUM":
+                user.setPremium(true);
+                break;
+            case "ADMIN":
+                user.setAdmin(true);
+        }
+    }
+
+    private void remove(SlashCommandInteractionEvent event) {
+        User user = User.get(Main.database, event.getOption("value").getAsUser().getId());
+        switch (event.getOption("option").getAsString()) {
+            case "PREMIUM":
+                user.setPremium(false);
+                break;
+            case "ADMIN":
+                user.setAdmin(false);
         }
     }
 
@@ -66,7 +122,8 @@ public class ConfigCommand extends ListenerAdapter {
         for (Map.Entry<String, ImageOptions> entry : allImageOptions.entrySet()) {
             String imageType = entry.getKey();
             ImageOptions imageOption = entry.getValue();
-            sb.append(imageType + ": enabled=" + imageOption.isEnabled() + ", chance=" + imageOption.getChance() + "\n");
+            sb.append(
+                    imageType + ": enabled=" + imageOption.isEnabled() + ", chance=" + imageOption.getChance() + "\n");
         }
 
         String text = event.getOption("description").getAsString();
@@ -99,12 +156,13 @@ public class ConfigCommand extends ListenerAdapter {
     }
 
     private void userConfigChange(SlashCommandInteractionEvent event) {
-        if (!event.getName().equals("config") || !event.getSubcommandName().equals("user")) return;
-    
+        if (!event.getName().equals("config") || !event.getSubcommandName().equals("user"))
+            return;
+
         String option = event.getOption("option").getAsString();
         String value = event.getOption("value").getAsString();
         User user = User.get(Main.database, event.getUser().getId());
-    
+
         switch (option) {
             case "chances":
                 handleChancesOption(event, user, value);
@@ -118,7 +176,7 @@ public class ConfigCommand extends ListenerAdapter {
                 break;
         }
     }
-    
+
     private void handleChancesOption(SlashCommandInteractionEvent event, User user, String value) {
         String[] chances = value.split(",");
         ImageOptions[] options = new ImageOptions[chances.length];
@@ -137,8 +195,9 @@ public class ConfigCommand extends ListenerAdapter {
         user.setChances(options);
         sendSuccessEmbed(event, "Set chances");
     }
-    
-    private void handleEnableDisableOption(SlashCommandInteractionEvent event, User user, String value, boolean enable) {
+
+    private void handleEnableDisableOption(SlashCommandInteractionEvent event, User user, String value,
+            boolean enable) {
         if (!ImageOptions.getDefaultOptions().stream()
                 .map(ImageOptions::getImageType)
                 .anyMatch(imageType -> imageType.equals(value))) {
@@ -158,25 +217,26 @@ public class ConfigCommand extends ListenerAdapter {
         }
         user.setChances(imageOption);
         sendSuccessEmbed(event, (enable ? "Enabled" : "Disabled") + " image option: " + value);
-    }    
+    }
 
     private void botConfigChange(SlashCommandInteractionEvent event, String option) {
         String value = event.getOption("value").getAsString();
         boolean enabled = Boolean.parseBoolean(value);
-    
+
         if (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false")) {
             sendErrorEmbed(event, "Incorrect input: only use false or true");
             return;
         }
-    
+
         switch (option) {
             case "NSFW_WEBHOOK":
             case "SFW_WEBHOOK":
             case "TENOR":
             case "TMDB":
             case "REDDIT":
-                if (!Main.checkCredentialsBoolean(Main.env.entries(), "REDDIT", "REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET", "REDDIT_USERNAME",
-                "REDDIT_PASSWORD")) {
+                if (!Main.checkCredentialsBoolean(Main.env.entries(), "REDDIT", "REDDIT_CLIENT_ID",
+                        "REDDIT_CLIENT_SECRET", "REDDIT_USERNAME",
+                        "REDDIT_PASSWORD")) {
                     sendErrorEmbed(event, option + " Not found in .env");
                     return;
                 }
@@ -196,18 +256,18 @@ public class ConfigCommand extends ListenerAdapter {
             default:
                 break;
         }
-    
+
         Bot.config.set(option, enabled);
         sendSuccessEmbed(event, "Set to: " + value);
-    }    
+    }
 
     private void sendSuccessEmbed(SlashCommandInteractionEvent event, String description) {
-       SUCCESS_EMBED.setDescription(description);
-       event.replyEmbeds(SUCCESS_EMBED.build()).queue();
+        SUCCESS_EMBED.setDescription(description);
+        event.replyEmbeds(SUCCESS_EMBED.build()).queue();
     }
 
     private void sendErrorEmbed(SlashCommandInteractionEvent event, String description) {
-       ERROR_EMBED.setDescription(description);
-       event.replyEmbeds(ERROR_EMBED.build()).setEphemeral(true).queue();
+        ERROR_EMBED.setDescription(description);
+        event.replyEmbeds(ERROR_EMBED.build()).setEphemeral(true).queue();
     }
 }

@@ -1,14 +1,12 @@
 package me.hash.mediaroulette.bot;
 
 import java.awt.Color;
-import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 import me.hash.mediaroulette.utils.random.RandomText;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -22,29 +20,8 @@ import net.dv8tion.jda.api.interactions.Interaction;
 
 public class Embeds {
 
-    public static MessageEmbed cooldownEmbed() {
-        // The user is on cooldown, reply with an embed
-        EmbedBuilder embedBuilder = new EmbedBuilder();
-        embedBuilder.setTitle("Slow down dude...");
-        embedBuilder.setDescription(
-                "Please wait for " + Bot.COOLDOWN_DURATION / 1000 + " seconds before using this command again.");
-        embedBuilder.setColor(Color.RED);
-        return embedBuilder.build();
-    }
-
     public static void sendImageEmbed(SlashCommandInteractionEvent event, Map<String, String> map, boolean shouldContinue) {
-        // Check if the user is on cooldown
-        long userId = event.getUser().getIdLong();
-        if (Bot.COOLDOWNS.containsKey(userId)
-                && System.currentTimeMillis() - Bot.COOLDOWNS.get(userId) < Bot.COOLDOWN_DURATION) {
-            // The user is on cooldown, reply with an embed
-            event.getHook().sendMessageEmbeds(cooldownEmbed()).setEphemeral(true).queue();
-            return;
-        }
-    
-        // Update the user's cooldown
-        Bot.COOLDOWNS.put(userId, System.currentTimeMillis());
-    
+
         // Reply with an embed containing the image
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle(map.get("title"));
@@ -96,10 +73,6 @@ public class Embeds {
                 }
                 action.queue();
         }
-    
-        // Add Image Count to database
-        Bot.config.set("image_generated", new BigInteger(Bot.config.getOrDefault("image_generated", "0", String.class))
-                .add(new BigInteger(String.valueOf(1))).toString());
     }
 
     public static void editImageEmbed(ButtonInteractionEvent event, Map<String, String> map) {
@@ -140,9 +113,9 @@ public class Embeds {
         errorEmbed.setDescription(description);
         errorEmbed.setColor(Color.RED);
         if (event instanceof SlashCommandInteractionEvent) {
-            ((SlashCommandInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).queue();
+            ((SlashCommandInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).setEphemeral(true).queue();
         } else if (event instanceof ButtonInteractionEvent) {
-            ((ButtonInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).queue();
+            ((ButtonInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).setEphemeral(true).queue();
         }
     }
 

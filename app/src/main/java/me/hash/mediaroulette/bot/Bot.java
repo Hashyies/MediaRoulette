@@ -42,13 +42,11 @@ public class Bot {
                 new FavoritesCommand(),
                 new getRandomImage(),
                 new ConfigCommand(),
-                new ChannelNuke()
+                new ChannelNuke(),
+                new InfoCommand()
         );
 
         jda.updateCommands().addCommands(
-                /*Commands.slash("random", "Sends a random image")
-                        .addOption(OptionType.BOOLEAN, "shouldcontinue",
-                                "Should the bot keep generating images after 1?", false),*/
                 Commands.slash("random", "Sends a random image")
                         .addSubcommands(
                                 new SubcommandData("all", "Sends images from all sources")
@@ -96,11 +94,14 @@ public class Bot {
                                 .addOption(OptionType.BOOLEAN, "shouldcontinue", 
                                         "Should the word keep generating?")         
                         ),
+
                 Commands.slash("nuke", "Nukes and throws white fluids on old channel"),
+
                 Commands.slash("favorites", "Shows your favorites"),
+
                 Commands.slash("config", "Change personal, guild or bot settings")
                         .addSubcommands(
-                                new SubcommandData("bot", "Change settings for yourself")
+                                new SubcommandData("bot", "Change settings for the bot (Admin required)")
                                         .addOptions(new OptionData(OptionType.STRING, "option", "Field to change", true)
                                                 .addChoice("Enable NSFW Webhook", "NSFW_WEBHOOK")
                                                 .addChoice("Enable Safe Webhook", "SAFE_WEBHOOK")
@@ -120,8 +121,18 @@ public class Bot {
                                         .addOption(OptionType.STRING, "value", "Value to set", true),
                                 new SubcommandData("send", "Send your configuration to the current channel")
                                         .addOption(OptionType.STRING, "description", "Description for configuration", true),
-                                new SubcommandData("reset_configuration", "Resets your configuration to default (Chances)")
-                        )
+                                new SubcommandData("reset_configuration", "Resets your configuration to default (Chances)"),
+                                new SubcommandData("add", "Add something to the bot")
+                                        .addOptions(new OptionData(OptionType.STRING, "option", "Something to add", true)
+                                                .addChoice("Premium", "PREMIUM")
+                                                .addChoice("Admin", "ADMIN"))
+                                        .addOption(OptionType.USER, "value", "Whom to add to", true)),
+                
+                Commands.slash("info", "Change personal, guild or bot settings")
+                        .addSubcommands(
+                                new SubcommandData("bot", "Get global info about hte bot"),
+                                new SubcommandData("me", "Get info about yourself"))
+
         ).queue();
 
         config = new Config(Main.database);

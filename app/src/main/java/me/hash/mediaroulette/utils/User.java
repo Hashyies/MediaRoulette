@@ -57,9 +57,12 @@ public class User {
         if (userDoc == null) {
             // User does not exist, create a new user document
             userDoc = new Document("_id", userId);
+            userDoc.append("imagesGenerated", 0L);
             userDoc.append("images", new Document());
             userDoc.append("nsfw", false);
             userDoc.append("favorites", null);
+            userDoc.append("premium", false);
+            userDoc.append("admin", false);
             userDoc.append("favoriteLimit", DEFAULT_FAVORITE_LIMIT);
             userCollection.insertOne(userDoc);
         }
@@ -69,6 +72,14 @@ public class User {
 
     public boolean exists() {
         return userData != null;
+    }
+
+    public long getImagesGenearted() {
+        return userData.containsKey("imagesGenerated") ? userData.getLong("imagesGenerated") : 0;
+    }
+
+    public void addImageGenerated() {
+        userData.append("imagesGenerated", getImagesGenearted() + 1L);
     }
 
     public Map<String, ImageOptions> getAllImageOptions() {
@@ -107,7 +118,23 @@ public class User {
     }
 
     public boolean isNsfwEnabled() {
-        return userData.getBoolean("nsfw");
+        return userData.containsKey("nsfw") ? userData.getBoolean("nsfw") : false;
+    }
+    
+    public void setPremium(boolean premium) {
+        userData.append("premium", premium);
+    }
+    
+    public boolean isPremium() {
+        return userData.containsKey("premium") ? userData.getBoolean("premium") : false;
+    }
+
+    public void setAdmin(boolean admin) {
+        userData.append("admin", admin);
+    }
+    
+    public boolean isAdmin() {
+        return userData.containsKey("admin") ? userData.getBoolean("admin") : false;
     }
 
     public void addFavorite(String description, String image, String type) {
@@ -165,7 +192,9 @@ public class User {
     }
 
     public int getFavoriteLimit() {
-        return userData.getInteger("favoriteLimit", DEFAULT_FAVORITE_LIMIT);
+        return isPremium() ?
+         userData.getInteger("favoriteLimit", DEFAULT_FAVORITE_LIMIT)*2 : // True, has premium
+         userData.getInteger("favoriteLimit", DEFAULT_FAVORITE_LIMIT); // False, only give default value
     }
 
     private void updateDatabase() {

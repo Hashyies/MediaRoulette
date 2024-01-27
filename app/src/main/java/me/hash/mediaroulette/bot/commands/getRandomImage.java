@@ -6,8 +6,8 @@ import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
+import me.hash.mediaroulette.utils.Config;
 import me.hash.mediaroulette.utils.User;
-import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -15,6 +15,7 @@ import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 import java.awt.Color;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,13 +30,21 @@ public class getRandomImage extends ListenerAdapter {
 
         event.deferReply().queue();
         Bot.executor.execute(() -> {
-            if (!event.getChannelType().equals(ChannelType.PRIVATE) &&
-                    (!event.getChannelType().equals(ChannelType.TEXT)
-                            || !event.getGuildChannel().asTextChannel().isNSFW())) {
-                Embeds.sendErrorEmbed(event, "Not an NSFW channel!",
-                        "This channel must be set as NSFW or the message must be set in DMs!");
+
+            // Get the current time and the user's ID
+            long now = System.currentTimeMillis();
+            long userId = event.getUser().getIdLong();
+
+            // Check if the user is on cooldown
+            if (Bot.COOLDOWNS.containsKey(userId) && now - Bot.COOLDOWNS.get(userId) < Bot.COOLDOWN_DURATION) {
+                // The user is on cooldown, reply with an embed and return
+                Embeds.sendErrorEmbed(event, "Slow down dude",
+                        "Please wait for 2 seconds before using this command again!...");
                 return;
             }
+
+            // Update the user's cooldown
+            Bot.COOLDOWNS.put(userId, now);
 
             boolean shouldContinue = event.getOption("shouldcontinue") != null
                     && event.getOption("shouldcontinue").getAsBoolean();
@@ -47,7 +56,8 @@ public class getRandomImage extends ListenerAdapter {
                     option = null;
                 }
             } catch (IndexOutOfBoundsException e) {
-                // Option was not provided, so it remains null
+                // Option was not provided, so it remains null, impossible to reach due to
+                // Discord's API
             }
 
             // Declare new final variables
@@ -59,9 +69,18 @@ public class getRandomImage extends ListenerAdapter {
                     image = source.handle(event, shouldContinue, finalOption);
                 if (image.get("image").equals("end"))
                     return;
-                    image.put("type", subcommand.toUpperCase());
+                image.put("type", subcommand.toUpperCase());
                 if (image.get("image") != null) {
                     Embeds.sendImageEmbed(event, image, shouldContinue);
+
+                    // Update the value in the database, Incrementing
+                    Config config = new Config(Main.database);
+                    config.set("image_generated",
+                            new BigInteger(config.getOrDefault("image_generated", "0", String.class))
+                                    .add(BigInteger.ONE).toString());
+
+                    User user = User.get(Main.database, event.getUser().getId());
+                    user.addImageGenerated();
                 } else {
                     Embeds.sendErrorEmbed(event, "Error", "This subcommand is not recognized");
                 }
@@ -143,7 +162,7 @@ public class getRandomImage extends ListenerAdapter {
             // Handle continue button click
             if (shouldContinue) {
                 String subcommand = event.getMessage().getButtonsByLabel("Exit", true).get(0).getId().split(":")[1];
-System.out.println(subcommand);
+                System.out.println(subcommand);
                 ImageSource.fromName(subcommand.toUpperCase()).ifPresent(source -> {
 
                     String option = null;
@@ -166,9 +185,18 @@ System.out.println(subcommand);
                     image.put("type", subcommand.toUpperCase());
                     if (image.get("image").equals("end"))
                         return;
-                        
+
                     if (image.get("image") != null) {
                         Embeds.editImageEmbed(event, image);
+
+                        // Update the value in the database, Incrementing
+                        Config config = new Config(Main.database);
+                        config.set("image_generated",
+                                new BigInteger(config.getOrDefault("image_generated", "0", String.class))
+                                        .add(BigInteger.ONE).toString());
+
+                        User user = User.get(Main.database, event.getUser().getId());
+                        user.addImageGenerated();
                     } else {
                         Embeds.sendErrorEmbed(event, "Error",
                                 "This subcommand is not recognized (Or the image you encountered was null... You were using: "
