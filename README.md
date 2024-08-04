@@ -1,5 +1,21 @@
 # Media Roullete
 ![Media Roullete](https://i.postimg.cc/d10Bgt57/banner.png)
+
+<p align="center">
+  <a href="https://discord.gg/hrahDvBu42">
+    <img src="https://img.shields.io/badge/Join%20us%20on-Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white"/>
+  </a>
+  <a href="https://www.buymeacoffee.com/HashyDev">
+    <img src="https://img.shields.io/badge/Buy%20me%20a-Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black"/>
+  </a>
+  <a href="https://www.patreon.com/hashyVentures">
+    <img src="https://img.shields.io/badge/Support%20me%20on-Patreon-F96854?style=for-the-badge&logo=patreon&logoColor=white"/>
+  </a>
+  <a href="https://x.com/CodaDev_">
+    <img src="https://img.shields.io/badge/Follow%20me%20on-X-000000?style=for-the-badge&logo=x&logoColor=white"/>
+  </a>
+</p>
+
 Media Roullete is a media Discord bot that allows users to test their luck, whether they get cute cats messing around, some spicy pictures, or content that'll make them look away from the internet for good.
 
 ### Why though?
