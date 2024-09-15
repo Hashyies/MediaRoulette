@@ -26,8 +26,8 @@ repositories {
 }
 
 dependencies {
-    implementation("net.dv8tion:JDA:5.0.0-beta.13")
-    implementation("org.json:json:20230618")
+    implementation("net.dv8tion:JDA:5.1.0")
+    implementation("org.json:json:20231013")
     implementation("org.jsoup:jsoup:1.16.1")
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
     implementation("club.minnced:discord-webhooks:0.8.4")
