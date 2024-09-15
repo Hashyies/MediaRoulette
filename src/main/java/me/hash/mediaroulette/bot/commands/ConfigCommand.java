@@ -10,7 +10,7 @@ import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
 import me.hash.mediaroulette.utils.Hastebin;
 import me.hash.mediaroulette.utils.ImageOptions;
-import me.hash.mediaroulette.utils.User;
+import me.hash.mediaroulette.utils.user.User;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;

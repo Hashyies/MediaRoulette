@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.imageio.ImageIO;
 
+import me.hash.mediaroulette.bot.commands.ImageSource;
 import okhttp3.*;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -200,8 +201,7 @@ public class RandomImage {
 
     public static Map<String, String> getGoogleQueryImage(String query) throws IOException {
         if (query == null) {
-            InputStream inputStream = Main.class.getResourceAsStream("/basic_dictionary.txt");
-            query = RandomReddit.getRandomLine(inputStream);
+            query = ImageSource.subredditManager.getRandomSubreddit();
         }
         // Check if the query's results have already been requested
         if (!CACHE_GOOGLE.containsKey(query) || CACHE_GOOGLE.get(query).isEmpty()) {
@@ -253,8 +253,7 @@ public class RandomImage {
 
     public static Map<String, String> getTenor(String query) throws IOException {
         if (query == null) {
-            InputStream inputStream = Main.class.getResourceAsStream("/basic_dictionary.txt");
-            query = RandomReddit.getRandomLine(inputStream);
+            query = ImageSource.subredditManager.getRandomSubreddit();
         }
 
         Request request = new Request.Builder()

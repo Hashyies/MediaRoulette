@@ -3,7 +3,7 @@ package me.hash.mediaroulette.bot.commands;
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
-import me.hash.mediaroulette.utils.User;
+import me.hash.mediaroulette.utils.user.User;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -86,7 +86,17 @@ public class FavoritesCommand extends ListenerAdapter {
         int index = start + 1; // Start numbering from the first item on the page
         for (Document favorite : favoritesOnPage) {
             String id = favorite.getInteger("id").toString();
-            embedBuilder.addField(index + ". " + favorite.getString("description"), favorite.getString("image"), false);
+            embedBuilder.addField(
+                    index + ". " + (favorite.getString("description").length() > 230
+                            ? favorite.getString("description").substring(0, 230) + "..."
+                            : favorite.getString("description")),
+                    favorite.getString("image"),
+                    false
+            );
+
+            // Separate the favorites
+            embedBuilder.addField("⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯", "", false);
+
             buttons.add(Button.primary("favorite:" + id + ":show:" + index, index + "")); // Include index in button ID
             index++;
         }
@@ -130,7 +140,7 @@ public class FavoritesCommand extends ListenerAdapter {
             if (action.equals("delete")) {
                 int favoriteId = Integer.parseInt(buttonIdParts[1]) - 1; // In this case, the page number is actually
                                                                          // the favorite ID
-                Document favorite = user.getFavorite(favoriteId);
+                Document favorite = user.getFavorites().get(favoriteId);
                 if (favorite == null) {
                     event.getHook().sendMessage("This favorite does not exist").setEphemeral(true).queue();
                     return;

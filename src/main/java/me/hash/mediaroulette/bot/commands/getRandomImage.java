@@ -7,7 +7,7 @@ import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
 import me.hash.mediaroulette.utils.Config;
-import me.hash.mediaroulette.utils.User;
+import me.hash.mediaroulette.utils.user.User;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -65,7 +65,7 @@ public class getRandomImage extends ListenerAdapter {
 
             ImageSource.fromName(subcommand.toUpperCase()).ifPresent(source -> {
                 Map<String, String> image = source.handle(event, shouldContinue, finalOption);
-                while (image.get("image") == null)
+                while (!image.containsKey("image") || image.get("image") == null)
                     image = source.handle(event, shouldContinue, finalOption);
                 if (image.get("image").equals("end"))
                     return;
@@ -80,7 +80,7 @@ public class getRandomImage extends ListenerAdapter {
                                     .add(BigInteger.ONE).toString());
 
                     User user = User.get(Main.database, event.getUser().getId());
-                    user.addImageGenerated();
+                    user.incrementImagesGenerated();
                 } else {
                     Embeds.sendErrorEmbed(event, "Error", "This subcommand is not recognized");
                 }
@@ -105,7 +105,12 @@ public class getRandomImage extends ListenerAdapter {
 
         Bot.executor.execute(() -> {
             // Check if the user who clicked the button is the author of the embed
-            if (!event.getUser().getName().equals(event.getMessage().getEmbeds().get(0).getAuthor().getName())) {
+            if (event.getMessage().getEmbeds().isEmpty()) {
+                event.getHook().sendMessage("There is no embeds here... Cancelling operation!!!").setEphemeral(true).queue();
+                return;
+            }
+
+            if (!event.getUser().getName().equals(event.getMessage().getEmbeds().getFirst().getAuthor().getName())) {
                 event.getHook().sendMessage("This is not your image!").setEphemeral(true).queue();
                 return;
             }
@@ -196,7 +201,7 @@ public class getRandomImage extends ListenerAdapter {
                                         .add(BigInteger.ONE).toString());
 
                         User user = User.get(Main.database, event.getUser().getId());
-                        user.addImageGenerated();
+                        user.incrementImagesGenerated();
                     } else {
                         Embeds.sendErrorEmbed(event, "Error",
                                 "This subcommand is not recognized (Or the image you encountered was null... You were using: "

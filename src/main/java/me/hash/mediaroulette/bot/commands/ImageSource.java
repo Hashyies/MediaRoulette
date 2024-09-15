@@ -1,17 +1,21 @@
 package me.hash.mediaroulette.bot.commands;
 
+import me.hash.mediaroulette.utils.random.reddit.RandomRedditService;
+import me.hash.mediaroulette.utils.random.reddit.RedditClient;
+import me.hash.mediaroulette.utils.random.reddit.SubredditManager;
+import me.hash.mediaroulette.utils.user.User;
 import net.dv8tion.jda.api.interactions.Interaction;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
 import me.hash.mediaroulette.utils.random.RandomImage;
 import me.hash.mediaroulette.utils.random.RandomMedia;
-import me.hash.mediaroulette.utils.random.RandomReddit;
 import me.hash.mediaroulette.utils.random.RandomText;
 import me.hash.mediaroulette.utils.exceptions.*;
 
@@ -32,6 +36,10 @@ public enum ImageSource {
 
     private final String name;
 
+    public static final RedditClient redditClient = new RedditClient();
+    public static final SubredditManager subredditManager = new SubredditManager(redditClient);
+    public static final RandomRedditService randomRedditService = new RandomRedditService(redditClient, subredditManager);
+
     ImageSource(String name) {
         this.name = name;
     }
@@ -39,6 +47,7 @@ public enum ImageSource {
     public String getName() {
         return name;
     }
+
 
     public Map<String, String> handle(Interaction event, boolean shouldContinue, String option) {
         if (isOptionDisabled(this.name)) {
@@ -49,17 +58,36 @@ public enum ImageSource {
         try {
             switch (this) {
                 case REDDIT:
-                    String subreddit = option != null ? option : "funny";
-                    if (!RandomReddit.doesSubredditExist(subreddit)) {
-                        Embeds.sendErrorEmbed(event, "Hey...", "Sadly this subreddit doesn't exist...");
+                    try {
+                        String subreddit = (option != null)
+                                ? option
+                                : subredditManager.getRandomSubreddit();
+
+                        // Check if the subreddit exists; if not, send an error message and return
+                        if (!subredditManager.doesSubredditExist(subreddit)) {
+                            Embeds.sendErrorEmbed(event, "Hey...", "Sadly, this subreddit doesn't exist...");
+                            return Map.of("image", "end");
+                        }
+
+                        Map<String, String> redditPost = randomRedditService.getRandomReddit(subreddit);
+
+                        // Check if the image is null, indicating an issue with the subreddit or the post
+                        if (redditPost == null) {
+                            Embeds.sendErrorEmbed(event,
+                                    "This subreddit is invalid or an error occurred, please contact the owner!",
+                                    "This subreddit has issues: " + subreddit);
+                            return Map.of("image", "end");
+                        }
+
+                        return redditPost;
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Embeds.sendErrorEmbed(event, "Error", "An unexpected error occurred while fetching data from Reddit. Please try again later.");
                         return Map.of("image", "end");
+                    } catch (ExecutionException | InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
-                    Map<String, String> s = RandomReddit.getRandomReddit(subreddit);
-                    if (s.get("image") == null) {
-                        Embeds.sendErrorEmbed(event, "This subreddit is invalid or an error occurred, please contact the owner!", "This subreddit has issues: " + s.get("subreddit"));
-                        return Map.of("image", "end");
-                    }
-                    return s;
 
                 case TENOR:
                     return RandomImage.getTenor(option);
@@ -68,12 +96,11 @@ public enum ImageSource {
                     return RandomImage.getImgurImage();
 
                 case _4CHAN:
-                String board = option != null ? option : null;
-                    if (!RandomImage.BOARDS.contains(board) && !(option == null)) {
+                    if (!RandomImage.BOARDS.contains(option) && !(option == null)) {
                         Embeds.sendErrorEmbed(event, "Hey...", "This board doesn't exist...");
                         return Map.of("image", "end");
                     }
-                    return RandomImage.get4ChanImage(board);
+                    return RandomImage.get4ChanImage(option);
 
                 case GOOGLE:
                     return RandomImage.getGoogleQueryImage(option);
@@ -98,7 +125,7 @@ public enum ImageSource {
                 case SHORT:
                     return RandomMedia.getRandomYoutubeShorts();
                 case ALL:
-                    me.hash.mediaroulette.utils.User user = me.hash.mediaroulette.utils.User.get(Main.database,
+                    User user = User.get(Main.database,
                             event.getUser().getId());
                     return user.getImage();
 

@@ -22,8 +22,8 @@ public class Main {
 
     public static Dotenv env;
     public static Database database;
-    public static List<String> CHOICES_BOT = new ArrayList<>();
     public static final long startTime = System.currentTimeMillis();
+    public static Bot bot = null;
 
     public static void main(String[] args) throws Exception {
         // Get an InputStream for the .env file
@@ -34,6 +34,7 @@ public class Main {
         tempFile.toFile().deleteOnExit();
 
         // Copy the contents of the .env file to the temporary file
+        assert inputStream != null;
         Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
 
         env = Dotenv.configure()
@@ -42,7 +43,7 @@ public class Main {
                 .load();
 
         database = new Database(Main.getEnv("MONGODB_CONNECTION"), "MediaRoulette");
-        new Bot(getEnv("DISCORD_TOKEN"));
+        bot = new Bot(getEnv("DISCORD_TOKEN"));
 
         init();
 
@@ -116,4 +117,5 @@ public class Main {
     public static String getEnv(String key) {
         return env.get(key);
     }
+
 }

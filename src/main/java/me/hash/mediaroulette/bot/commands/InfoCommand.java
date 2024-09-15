@@ -7,7 +7,7 @@ import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
 import me.hash.mediaroulette.utils.Config;
-import me.hash.mediaroulette.utils.User;
+import me.hash.mediaroulette.utils.user.User;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -80,7 +80,7 @@ public class InfoCommand extends ListenerAdapter {
 
         User user = User.get(Main.database, id);
 
-        embed.addField("Images Generated", "" + user.getImagesGenearted(), true);
+        embed.addField("Images Generated", "" + user.getImagesGenerated(), true);
         embed.addField("Favorites used", user.getFavorites().size() + "/" + user.getFavoriteLimit(), true);
         embed.addField("Premium", "" + user.isPremium(), true);
         embed.addField("Admin", "" + user.isAdmin(), true);
