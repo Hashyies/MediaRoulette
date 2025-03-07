@@ -1,5 +1,7 @@
-package me.hash.mediaroulette.utils.random;
+package me.hash.mediaroulette.content;
 
+import me.hash.mediaroulette.utils.discord.DiscordTimestamp;
+import me.hash.mediaroulette.utils.discord.DiscordTimestampType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -108,7 +110,7 @@ public class RandomMedia {
         HashMap<String, String> videoDetails = new HashMap<>();
         videoDetails.put("description", "🎬 **Title:** " + title
                 + "\n📺 **Channel Name:** " + channelTitle
-                + "\n📅 **Date Of Release:** " + publishDate
+                + "\n📅 **Date Of Release:** " + DiscordTimestamp.generateTimestampFromIso8601(publishDate, DiscordTimestampType.SHORT_DATE_TIME)
                 + "\n🔗 **Video Link:** " + "<" + videoUrl + ">");
 
         videoDetails.put("image", thumbnailUrl);

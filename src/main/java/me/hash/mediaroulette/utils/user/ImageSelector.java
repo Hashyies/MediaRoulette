@@ -1,12 +1,12 @@
 package me.hash.mediaroulette.utils.user;
 
-import me.hash.mediaroulette.bot.commands.ImageSource;
+import me.hash.mediaroulette.bot.commands.images.ImageSource;
 import me.hash.mediaroulette.utils.ImageOptions;
 import me.hash.mediaroulette.utils.exceptions.InvalidChancesException;
 import me.hash.mediaroulette.utils.exceptions.NoEnabledOptionsException;
-import me.hash.mediaroulette.utils.random.RandomImage;
-import me.hash.mediaroulette.utils.random.RandomMedia;
-import me.hash.mediaroulette.utils.random.RandomText;
+import me.hash.mediaroulette.content.RandomImage;
+import me.hash.mediaroulette.content.RandomMedia;
+import me.hash.mediaroulette.content.RandomText;
 
 import java.io.IOException;
 import java.util.*;
@@ -88,7 +88,7 @@ public class ImageSelector {
             case "tvshow" -> RandomMedia.randomTVShow();
             case "youtube" -> RandomMedia.getRandomYoutube();
             case "short" -> RandomMedia.getRandomYoutubeShorts();
-            case "urban" -> RandomText.getRandomUrbanWord();
+            case "urban" -> RandomText.getRandomUrbanWord(null);
             default -> throw new IllegalArgumentException("Unknown image type: " + imageType);
         };
     }

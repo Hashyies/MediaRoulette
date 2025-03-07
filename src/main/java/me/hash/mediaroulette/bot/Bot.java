@@ -1,162 +1,106 @@
 package me.hash.mediaroulette.bot;
 
 import me.hash.mediaroulette.Main;
-import me.hash.mediaroulette.bot.commands.*;
+import me.hash.mediaroulette.bot.commands.CommandHandler;
+import me.hash.mediaroulette.bot.commands.admin.ChannelNuke;
+import me.hash.mediaroulette.bot.commands.bot.InfoCommand;
+import me.hash.mediaroulette.bot.commands.bot.ShardsCommand;
+import me.hash.mediaroulette.bot.commands.config.ConfigCommand;
+import me.hash.mediaroulette.bot.commands.images.FavoritesCommand;
+import me.hash.mediaroulette.bot.commands.images.getRandomImage;
 import me.hash.mediaroulette.utils.Config;
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.JDABuilder;
+
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
-import net.dv8tion.jda.api.entities.channel.ChannelType;
-import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
-import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.sharding.DefaultShardManagerBuilder;
+import net.dv8tion.jda.api.sharding.ShardManager;
 
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class Bot {
-    static JDA jda = null;
-    public static final long COOLDOWN_DURATION = 2500; // 2.5 seconds in milliseconds
-    public static final Map<Long, Long> COOLDOWNS = new HashMap<>();
+    private static ShardManager shardManager = null;
+    public static final long COOLDOWN_DURATION = 2500; // Cooldown duration in milliseconds
+    public static final Map<Long, Long> COOLDOWNS = new HashMap<>(); // Cooldown management map
     public static Config config = null;
-    public static final ExecutorService executor = Executors.newCachedThreadPool();
+    public static final ExecutorService executor = Executors.newCachedThreadPool(); // Executor for async tasks
 
     public Bot(String token) {
-        jda = JDABuilder.createDefault(token)
-                .setActivity(Activity.playing("Gomen... Maintenance is happening :<"))
-                .setStatus(OnlineStatus.DO_NOT_DISTURB)
+        // Initialize ShardManager
+        shardManager = DefaultShardManagerBuilder.createDefault(token)
+                .setActivity(Activity.playing("ALPHAAAA WOOO! :3")) // Set activity to all shards
+                .setStatus(OnlineStatus.IDLE) // Default status
+                .setShardsTotal(-1) // Auto-detect number of shards
                 .build();
 
-        try {
-            jda.awaitReady();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        // Register global event listeners and command handlers
+        registerEventListeners();
 
-        jda.addEventListener(
-                new FavoritesCommand(),
-                new getRandomImage(),
-                new ConfigCommand(),
-                new ChannelNuke(),
-                new InfoCommand()
-        );
+        // Create and register global commands across all shards
+        registerGlobalCommands();
 
-        jda.updateCommands().addCommands(
-                Commands.slash("random", "Sends a random image")
-                        .addSubcommands(
-                                new SubcommandData("all", "Sends images from all sources")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?"),
-                                new SubcommandData("picsum", "Sends a random image from picsum")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?"),
-                                new SubcommandData("imgur", "Sends a random image from imgur")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?"),
-                                new SubcommandData("rule34xxx", "Sends a random image from rule34.xxx")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?"),
-                                new SubcommandData("google", "Sends a random image from google")
-                                .addOption(OptionType.STRING, "query", "What image should be searched for?")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?"),
-                                new SubcommandData("reddit", "Sends a random image from reddit")
-                                .addOption(OptionType.STRING, "subreddit", "Which subreddit should the image be retrieved from?")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?"),
-                                new SubcommandData("tenor", "Sends a random gif from tenor")
-                                .addOption(OptionType.STRING, "query", "What gif should be searched for?")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the gif keep generating?"),
-                                new SubcommandData("4chan", "Sends a random image from 4chan")
-                                .addOption(OptionType.STRING, "query", "Which board to retrieve image from?")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?"),
-                                new SubcommandData("movie", "Sends a random movie from TMDB")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?"),
-                                new SubcommandData("tvshow", "Sends a random TV Show from TMDB")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?"),
-                                new SubcommandData("youtube", "Sends a random YouTube video")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?"),
-                                new SubcommandData("short", "Sends a random Short from TMDB")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the image keep generating?"),
-                                new SubcommandData("urban", "Sends a random word from The Urban Dictionary")
-                                .addOption(OptionType.STRING, "query", "What word should be defined?")
-                                .addOption(OptionType.BOOLEAN, "shouldcontinue", 
-                                        "Should the word keep generating?")         
-                        ),
-
-                Commands.slash("nuke", "Nukes and throws white fluids on old channel"),
-
-                Commands.slash("favorites", "Shows your favorites"),
-
-                Commands.slash("config", "Change personal, guild or bot settings")
-                        .addSubcommands(
-                                new SubcommandData("bot", "Change settings for the bot (Admin required)")
-                                        .addOptions(new OptionData(OptionType.STRING, "option", "Field to change", true)
-                                                .addChoice("Enable NSFW Webhook", "NSFW_WEBHOOK")
-                                                .addChoice("Enable Safe Webhook", "SAFE_WEBHOOK")
-                                                .addChoice("Enable Reddit", "REDDIT")
-                                                .addChoice("Enable Google Search", "GOOGLE")
-                                                .addChoice("Enable 4Chan", "4CHAN")
-                                                .addChoice("Enable Picsum", "PICSUM")
-                                                .addChoice("Enable Rule34.xxx", "RULE34XXX")
-                                                .addChoice("Enable Tenor", "TENOR")
-                                                .addChoice("Enable Generated Count", "GENERATED_VOICE_CHANNEL"))
-                                        .addOption(OptionType.STRING, "value", "Value to set", false),
-                                new SubcommandData("user", "Change settings for yourself")
-                                        .addOptions(new OptionData(OptionType.STRING, "option", "Field to change", true)
-                                                .addChoice("Set Chances for Images", "chances")
-                                                .addChoice("Enable Image Option", "enable")
-                                                .addChoice("Disable Image Option", "disable"))
-                                        .addOption(OptionType.STRING, "value", "Value to set", true),
-                                new SubcommandData("send", "Send your configuration to the current channel")
-                                        .addOption(OptionType.STRING, "description", "Description for configuration", true),
-                                new SubcommandData("reset_configuration", "Resets your configuration to default (Chances)"),
-                                new SubcommandData("add", "Add something to the bot")
-                                        .addOptions(new OptionData(OptionType.STRING, "option", "Something to add", true)
-                                                .addChoice("Premium", "PREMIUM")
-                                                .addChoice("Admin", "ADMIN"))
-                                        .addOption(OptionType.USER, "value", "Whom to add to", true),
-                                new SubcommandData("remove", "Add something to the bot")
-                                        .addOptions(new OptionData(OptionType.STRING, "option", "Something to add", true)
-                                                .addChoice("Premium", "PREMIUM")
-                                                .addChoice("Admin", "ADMIN"))
-                                        .addOption(OptionType.USER, "value", "Whom to add to", true)),
-                
-                Commands.slash("info", "Change personal, guild or bot settings")
-                        .addSubcommands(
-                                new SubcommandData("bot", "Get global info about hte bot"),
-                                new SubcommandData("me", "Get info about yourself"))
-
-        ).queue();
-
+        // Initialize configuration
         config = new Config(Main.database);
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(() -> {
-            if (!config.get("GENERATED_VOICE_CHANNEL", Boolean.class))
-                return;
-            GuildChannel voiceChannel = jda.getGuildChannelById(ChannelType.VOICE,
-                    Main.getEnv("GENERATED_VOICE_CHANNEL"));
-            if (voiceChannel != null) {
-                String imageGenerated = config.getOrDefault("image_generated", "0", String.class);
 
-                voiceChannel.getManager().setName("Generated: "
-                        + Config.formatBigInteger(new BigInteger(imageGenerated))).queue();
+        // Add a shutdown hook to properly handle termination
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Shutting down...");
+            if (shardManager != null) {
+                shardManager.shutdown();
             }
-        }, 0, 5, TimeUnit.SECONDS);
+        }));
     }
 
-    public JDA getJDA() {
-        return jda;
+    /**
+     * Registers all commands and event listeners with the ShardManager and its shards.
+     */
+    private void registerEventListeners() {
+        if (shardManager != null) {
+            List<CommandHandler> commandHandlers = Arrays.asList(
+                    new FavoritesCommand(),
+                    new getRandomImage(),
+                    new ConfigCommand(),
+                    new ChannelNuke(),
+                    new InfoCommand(),
+                    new ShardsCommand() // Include ShardsCommand
+            );
+
+            // Add all event listeners (global to the entire bot)
+            commandHandlers.forEach(shardManager::addEventListener);
+
+            System.out.println("Registered all event listeners.");
+        }
+    }
+
+    /**
+     * Registers global slash commands for all shards.
+     */
+    private void registerGlobalCommands() {
+        if (shardManager != null) {
+            // Collect all command data
+            List<CommandData> commands = Arrays.asList(
+                    new FavoritesCommand().getCommandData(),
+                    new getRandomImage().getCommandData(),
+                    new ConfigCommand().getCommandData(),
+                    new ChannelNuke().getCommandData(),
+                    new InfoCommand().getCommandData(),
+                    new ShardsCommand().getCommandData() // Register ShardsCommand
+            );
+
+            // Register commands for each shard
+            shardManager.getShards().forEach(jda -> jda.updateCommands().addCommands(commands).queue());
+
+            System.out.println("Registered all global slash commands.");
+        }
+    }
+
+    /**
+     * Public method to obtain the ShardManager instance.
+     *
+     * @return ShardManager instance.
+     */
+    public static ShardManager getShardManager() {
+        return shardManager;
     }
 }

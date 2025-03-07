@@ -1,4 +1,4 @@
-package me.hash.mediaroulette.utils.random;
+package me.hash.mediaroulette.content;
 
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.imageio.ImageIO;
 
-import me.hash.mediaroulette.bot.commands.ImageSource;
+import me.hash.mediaroulette.bot.commands.images.ImageSource;
 import okhttp3.*;
 import org.json.JSONArray;
 import org.json.JSONException;

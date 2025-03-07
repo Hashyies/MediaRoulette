@@ -1,4 +1,4 @@
-package me.hash.mediaroulette.bot.commands;
+package me.hash.mediaroulette.bot.commands.config;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -7,7 +7,8 @@ import java.util.Map;
 
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
-import me.hash.mediaroulette.bot.Embeds;
+import me.hash.mediaroulette.bot.errorHandler;
+import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.utils.Hastebin;
 import me.hash.mediaroulette.utils.ImageOptions;
 import me.hash.mediaroulette.utils.user.User;
@@ -15,9 +16,56 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.IntegrationType;
+import net.dv8tion.jda.api.interactions.InteractionContextType;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
-public class ConfigCommand extends ListenerAdapter {
+// TODO: Will rework this system later
+public class ConfigCommand extends ListenerAdapter implements CommandHandler {
+
+    @Override
+    public CommandData getCommandData() {
+        return Commands.slash("config", "Change personal, guild or bot settings")
+                .addSubcommands(
+                        new SubcommandData("bot", "Change settings for the bot (Admin required)")
+                                .addOptions(new OptionData(OptionType.STRING, "option", "Field to change", true)
+                                        .addChoice("Enable NSFW Webhook", "NSFW_WEBHOOK")
+                                        .addChoice("Enable Safe Webhook", "SAFE_WEBHOOK")
+                                        .addChoice("Enable Reddit", "REDDIT")
+                                        .addChoice("Enable Google Search", "GOOGLE")
+                                        .addChoice("Enable 4Chan", "4CHAN")
+                                        .addChoice("Enable Picsum", "PICSUM")
+                                        .addChoice("Enable Rulee34", "RULE34XXX")
+                                        .addChoice("Enable Tenor", "TENOR")
+                                        .addChoice("Enable Generated Count", "GENERATED_VOICE_CHANNEL"))
+                                .addOption(OptionType.STRING, "value", "Value to set", false),
+                        new SubcommandData("user", "Change settings for yourself")
+                                .addOptions(new OptionData(OptionType.STRING, "option", "Field to change", true)
+                                        .addChoice("Set Chances for Images", "chances")
+                                        .addChoice("Enable Image Option", "enable")
+                                        .addChoice("Disable Image Option", "disable"))
+                                .addOption(OptionType.STRING, "value", "Value to set", true),
+                        new SubcommandData("send", "Send your configuration to the current channel")
+                                .addOption(OptionType.STRING, "description", "Description for configuration", true),
+                        new SubcommandData("reset_configuration", "Resets your configuration to default (Chances)"),
+                        new SubcommandData("add", "Add something to the bot")
+                                .addOptions(new OptionData(OptionType.STRING, "option", "Something to add", true)
+                                        .addChoice("Premium", "PREMIUM")
+                                        .addChoice("Admin", "ADMIN"))
+                                .addOption(OptionType.USER, "value", "Whom to add to", true),
+                        new SubcommandData("remove", "Add something to the bot")
+                                .addOptions(new OptionData(OptionType.STRING, "option", "Something to add", true)
+                                        .addChoice("Premium", "PREMIUM")
+                                        .addChoice("Admin", "ADMIN"))
+                                .addOption(OptionType.USER, "value", "Whom to add to", true))
+                .setIntegrationTypes(IntegrationType.ALL)
+                .setContexts(InteractionContextType.ALL);
+    }
 
     private static final EmbedBuilder SUCCESS_EMBED = new EmbedBuilder().setTitle("Success").setColor(Color.GREEN);
     private static final EmbedBuilder ERROR_EMBED = new EmbedBuilder().setTitle("Error").setColor(Color.RED);
@@ -34,7 +82,7 @@ public class ConfigCommand extends ListenerAdapter {
         // Check if the user is on cooldown
         if (Bot.COOLDOWNS.containsKey(userId) && now - Bot.COOLDOWNS.get(userId) < Bot.COOLDOWN_DURATION) {
             // The user is on cooldown, reply with an embed and return
-            Embeds.sendErrorEmbed(event, "Slow down dude", "Please wait for 2 seconds before using this command again!...");
+            errorHandler.sendErrorEmbed(event, "Slow down dude", "Please wait for 2 seconds before using this command again!...");
             return;
         }
 
@@ -44,7 +92,7 @@ public class ConfigCommand extends ListenerAdapter {
         String subcommand = event.getSubcommandName();
         if (subcommand.equals("bot")) {
             if (!User.get(Main.database, event.getUser().getId()).isAdmin()) {
-                Embeds.sendErrorEmbed(event, "No permission", "Only Bot Admins can use this command");
+                errorHandler.sendErrorEmbed(event, "No permission", "Only Bot Admins can use this command");
                 return;
             }
             botConfigChange(event, event.getOption("option").getAsString());
@@ -59,13 +107,13 @@ public class ConfigCommand extends ListenerAdapter {
             user.setChances(array);
         } else if (subcommand.equals("add")) {
             if (!User.get(Main.database, event.getUser().getId()).isAdmin()) {
-                Embeds.sendErrorEmbed(event, "No permission", "Only Bot Admins can use this command");
+                errorHandler.sendErrorEmbed(event, "No permission", "Only Bot Admins can use this command");
                 return;
             }
             add(event);
         } else if (subcommand.equals("remove")) {
             if (!User.get(Main.database, event.getUser().getId()).isAdmin()) {
-                Embeds.sendErrorEmbed(event, "No permission", "Only Bot Admins can use this command");
+                errorHandler.sendErrorEmbed(event, "No permission", "Only Bot Admins can use this command");
                 return;
             }
             remove(event);
@@ -122,8 +170,7 @@ public class ConfigCommand extends ListenerAdapter {
         for (Map.Entry<String, ImageOptions> entry : allImageOptions.entrySet()) {
             String imageType = entry.getKey();
             ImageOptions imageOption = entry.getValue();
-            sb.append(
-                    imageType + ": enabled=" + imageOption.isEnabled() + ", chance=" + imageOption.getChance() + "\n");
+            sb.append(imageType).append(": enabled=").append(imageOption.isEnabled()).append(", chance=").append(imageOption.getChance()).append("\n");
         }
 
         String text = event.getOption("description").getAsString();
@@ -183,9 +230,9 @@ public class ConfigCommand extends ListenerAdapter {
         for (int i = 0; i < chances.length; i++) {
             String[] chanceData = chances[i].split(":");
             String imageType = chanceData[0];
-            if (!ImageOptions.getDefaultOptions().stream()
+            if (ImageOptions.getDefaultOptions().stream()
                     .map(ImageOptions::getImageType)
-                    .anyMatch(type -> type.equals(imageType))) {
+                    .noneMatch(type -> type.equals(imageType))) {
                 sendErrorEmbed(event, "Invalid image option: " + imageType);
                 return;
             }
@@ -196,11 +243,10 @@ public class ConfigCommand extends ListenerAdapter {
         sendSuccessEmbed(event, "Set chances");
     }
 
-    private void handleEnableDisableOption(SlashCommandInteractionEvent event, User user, String value,
-            boolean enable) {
-        if (!ImageOptions.getDefaultOptions().stream()
+    private void handleEnableDisableOption(SlashCommandInteractionEvent event, User user, String value, boolean enable) {
+        if (ImageOptions.getDefaultOptions().stream()
                 .map(ImageOptions::getImageType)
-                .anyMatch(imageType -> imageType.equals(value))) {
+                .noneMatch(imageType -> imageType.equals(value))) {
             sendErrorEmbed(event, "Invalid image option: " + value);
             return;
         }
@@ -270,4 +316,5 @@ public class ConfigCommand extends ListenerAdapter {
         ERROR_EMBED.setDescription(description);
         event.replyEmbeds(ERROR_EMBED.build()).setEphemeral(true).queue();
     }
+
 }

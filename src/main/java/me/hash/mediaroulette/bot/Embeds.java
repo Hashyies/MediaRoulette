@@ -1,123 +1,189 @@
 package me.hash.mediaroulette.bot;
 
-import java.awt.Color;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Map;
-
-import me.hash.mediaroulette.utils.random.RandomText;
+import me.hash.mediaroulette.utils.media.ImageGenerator;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.requests.restaction.MessageEditAction;
-import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
-import net.dv8tion.jda.api.utils.FileUpload;
 import net.dv8tion.jda.api.interactions.Interaction;
+import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.Component;
+import net.dv8tion.jda.api.interactions.components.ItemComponent;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonInteraction;
+import net.dv8tion.jda.api.utils.FileUpload;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
 
+import java.awt.*;
+import java.util.*;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class Embeds {
 
-    public static void sendImageEmbed(SlashCommandInteractionEvent event, Map<String, String> map, boolean shouldContinue) {
+    public static CompletableFuture<Message> sendImageEmbed(Interaction event, Map<String, String> map, boolean shouldContinue) {
+        EmbedBuilder embedBuilder = createEmbed(event, map);
+        MessageEmbed messageEmbed = embedBuilder.build();
 
-        // Reply with an embed containing the image
-        EmbedBuilder embedBuilder = new EmbedBuilder();
-        embedBuilder.setTitle(map.get("title"));
-        if (map.containsKey("link"))
-                embedBuilder.setUrl(map.get("link"));
-        else if (!map.get("image").equals("none") && !map.get("image").startsWith("attachment://"))
-                embedBuilder.setUrl(map.get("image"));
-        if (!map.get("image").equals("none"))
-                embedBuilder.setImage(map.get("image"));
-        
-        embedBuilder.setColor(Color.CYAN);
-        embedBuilder.setDescription(map.get("description"));
-        embedBuilder.setFooter("Current time: "
-                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        User user = event.getUser();
-        embedBuilder.setAuthor(user.getName(), null, user.getEffectiveAvatarUrl());
-    
-        Button safe;
-        Button nsfw;
-        Button favorite = Button.primary("favorite", "Favorite").withEmoji(Emoji.fromUnicode("⭐"));
-        if (shouldContinue) {
-            safe = Button.success("safe:continue", "Safe")
-                    .withEmoji(Emoji.fromUnicode("✔️"));
-            nsfw = Button.danger("nsfw:continue", "NSFW")
-                    .withEmoji(Emoji.fromUnicode("🔞"));
-        } else {
-            safe = Button.success("safe", "Safe")
-                    .withEmoji(Emoji.fromUnicode("✔️"));
-            nsfw = Button.danger("nsfw", "NSFW")
-                    .withEmoji(Emoji.fromUnicode("🔞"));
-        }
-    
-        if (shouldContinue) {
-            Button exit = Button.secondary("exit:" + map.get("type"), "Exit")
-                    .withEmoji(Emoji.fromUnicode("❌"));
-            WebhookMessageCreateAction<?> action = event.getHook().sendMessageEmbeds(embedBuilder.build())
-                    .addActionRow(safe, favorite, nsfw, exit)
-                    .addFiles();
-                    if (map.getOrDefault("image_type", "null").equals("create"))
-                        action.addFiles(FileUpload.fromData(RandomText.generateImage(map.get("image_content")), "image.png"));
+        // Create buttons
+        List<Button> buttons = getButtons(shouldContinue);
 
-                    action.queue();
+        // Handle "create" type (generating images)
+        if ("create".equals(map.get("image_type"))) {
+            byte[] imageBytes = ImageGenerator.generateImage(map.get("image_content"));
+            FileUpload fileUpload = FileUpload.fromData(imageBytes, "image.png");
+
+            embedBuilder.setImage("attachment://image.png");
+            messageEmbed = embedBuilder.build();
+
+            return handleImageEmbedWithFile(event, messageEmbed, fileUpload, buttons);
         } else {
-                WebhookMessageCreateAction<?> action = event.getHook().sendMessageEmbeds(embedBuilder.build())
-                .addActionRow(safe, favorite, nsfw);
-                if (map.getOrDefault("image_type", "null").equals("create")) {
-                        byte[] imageData = RandomText.generateImage(map.get("image_content"));
-                        action.addFiles(FileUpload.fromData(imageData, "image.png"));
-                }
-                action.queue();
+            return handleImageEmbed(event, messageEmbed, buttons);
         }
+    }
+
+    private static CompletableFuture<Message> handleImageEmbed(Interaction event, MessageEmbed embed, List<Button> buttons) {
+        CompletableFuture<Message> futureMessage = new CompletableFuture<>();
+
+        // Determine appropriate handling based on the interaction type
+        if (event instanceof SlashCommandInteraction slashEvent) {
+            // Sending the embed
+            slashEvent.getHook().sendMessageEmbeds(embed)
+                    .addActionRow(buttons)
+                    .queue(
+                            message -> futureMessage.complete(message),
+                            futureMessage::completeExceptionally
+                    );
+        } else if (event instanceof ButtonInteraction buttonEvent) {
+            buttonEvent.getHook().sendMessageEmbeds(embed)
+                    .addActionRow(buttons)
+                    .queue(
+                            message -> futureMessage.complete(message),
+                            futureMessage::completeExceptionally
+                    );
+        } else {
+            System.out.println("Unsupported Interaction type: " + event.getClass().getName());
+            futureMessage.completeExceptionally(new IllegalArgumentException("Unsupported interaction type"));
+        }
+
+        return futureMessage;
+    }
+
+    private static CompletableFuture<Message> handleImageEmbedWithFile(Interaction event, MessageEmbed embed, FileUpload file, List<Button> buttons) {
+        CompletableFuture<Message> futureMessage = new CompletableFuture<>();
+
+        // Handling sending message with a file
+        if (event instanceof SlashCommandInteraction slashEvent) {
+            slashEvent.getHook().sendMessageEmbeds(embed)
+                    .addFiles(file)
+                    .addActionRow(buttons)
+                    .queue(
+                            message -> futureMessage.complete(message),
+                            futureMessage::completeExceptionally
+                    );
+        } else if (event instanceof ButtonInteraction buttonEvent) {
+            buttonEvent.getHook().sendMessageEmbeds(embed)
+                    .addFiles(file)
+                    .addActionRow(buttons)
+                    .queue(
+                            message -> futureMessage.complete(message),
+                            futureMessage::completeExceptionally
+                    );
+        } else {
+            System.out.println("Unsupported Interaction type: " + event.getClass().getName());
+            futureMessage.completeExceptionally(new IllegalArgumentException("Unsupported interaction type"));
+        }
+
+        return futureMessage;
     }
 
     public static void editImageEmbed(ButtonInteractionEvent event, Map<String, String> map) {
+        EmbedBuilder embedBuilder = createEmbed(event, map); // Create embed based on new data
+        MessageEmbed messageEmbed = embedBuilder.build();
+
+        // Create buttons for the edited response
+        List<Button> buttons = getButtons(true);
+
+        if ("create".equals(map.get("image_type"))) {
+            byte[] imageBytes = ImageGenerator.generateImage(map.get("image_content"));
+            FileUpload fileUpload = FileUpload.fromData(imageBytes, "image.png");
+
+            event.getMessage().editMessage(MessageEditData.fromEmbeds(messageEmbed))
+                    .setFiles(fileUpload)
+                    .setActionRow(buttons)
+                    .queue(); // Edit the message directly
+        } else {
+            event.getMessage().editMessage(MessageEditData.fromEmbeds(messageEmbed))
+                    .setActionRow(buttons)
+                    .queue();
+        }
+    }
+
+    private static List<Button> getButtons(boolean shouldContinue) {
+        Button safe = Button.success("safe" + (shouldContinue ? ":continue" : ""), "Safe").withEmoji(Emoji.fromUnicode("✔️"));
+        Button nsfw = Button.danger("nsfw" + (shouldContinue ? ":continue" : ""), "NSFW").withEmoji(Emoji.fromUnicode("🔞"));
+        Button favorite = Button.primary("favorite", "Favorite").withEmoji(Emoji.fromUnicode("⭐"));
+
+        List<Button> buttons = new ArrayList<>(Arrays.asList(safe, favorite, nsfw));
+
+        if (shouldContinue) {
+            Button exit = Button.secondary("exit", "Exit").withEmoji(Emoji.fromUnicode("❌"));
+            buttons.add(exit);
+        }
+
+        return buttons;
+    }
+
+    public static void disableButton(ButtonInteractionEvent event, String buttonId) {
+        List<ActionRow> updatedActionRows = new ArrayList<>();
+
+        for (ActionRow actionRow : event.getMessage().getActionRows()) {
+            List<ItemComponent> updatedComponents = new ArrayList<>();
+            for (ItemComponent component : actionRow.getComponents()) {
+                if (component.getType() == Component.Type.BUTTON) {
+                    Button button = (Button) component;
+                    if (Objects.equals(button.getId(), buttonId)) {
+                        button = button.asDisabled();
+                    }
+
+                    updatedComponents.add(button);
+                } else {
+                    updatedComponents.add(component);
+                }
+            }
+            updatedActionRows.add(ActionRow.of(updatedComponents));
+        }
+
+        event.getMessage().editMessageComponents(updatedActionRows).queue();
+    }
+
+    public static void disableAllButtons(ButtonInteractionEvent event) {
+        event.getMessage().editMessageComponents(event.getMessage().getActionRows().stream()
+                        .map(ActionRow::asDisabled)
+                        .collect(Collectors.toList()))
+                .queue();
+    }
+
+    private static EmbedBuilder createEmbed(Interaction event, Map<String, String> map) {
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle(map.get("title"));
+
         if (map.containsKey("link"))
-                embedBuilder.setUrl(map.get("link"));
-        else if (!map.get("image").equals("none") && !map.get("image").startsWith("attachment://"))
-                embedBuilder.setUrl(map.get("image"));
-        if (!map.get("image").equals("none"))
-                embedBuilder.setImage(map.get("image"));
-        
+            embedBuilder.setUrl(map.get("link"));
+        else if (!"none".equals(map.get("image")) && !map.get("image").startsWith("attachment://"))
+            embedBuilder.setUrl(map.get("image"));
+
+        if (!"none".equals(map.get("image")))
+            embedBuilder.setImage(map.get("image"));
+
         embedBuilder.setColor(Color.CYAN);
         embedBuilder.setDescription(map.get("description"));
-        embedBuilder.setFooter("Current time: "
-                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         embedBuilder.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl());
-        System.out.println("testing");
-        Button safe = Button.success("safe:continue", "Safe").withEmoji(Emoji.fromUnicode("✔️"));
-        Button favorite = Button.primary("favorite", "Favorite").withEmoji(Emoji.fromUnicode("⭐"));
-        Button nsfw = Button.danger("nsfw:continue", "NSFW").withEmoji(Emoji.fromUnicode("🔞"));
-        Button end = Button.secondary("exit:" + map.get("type"), "Exit").withEmoji(Emoji.fromUnicode("❌"));
-        System.out.println("-------------- " + end.getId());
-        MessageEditAction action = event.getMessage().editMessageEmbeds(embedBuilder.build())
-                .setActionRow(safe, favorite, nsfw, end);
 
-        if (map.getOrDefault("image_type", "null").equals("create")) {
-                byte[] imageData = RandomText.generateImage(map.get("image_content"));
-                action.setFiles(FileUpload.fromData(imageData, "image.png"));
-        }
-
-        action.queue();
+        return embedBuilder;
     }
-
-    public static void sendErrorEmbed(Interaction event, String title, String description) {
-        EmbedBuilder errorEmbed = new EmbedBuilder();
-        errorEmbed.setTitle(title);
-        errorEmbed.setDescription(description);
-        errorEmbed.setColor(Color.RED);
-        if (event instanceof SlashCommandInteractionEvent) {
-            ((SlashCommandInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).setEphemeral(true).queue();
-        } else if (event instanceof ButtonInteractionEvent) {
-            ((ButtonInteractionEvent) event).getHook().sendMessageEmbeds(errorEmbed.build()).setEphemeral(true).queue();
-        }
-    }
-
 
 }

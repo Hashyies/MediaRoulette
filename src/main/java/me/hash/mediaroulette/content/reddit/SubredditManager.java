@@ -1,4 +1,4 @@
-package me.hash.mediaroulette.utils.random.reddit;
+package me.hash.mediaroulette.content.reddit;
 
 import okhttp3.Response;
 import org.json.JSONObject;

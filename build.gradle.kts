@@ -9,7 +9,6 @@ plugins {
     // Apply the application plugin to add support for building a CLI application in Java.
     application
     id("com.github.johnrengelman.shadow") version "7.1.2"
-
 }
 
 tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {
@@ -23,18 +22,22 @@ repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
     google()
+
+    // Add JitPack repository for custom dependencies
+    maven { url = uri("https://jitpack.io") }
 }
 
 dependencies {
-    implementation("net.dv8tion:JDA:5.1.0")
+    implementation("net.dv8tion:JDA:5.3.0")
+
     implementation("org.json:json:20231013")
     implementation("org.jsoup:jsoup:1.16.1")
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
     implementation("club.minnced:discord-webhooks:0.8.4")
     implementation("org.mongodb:mongodb-driver-sync:4.10.2")
+    implementation("ch.qos.logback:logback-classic:1.5.6")
 }
 
-// Apply a specific Java toolchain to ease working on different environments.
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(22))

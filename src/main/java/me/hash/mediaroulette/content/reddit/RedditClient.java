@@ -1,4 +1,4 @@
-package me.hash.mediaroulette.utils.random.reddit;
+package me.hash.mediaroulette.content.reddit;
 
 import me.hash.mediaroulette.Main;
 import okhttp3.*;

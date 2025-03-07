@@ -1,19 +1,37 @@
-package me.hash.mediaroulette.bot.commands;
+package me.hash.mediaroulette.bot.commands.bot;
 
 import java.awt.Color;
 import java.util.concurrent.TimeUnit;
 
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
-import me.hash.mediaroulette.bot.Embeds;
+import me.hash.mediaroulette.bot.errorHandler;
+import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.utils.Config;
 import me.hash.mediaroulette.utils.user.User;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.IntegrationType;
+import net.dv8tion.jda.api.interactions.InteractionContextType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 
-public class InfoCommand extends ListenerAdapter {
+public class InfoCommand extends ListenerAdapter implements CommandHandler {
+
+    @Override
+    public CommandData getCommandData() {
+        return Commands.slash("info", "Get bot or user information")
+                .addSubcommands(
+                        new SubcommandData("bot", "Get global info about the bot"),
+                        new SubcommandData("me", "Get info about yourself")
+                )
+                .setIntegrationTypes(IntegrationType.ALL)
+                .setContexts(InteractionContextType.ALL);
+    }
+
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (!event.getName().equals("info"))
@@ -28,7 +46,7 @@ public class InfoCommand extends ListenerAdapter {
             // Check if the user is on cooldown
             if (Bot.COOLDOWNS.containsKey(userId) && now - Bot.COOLDOWNS.get(userId) < Bot.COOLDOWN_DURATION) {
                 // The user is on cooldown, reply with an embed and return
-                Embeds.sendErrorEmbed(event, "Slow down dude",
+                errorHandler.sendErrorEmbed(event, "Slow down dude",
                         "Please wait for 2 seconds before using this command again!...");
                 return;
             }
