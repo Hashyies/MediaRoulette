@@ -3,9 +3,9 @@ package me.hash.mediaroulette.utils.user;
 import com.mongodb.client.MongoCollection;
 import me.hash.mediaroulette.utils.Database;
 import me.hash.mediaroulette.utils.GlobalLogger;
-import me.hash.mediaroulette.utils.ImageOptions;
-import me.hash.mediaroulette.utils.exceptions.InvalidChancesException;
-import me.hash.mediaroulette.utils.exceptions.NoEnabledOptionsException;
+import me.hash.mediaroulette.model.ImageOptions;
+import me.hash.mediaroulette.exceptions.InvalidChancesException;
+import me.hash.mediaroulette.exceptions.NoEnabledOptionsException;
 import org.bson.Document;
 
 import java.util.*;

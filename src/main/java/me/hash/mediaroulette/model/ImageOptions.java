@@ -1,4 +1,4 @@
-package me.hash.mediaroulette.utils;
+package me.hash.mediaroulette.model;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
