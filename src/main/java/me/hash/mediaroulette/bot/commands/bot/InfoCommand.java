@@ -7,8 +7,8 @@ import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.errorHandler;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
+import me.hash.mediaroulette.model.User;
 import me.hash.mediaroulette.utils.Config;
-import me.hash.mediaroulette.utils.user.User;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -96,7 +96,7 @@ public class InfoCommand extends ListenerAdapter implements CommandHandler {
         embed.setTitle("Bot Information");
         embed.setColor(Color.BLUE);
 
-        User user = User.get(Main.database, id);
+        User user = Main.userService.getOrCreateUser(id);
 
         embed.addField("Images Generated", "" + user.getImagesGenerated(), true);
         embed.addField("Favorites used", user.getFavorites().size() + "/" + user.getFavoriteLimit(), true);

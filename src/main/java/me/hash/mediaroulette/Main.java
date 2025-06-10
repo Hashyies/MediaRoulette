@@ -11,10 +11,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.mongodb.client.MongoCollection;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.github.cdimascio.dotenv.DotenvEntry;
 import me.hash.mediaroulette.bot.Bot;
+import me.hash.mediaroulette.repository.MongoUserRepository;
+import me.hash.mediaroulette.repository.UserRepository;
 import me.hash.mediaroulette.utils.Database;
+import me.hash.mediaroulette.utils.user.UserService;
+import org.bson.Document;
 
 public class Main {
 
@@ -22,6 +27,7 @@ public class Main {
     public static Database database;
     public static final long startTime = System.currentTimeMillis();
     public static Bot bot = null;
+    public static UserService userService; // our new service layer
 
     public static void main(String[] args) throws Exception {
         // Get an InputStream for the .env file
@@ -40,8 +46,16 @@ public class Main {
                 .filename(tempFile.getFileName().toString())
                 .load();
 
-        database = new Database(Main.getEnv("MONGODB_CONNECTION"), "MediaRoulette");
-        bot = new Bot(getEnv("DISCORD_TOKEN"));
+        // Initialize the MongoDB connection and database
+        String connectionString = getEnv("MONGODB_CONNECTION");
+        database = new Database(connectionString, "MediaRoulette");
+
+        // Create the repository using the MongoDB collection
+        MongoCollection<Document> userCollection = database.getCollection("user");
+        UserRepository userRepository = new MongoUserRepository(userCollection);
+
+        // Create our service layer that handles user business logic and persistence
+        userService = new UserService(userRepository);        bot = new Bot(getEnv("DISCORD_TOKEN"));
 
         init();
 

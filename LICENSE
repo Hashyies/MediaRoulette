@@ -1,43 +1,65 @@
-Modified MIT License for Limited Use
+Hashy's Prosperity Public License for Non-Commercial Use
+==========================================================
 
-Copyright (C) 2024 Hashy
+Copyright (C) 2025 Hashy
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software with the following restrictions, including but not limited to
-the rights to use, copy, modify, merge, publish, and distribute the Software
-for personal or non-commercial purposes ONLY, subject to the following conditions:
+of this software and its associated documentation (the "Software") to use, copy,
+modify, merge, publish, and distribute the Software subject to the following
+conditions and restrictions:
 
-1. **Permission for Commercial Use**:
-   Commercial use of this software is strictly prohibited unless
-   explicit written permission has been granted by the copyright holder.
-   To obtain permission for commercial use, contact the copyright holder
-   through the methods provided in the original repository or distribution
-   medium of the Software.
+1. Permitted Uses
+-----------------
+The Software may be used for personal, academic, and non-commercial purposes
+only. This includes use on non-commercial projects, research, and personal
+experimentation.
 
-2. **Attribution Requirement**:
-   Any use of the Software, including but not limited to modifying, merging,
-   publishing, or distributing, requires clear and visible attribution to the
-   original author. This must include:
-      - The original copyright notice ("Copyright (C) 2024 Hashy").
-      - A link or mention of the original repository (if applicable).
-      - Clear credit to "Hashy" for their contributions.
+2. Commercial Use Restriction
+-----------------------------
+Commercial use of the Software is strictly prohibited unless explicit
+written permission is granted by the copyright holder.
+Commercial use is defined as incorporating the Software (or any derivative
+thereof) into any product or service for which a fee is charged or any other
+activity intended for commercial advantage or monetary compensation.
+To request commercial use rights, please contact Hashy using the contact
+information provided in the original repository.
 
-3. **Modification Notice**:
-   Any modifications, changes, or derivatives of this software must be
-   clearly marked as modified software and must not misrepresent the original
-   author or imply endorsement of the changes by the original author.
+3. Attribution Requirement
+--------------------------
+Any distribution, public display, or use of the Software—whether unmodified or
+in a modified or derivative form—must include:
+  - The original copyright notice: "Copyright (C) 2024 Hashy."
+  - A reference to the original repository or source.
+  - Clear and visible attribution to Hashy as the original author.
 
-4. **Prohibited Uses**:
-   - The Software must not be used for illegal activities or in any
-     application that promotes hatred, violence, or discrimination.
-   - The Software and its documentation must not be sublicensed or sold
-     without explicit written permission from the copyright holder.
+4. Modification and Derivative Works
+--------------------------------------
+  - Any modifications or derivative works of the Software must be clearly marked
+    as modified.
+  - The modified work must not misrepresent the original version or imply that
+    Hashy endorses the changes.
+  - Redistributions of the modified Software are subject to the same
+    non-commercial, attribution, and modification notice requirements as stated
+    herein.
 
+5. Prohibited Uses
+------------------
+  - The Software shall not be used in any manner that violates applicable laws
+    or supports illegal activities.
+  - The Software must not be used to promote hatred, violence, discrimination,
+    or any other malicious intent.
+  - Sublicensing, selling, or incorporating the Software in a commercial product
+    or service is strictly forbidden without prior written consent.
+
+6. Disclaimer of Warranty
+-------------------------
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+By using, copying, modifying, or distributing the Software, you agree to be
+bound by the terms of this License.

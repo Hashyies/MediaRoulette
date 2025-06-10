@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SubredditManager {
 
+    // Cache to avoid repeatedly checking for subreddit existence.
     private static final Map<String, Boolean> SUBREDDIT_EXISTS_CACHE = new ConcurrentHashMap<>();
     private final RedditClient redditClient;
 
@@ -25,33 +26,35 @@ public class SubredditManager {
 
         String url = "https://oauth.reddit.com/r/" + subreddit + "/about";
         Response response = redditClient.sendGetRequestAsync(url, redditClient.getAccessToken()).join();
-
         String responseBody = response.body().string();
-        JSONObject json = new JSONObject(responseBody);
+        response.close();
 
-        boolean exists = !(json.has("error") && json.getInt("error") == 0);
+        JSONObject json = new JSONObject(responseBody);
+        // If an error key exists, then the subreddit likely does not exist.
+        boolean exists = !json.has("error");
         SUBREDDIT_EXISTS_CACHE.put(subreddit, exists);
 
+        // Simple cache eviction policy.
         if (SUBREDDIT_EXISTS_CACHE.size() > 1000) {
-            SUBREDDIT_EXISTS_CACHE.clear();  // Simple cache eviction policy
+            SUBREDDIT_EXISTS_CACHE.clear();
         }
-
-        if (!exists)
-            System.out.println(responseBody);
-
         return exists;
     }
 
     public String getRandomSubreddit() throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("subreddits.txt"))));
-        List<String> subreddits = new ArrayList<>();
-        String line;
-
-        while ((line = reader.readLine()) != null) {
-            subreddits.add(line);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("subreddits.txt"))
+        ))) {
+            List<String> subreddits = new ArrayList<>();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                subreddits.add(line.trim());
+            }
+            if (subreddits.isEmpty()) {
+                throw new IOException("No subreddits available in the list.");
+            }
+            Collections.shuffle(subreddits);
+            return subreddits.get(0);
         }
-
-        Collections.shuffle(subreddits);
-        return subreddits.get(0);
     }
 }

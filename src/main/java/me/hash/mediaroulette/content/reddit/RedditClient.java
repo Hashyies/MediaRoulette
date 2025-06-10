@@ -12,19 +12,24 @@ import java.util.concurrent.TimeUnit;
 public class RedditClient {
 
     private static final MediaType MEDIA_TYPE = MediaType.parse("application/x-www-form-urlencoded");
-    private static String accessToken = null;
-    private static long accessTokenExpirationTime = 0;
+    // Volatile variables ensure proper visibility across threads.
+    private static volatile String accessToken = null;
+    private static volatile long accessTokenExpirationTime = 0;
 
-    public static OkHttpClient HTTP_CLIENT = new OkHttpClient.Builder()
+    public static final OkHttpClient HTTP_CLIENT = new OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
-            .connectionPool(new ConnectionPool(10, 5, TimeUnit.MINUTES)) // connection pooling
+            .connectionPool(new ConnectionPool(10, 5, TimeUnit.MINUTES))
             .build();
 
     public String getAccessToken() throws IOException {
         if (accessToken == null || System.currentTimeMillis() > accessTokenExpirationTime) {
-            return fetchAccessToken();
+            synchronized (RedditClient.class) {
+                if (accessToken == null || System.currentTimeMillis() > accessTokenExpirationTime) {
+                    return fetchAccessToken();
+                }
+            }
         }
         return accessToken;
     }
@@ -45,17 +50,16 @@ public class RedditClient {
                 .addHeader("User-Agent", "MediaRoulette/0.1 by pgmmestar")
                 .build();
 
-        Response response = HTTP_CLIENT.newCall(request).execute();
-        if (!response.isSuccessful()) {
-            throw new IOException("Failed to retrieve access token");
+        try (Response response = HTTP_CLIENT.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Failed to retrieve access token: " + response);
+            }
+            String responseBody = response.body().string();
+            JSONObject json = new JSONObject(responseBody);
+            accessToken = json.getString("access_token");
+            accessTokenExpirationTime = System.currentTimeMillis() + json.getLong("expires_in") * 1000;
+            return accessToken;
         }
-
-        String responseBody = response.body().string();
-        JSONObject json = new JSONObject(responseBody);
-        accessToken = json.getString("access_token");
-        accessTokenExpirationTime = System.currentTimeMillis() + json.getLong("expires_in") * 1000;
-
-        return accessToken;
     }
 
     public CompletableFuture<Response> sendGetRequestAsync(String url, String token) {
@@ -71,9 +75,8 @@ public class RedditClient {
             public void onFailure(Call call, IOException e) {
                 future.completeExceptionally(e);
             }
-
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
+            public void onResponse(Call call, Response response) {
                 future.complete(response);
             }
         });

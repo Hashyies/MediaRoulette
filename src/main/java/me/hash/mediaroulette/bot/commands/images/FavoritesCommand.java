@@ -4,9 +4,9 @@ import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.errorHandler;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
-import me.hash.mediaroulette.utils.user.User;
+import me.hash.mediaroulette.model.Favorite;
+import me.hash.mediaroulette.model.User;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -30,8 +30,7 @@ import java.util.List;
 
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 
-import org.bson.Document;
-
+// TODO: make locales here
 public class FavoritesCommand extends ListenerAdapter implements CommandHandler {
     private static final int ITEMS_PER_PAGE = 25; // Probably will be locked like this
 
@@ -64,7 +63,7 @@ public class FavoritesCommand extends ListenerAdapter implements CommandHandler 
         Bot.COOLDOWNS.put(userId, now);
 
 
-        User user = User.get(Main.database, event.getUser().getId());
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
         if (user.getFavorites() == null || user.getFavorites().isEmpty()) {
             event.getHook().sendMessage("You do not have any favorites yet!").queue();
             return;
@@ -80,7 +79,7 @@ public class FavoritesCommand extends ListenerAdapter implements CommandHandler 
             return;
 
         // Check if the user is the same as the one who initiated the interaction
-        String originalUserId = event.getMessage().getInteraction().getUser().getId();
+        String originalUserId = event.getMessage().getInteractionMetadata().getUser().getId();
         if (!event.getUser().getId().equals(originalUserId)) {
             event.reply("This is not your menu!").setEphemeral(true).queue();
             return;
@@ -92,8 +91,9 @@ public class FavoritesCommand extends ListenerAdapter implements CommandHandler 
 
         event.deferEdit().queue();
 
-        User user = User.get(Main.database, event.getUser().getId());
-        List<Document> favorites = user.getFavorites();
+        // Use the service layer to get or create the user
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
+        List<Favorite> favorites = user.getFavorites();
 
         switch (action) {
             case "prev":
@@ -109,13 +109,18 @@ public class FavoritesCommand extends ListenerAdapter implements CommandHandler 
                     event.getHook().sendMessage("Invalid favorite to delete.").setEphemeral(true).queue();
                     return;
                 }
+                // Remove the favorite using the updated User model
                 user.removeFavorite(index);
+                // Persist the change via the service (if your service automatically saves changes,
+                // ensure removeFavorite internally calls updateUser or call Main.userService.updateUser(user) here)
+                Main.userService.updateUser(user);
+
                 event.getHook().sendMessage("Favorite has been deleted.").setEphemeral(true).queue();
 
                 // Refresh the favorites list
                 favorites = user.getFavorites();
 
-                // After deletion, if there are favorites left, show the previous one or adjust index
+                // After deletion, if there are favorites left, show the adjusted favorite details.
                 if (!favorites.isEmpty()) {
                     int newIndex = Math.min(index, favorites.size() - 1);
                     sendFavoriteDetail(event.getHook(), user, newIndex, false);
@@ -141,7 +146,7 @@ public class FavoritesCommand extends ListenerAdapter implements CommandHandler 
             return;
 
         // Check if the user is the same as the one who initiated the interaction
-        String originalUserId = event.getMessage().getInteraction().getUser().getId();
+        String originalUserId = event.getMessage().getInteractionMetadata().getUser().getId();
         if (!event.getUser().getId().equals(originalUserId)) {
             event.reply("This is not your menu!").setEphemeral(true).queue();
             return;
@@ -149,26 +154,26 @@ public class FavoritesCommand extends ListenerAdapter implements CommandHandler 
 
         event.deferEdit().queue();
 
-        int selectedIndex = Integer.parseInt(event.getValues().get(0));
+        int selectedIndex = Integer.parseInt(event.getValues().getFirst());
 
-        User user = User.get(Main.database, event.getUser().getId());
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
         sendFavoriteDetail(event.getHook(), user, selectedIndex, false);
     }
 
     private void sendFavoriteDetail(InteractionHook hook, User user, int index, boolean isNewMessage) {
-        List<Document> favorites = user.getFavorites();
+        List<Favorite> favorites = user.getFavorites();
 
         if (index < 0 || index >= favorites.size()) {
             hook.sendMessage("Invalid favorite selected.").setEphemeral(true).queue();
             return;
         }
 
-        Document favorite = favorites.get(index);
+        Favorite favorite = favorites.get(index);
 
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("⭐ Favorite Details");
-        embedBuilder.setDescription(favorite.getString("description"));
-        embedBuilder.setImage(favorite.getString("image"));
+        embedBuilder.setDescription(favorite.getDescription());
+        embedBuilder.setImage(favorite.getImage());
         embedBuilder.setColor(Color.CYAN);
         embedBuilder.setFooter("Favorite " + (index + 1) + "/" + favorites.size());
 
@@ -178,13 +183,13 @@ public class FavoritesCommand extends ListenerAdapter implements CommandHandler 
         List<ActionRow> paginatorComponents = buildPaginatorComponents(user, currentPage);
 
         // Add a delete button
-        Button deleteButton = Button.danger("favorite:delete:" + index, "Delete").withEmoji(Emoji.fromUnicode("❌"));
+        Button deleteButton = Button.danger("favorite:delete:" + index, "Delete")
+                .withEmoji(Emoji.fromUnicode("❌"));
         ActionRow deleteButtonRow = ActionRow.of(deleteButton);
 
         // Assemble components
-        List<ActionRow> actionRows = new ArrayList<>();
         // First, add the selection menu and navigation buttons
-        actionRows.addAll(paginatorComponents);
+        List<ActionRow> actionRows = new ArrayList<>(paginatorComponents);
         // Then, add the delete button below them
         actionRows.add(deleteButtonRow);
 
@@ -200,7 +205,7 @@ public class FavoritesCommand extends ListenerAdapter implements CommandHandler 
     }
 
     private List<ActionRow> buildPaginatorComponents(User user, int page) {
-        List<Document> favorites = user.getFavorites();
+        List<Favorite> favorites = user.getFavorites();
 
         int totalPages = (int) Math.ceil((double) favorites.size() / ITEMS_PER_PAGE);
         page = Math.max(0, Math.min(page, totalPages - 1)); // Ensure page is within bounds
@@ -208,7 +213,7 @@ public class FavoritesCommand extends ListenerAdapter implements CommandHandler 
         int start = page * ITEMS_PER_PAGE;
         int end = Math.min(start + ITEMS_PER_PAGE, favorites.size());
 
-        List<Document> favoritesOnPage = favorites.subList(start, end);
+        List<Favorite> favoritesOnPage = favorites.subList(start, end);
 
         // Build the selection menu with options from the current page
         StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("favorite-select-menu")
@@ -217,8 +222,8 @@ public class FavoritesCommand extends ListenerAdapter implements CommandHandler 
                 .setMaxValues(1);
 
         int index = start; // Zero-based index
-        for (Document favorite : favoritesOnPage) {
-            String description = favorite.getString("description");
+        for (Favorite favorite : favoritesOnPage) {
+            String description = favorite.getDescription();
             // Remove any line breaks and limit the description length
             description = description.replaceAll("\\n", " ");
             description = (description.length() > 80) ? description.substring(0, 80) + "..." : description;
@@ -234,20 +239,11 @@ public class FavoritesCommand extends ListenerAdapter implements CommandHandler 
             index++;
         }
 
-        // Create navigation buttons
-        /*
-        Button previousButton = Button.primary("favorite:prev:" + page, "Previous").withEmoji(Emoji.fromUnicode("⬅️"))
-                .withDisabled(page <= 0);
-        Button nextButton = Button.primary("favorite:next:" + page, "Next").withEmoji(Emoji.fromUnicode("➡️"))
-                .withDisabled(page >= totalPages - 1);
-        */
-
-        // Assemble components
+        // Assemble the selection menu into an ActionRow
         List<ActionRow> actionRows = new ArrayList<>();
         actionRows.add(ActionRow.of(menuBuilder.build()));
-        // actionRows.add(ActionRow.of(previousButton, nextButton));
-
         return actionRows;
     }
+
 
 }

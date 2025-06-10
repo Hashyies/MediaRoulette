@@ -9,9 +9,9 @@ import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.errorHandler;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
+import me.hash.mediaroulette.model.User;
 import me.hash.mediaroulette.utils.Hastebin;
 import me.hash.mediaroulette.model.ImageOptions;
-import me.hash.mediaroulette.utils.user.User;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -79,6 +79,8 @@ public class ConfigCommand extends ListenerAdapter implements CommandHandler {
         long now = System.currentTimeMillis();
         long userId = event.getUser().getIdLong();
 
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
+
         // Check if the user is on cooldown
         if (Bot.COOLDOWNS.containsKey(userId) && now - Bot.COOLDOWNS.get(userId) < Bot.COOLDOWN_DURATION) {
             // The user is on cooldown, reply with an embed and return
@@ -91,7 +93,7 @@ public class ConfigCommand extends ListenerAdapter implements CommandHandler {
 
         String subcommand = event.getSubcommandName();
         if (subcommand.equals("bot")) {
-            if (!User.get(Main.database, event.getUser().getId()).isAdmin()) {
+            if (!user.isAdmin()) {
                 errorHandler.sendErrorEmbed(event, "No permission", "Only Bot Admins can use this command");
                 return;
             }
@@ -101,18 +103,17 @@ public class ConfigCommand extends ListenerAdapter implements CommandHandler {
         } else if (subcommand.equals("send")) {
             sendUserConfig(event);
         } else if (subcommand.equals("reset_configuration")) {
-            User user = User.get(Main.database, event.getUser().getId());
             List<ImageOptions> list = ImageOptions.getDefaultOptions();
             ImageOptions[] array = list.toArray(new ImageOptions[list.size()]);
             user.setChances(array);
         } else if (subcommand.equals("add")) {
-            if (!User.get(Main.database, event.getUser().getId()).isAdmin()) {
+            if (!user.isAdmin()) {
                 errorHandler.sendErrorEmbed(event, "No permission", "Only Bot Admins can use this command");
                 return;
             }
             add(event);
         } else if (subcommand.equals("remove")) {
-            if (!User.get(Main.database, event.getUser().getId()).isAdmin()) {
+            if (!user.isAdmin()) {
                 errorHandler.sendErrorEmbed(event, "No permission", "Only Bot Admins can use this command");
                 return;
             }
@@ -136,7 +137,7 @@ public class ConfigCommand extends ListenerAdapter implements CommandHandler {
     }
 
     private void add(SlashCommandInteractionEvent event) {
-        User user = User.get(Main.database, event.getOption("value").getAsUser().getId());
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
         switch (event.getOption("option").getAsString()) {
             case "PREMIUM":
                 user.setPremium(true);
@@ -147,7 +148,7 @@ public class ConfigCommand extends ListenerAdapter implements CommandHandler {
     }
 
     private void remove(SlashCommandInteractionEvent event) {
-        User user = User.get(Main.database, event.getOption("value").getAsUser().getId());
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
         switch (event.getOption("option").getAsString()) {
             case "PREMIUM":
                 user.setPremium(false);
@@ -158,8 +159,8 @@ public class ConfigCommand extends ListenerAdapter implements CommandHandler {
     }
 
     private void sendUserConfig(SlashCommandInteractionEvent event) {
-        User user = User.get(Main.database, event.getUser().getId());
-        Map<String, ImageOptions> allImageOptions = user.getAllImageOptions();
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
+        Map<String, ImageOptions> allImageOptions = user.getImageOptionsMap();
 
         if (allImageOptions.isEmpty()) {
             sendErrorEmbed(event, "Image options are empty. Please set some values.");
@@ -197,7 +198,7 @@ public class ConfigCommand extends ListenerAdapter implements CommandHandler {
             String[] values = parts[1].split(", ");
             boolean enabled = Boolean.parseBoolean(values[0].split("=")[1]);
             double chance = Double.parseDouble(values[1].split("=")[1]);
-            User user = User.get(Main.database, event.getUser().getId());
+            User user = Main.userService.getOrCreateUser(event.getUser().getId());
             user.setChances(new ImageOptions(imageType, enabled, chance));
         }
     }
@@ -208,7 +209,7 @@ public class ConfigCommand extends ListenerAdapter implements CommandHandler {
 
         String option = event.getOption("option").getAsString();
         String value = event.getOption("value").getAsString();
-        User user = User.get(Main.database, event.getUser().getId());
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
 
         switch (option) {
             case "chances":

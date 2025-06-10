@@ -6,10 +6,14 @@ import me.hash.mediaroulette.bot.errorHandler;
 import me.hash.mediaroulette.content.RandomImage;
 import me.hash.mediaroulette.content.RandomMedia;
 import me.hash.mediaroulette.content.RandomText;
+import me.hash.mediaroulette.content.factory.MediaServiceFactory;
+import me.hash.mediaroulette.content.model.MediaResult;
+import me.hash.mediaroulette.content.provider.impl.RedditProvider;
 import me.hash.mediaroulette.content.reddit.RandomRedditService;
 import me.hash.mediaroulette.content.reddit.RedditClient;
 import me.hash.mediaroulette.content.reddit.SubredditManager;
-import me.hash.mediaroulette.utils.user.User;
+import me.hash.mediaroulette.model.User;
+import me.hash.mediaroulette.utils.Locale;
 import net.dv8tion.jda.api.interactions.Interaction;
 
 import java.util.Map;
@@ -45,8 +49,10 @@ public enum ImageSource {
     }
 
     public Map<String, String> handle(Interaction event, String option) throws Exception {
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
+
         if (isOptionDisabled(this.name)) {
-            errorHandler.sendErrorEmbed(event, "Command Disabled", "This command is globally disabled!");
+            errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.no_images_title"), new Locale(user.getLocale()).get("error.no_images_description"));
             throw new Exception("Command Disabled");
         }
 
@@ -63,46 +69,50 @@ public enum ImageSource {
             case URBAN -> handleUrban(event, option);
             case YOUTUBE -> RandomMedia.getRandomYoutube();
             case SHORT -> RandomMedia.getRandomYoutubeShorts();
-            case ALL -> {
-                User user = User.get(Main.database, event.getUser().getId());
-                yield user.getImage();
-            }
+            case ALL -> user.getImage();
+
         };
     }
 
     private Map<String, String> handleReddit(Interaction event, String option) throws Exception {
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
+
         String subreddit = (option != null)
                 ? option
                 : subredditManager.getRandomSubreddit();
 
         // Check if the subreddit exists
         if (!subredditManager.doesSubredditExist(subreddit)) {
-            errorHandler.sendErrorEmbed(event, "Invalid Subreddit", "This subreddit doesn't exist...");
+            errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.invalid_subreddit_title"), new Locale(user.getLocale()).get("error.invalid_subreddit_description"));
             throw new Exception("Subreddit doesn't exist");
         }
 
-        Map<String, String> redditPost = randomRedditService.getRandomReddit(subreddit);
+        RedditProvider reddit = (RedditProvider) new MediaServiceFactory().createRedditProvider();
+
+        MediaResult redditPost = reddit.getRandomReddit(subreddit);
 
         if (redditPost == null) {
-            errorHandler.sendErrorEmbed(event, "Error", "An error occurred fetching data from Reddit.");
+            errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.title"), new Locale(user.getLocale()).get("error.reddit_fetch"));
             throw new Exception("Error fetching Reddit data");
         }
 
-        return redditPost;
+        return redditPost.toMap();
     }
 
     private Map<String, String> handle4Chan(Interaction event, String option) throws Exception {
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
         if (option != null && !RandomImage.BOARDS.contains(option)) {
-            errorHandler.sendErrorEmbed(event, "Invalid Board", "This board doesn't exist...");
+            errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.4chan_invalid_board_title"), new Locale(user.getLocale()).get("error.4chan_invalid_board_description"));
             throw new Exception("Board doesn't exist");
         }
         return RandomImage.get4ChanImage(option);
     }
 
     private Map<String, String> handleUrban(Interaction event, String option) throws Exception {
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
         Map<String, String> map = RandomText.getRandomUrbanWord(option);
         if (map.containsKey("error")) {
-            errorHandler.sendErrorEmbed(event, "Error", map.get("error"));
+            errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.title"), map.get("error"));
             throw new Exception(map.get("error"));
         }
 
@@ -121,4 +131,5 @@ public enum ImageSource {
         }
         return Optional.empty();
     }
+
 }

@@ -30,7 +30,7 @@ public class Bot {
         // Initialize ShardManager
         shardManager = DefaultShardManagerBuilder.createDefault(token)
                 .setActivity(Activity.playing("ALPHAAAA WOOO! :3")) // Set activity to all shards
-                .setStatus(OnlineStatus.IDLE) // Default status
+                .setStatus(OnlineStatus.ONLINE) // Default status
                 .setShardsTotal(-1) // Auto-detect number of shards
                 .build();
 

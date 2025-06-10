@@ -5,7 +5,10 @@ import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
 import me.hash.mediaroulette.bot.errorHandler;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
-import me.hash.mediaroulette.utils.user.User;
+import me.hash.mediaroulette.model.User;
+import me.hash.mediaroulette.utils.Locale;
+
+
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -96,7 +99,6 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
         }, 1, 1, TimeUnit.MINUTES);
     }
 
-
     private static final Map<Long, Long> COOLDOWNS = new ConcurrentHashMap<>();
 
     @Override
@@ -105,6 +107,7 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
 
         event.deferReply().queue(interactionHook -> {
             Bot.executor.execute(() -> {
+                User user = Main.userService.getOrCreateUser(event.getUser().getId());
                 try {
                     String subcommand = event.getSubcommandName();
                     boolean shouldContinue = event.getOption("shouldcontinue") != null
@@ -116,7 +119,7 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
                             Map<String, String> image = source.handle(event, query);
 
                             if (image == null || image.get("image") == null) {
-                                errorHandler.sendErrorEmbed(event, "No Images Found", "This source appears to be empty.");
+                                errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.no_images_title"), new Locale(user.getLocale()).get("error.no_images_description"));
                                 return;
                             }
 
@@ -133,21 +136,20 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
                                         ACTIVE_MESSAGES.put(messageSent.getIdLong(), data);
                                     })
                                     .exceptionally(ex -> {
-                                        errorHandler.handleException(event, "Unexpected Error", "Failed to send the image embed.", ex);
+                                        errorHandler.handleException(event, new Locale(user.getLocale()).get("error.unexpected_error"), new Locale(user.getLocale()).get("error.failed_to_send_image"), ex);
                                         return null;
                                     });
 
                         } catch (Exception e) {
-                            errorHandler.handleException(event, "Source Error", "Failed to retrieve images.", e);
+                            errorHandler.handleException(event, new Locale(user.getLocale()).get("error.source_error_title"), new Locale(user.getLocale()).get("error.source_error_description"), e);
                         }
-                    }, () -> errorHandler.sendErrorEmbed(event, "Unknown Subcommand", "This subcommand is not recognized."));
+                    }, () -> errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.unknown_subcommand_title"), new Locale(user.getLocale()).get("error.unknown_subcommand_description")));
                 } catch (Exception e) {
-                    errorHandler.handleException(event, "Unexpected Error", e.getMessage(), e);
+                    errorHandler.handleException(event, new Locale(user.getLocale()).get("error.unexpected_error"), e.getMessage(), e);
                 }
             });
         });
     }
-
 
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
@@ -161,10 +163,13 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
         Bot.executor.execute(() -> {
             MessageData data = ACTIVE_MESSAGES.get(messageId);
 
+            User user = Main.userService.getOrCreateUser(event.getUser().getId());
+
+
             data.updateLastInteractionTime();
 
             if (!data.isUserAllowed(event.getUser().getIdLong())) {
-                errorHandler.sendErrorEmbed(event, "Not Allowed", "Only the original user can interact with this button.");
+                errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.unknown_button_title"), new Locale(user.getLocale()).get("error.unknown_button_title"));
                 return;
             }
 
@@ -185,43 +190,51 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
                     break;
                 case null:
                 default:
-                    errorHandler.sendErrorEmbed(event, "Unknown Button", "This button ID is not recognized.");
+                    errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.unknown_button_title"), new Locale(user.getLocale()).get("error.unknown_button_description"));
             }
         });
     }
 
     private void handleContinue(ButtonInteractionEvent event, MessageData data) {
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
         ImageSource.fromName(data.getSubcommand().toUpperCase()).ifPresentOrElse(source -> {
             try {
                 Map<String, String> image = source.handle(event, data.getQuery());
                 if (image == null || image.get("image") == null) {
-                    errorHandler.sendErrorEmbed(event, "No More Images", "No more images are available for this source.");
+                    errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.no_more_images_title"), new Locale(user.getLocale()).get("error.no_more_images_description"));
                     return;
                 }
                 Embeds.editImageEmbed(event, image);
             } catch (Exception e) {
-                errorHandler.handleException(event, "Error", e.getMessage(), e);
+                errorHandler.handleException(event, new Locale(user.getLocale()).get("error.title"), e.getMessage(), e);
             }
-        }, () -> errorHandler.sendErrorEmbed(event, "Error", "Invalid subcommand data."));
+        }, () -> errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.title"), new Locale(user.getLocale()).get("error.invalid_subcommand_description")));
     }
 
     private void handleFavorite(ButtonInteractionEvent event) {
+        User user = Main.userService.getOrCreateUser(event.getUser().getId());
         try {
-            User user = User.get(Main.database, event.getUser().getId());
+            // Retrieve the user via the service layer
             if (event.getMessage().getEmbeds().isEmpty()) {
-                errorHandler.sendErrorEmbed(event, "No Image Found", "This message does not contain a valid embed.");
+                errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.no_image_title"), new Locale(user.getLocale()).get("error.no_image_description"));
                 return;
             }
 
-            user.addFavorite(
-                    event.getMessage().getEmbeds().get(0).getDescription(),
-                    event.getMessage().getEmbeds().get(0).getImage().getUrl(),
-                    "image"
-            );
+            // Get the first embed's description and image URL
+            String description = event.getMessage().getEmbeds().get(0).getDescription();
+            String imageUrl = (event.getMessage().getEmbeds().get(0).getImage() != null)
+                    ? event.getMessage().getEmbeds().get(0).getImage().getUrl()
+                    : null;
 
+            // Add a favorite using the new favorites model ("image" type)
+            user.addFavorite(description, imageUrl, "image");
+            // Persist the update via the service
+            Main.userService.updateUser(user);
+
+            // Disable the favorite button once it's been handled
             Embeds.disableButton(event, "favorite");
         } catch (Exception e) {
-            errorHandler.handleException(event, "Error", "Failed to add this image to favorites.", e);
+            errorHandler.handleException(event, new Locale(user.getLocale()).get("error.title"), new Locale(user.getLocale()).get("error.title"), e);
         }
     }
 
