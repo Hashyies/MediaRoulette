@@ -3,3 +3,9 @@ bin/*
 .gradle/*
 .vscode/*
 /src/main/resources/.env
+/gradlew.bat
+/gradlew
+/gradle/wrapper/gradle-wrapper.properties
+/gradle/wrapper/gradle-wrapper.jar
+/app.log.lck
+/app.log
