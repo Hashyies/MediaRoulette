@@ -1,6 +1,6 @@
 package me.hash.mediaroulette.bot;
 
-import me.hash.mediaroulette.utils.media.ImageGenerator;
+import me.hash.mediaroulette.utils.media.image_generation.ImageGenerator;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -33,7 +33,7 @@ public class Embeds {
 
         // Handle "create" type (generating images)
         if ("create".equals(map.get("image_type"))) {
-            byte[] imageBytes = ImageGenerator.generateImage(map.get("image_content"));
+            byte[] imageBytes = new ImageGenerator().generateImage(map.get("image_content"), "default");
             FileUpload fileUpload = FileUpload.fromData(imageBytes, "image.png");
 
             embedBuilder.setImage("attachment://image.png");
@@ -108,7 +108,7 @@ public class Embeds {
         List<Button> buttons = getButtons(true);
 
         if ("create".equals(map.get("image_type"))) {
-            byte[] imageBytes = ImageGenerator.generateImage(map.get("image_content"));
+            byte[] imageBytes = new ImageGenerator().generateImage(map.get("image_content"), "default");
             FileUpload fileUpload = FileUpload.fromData(imageBytes, "image.png");
 
             event.getMessage().editMessage(MessageEditData.fromEmbeds(messageEmbed))

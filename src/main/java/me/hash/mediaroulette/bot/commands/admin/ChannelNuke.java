@@ -4,9 +4,9 @@ import java.io.IOException;
 
 import me.hash.mediaroulette.bot.errorHandler;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
+import me.hash.mediaroulette.content.factory.MediaServiceFactory;
 import net.dv8tion.jda.api.Permission;
 import me.hash.mediaroulette.bot.Bot;
-import me.hash.mediaroulette.content.RandomImage;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -66,7 +66,7 @@ public class ChannelNuke extends ListenerAdapter implements CommandHandler {
             EmbedBuilder embedBuilder = new EmbedBuilder();
             embedBuilder.setTitle("Channel Nuked");
             try {
-                embedBuilder.setImage(RandomImage.getTenor("nuke").get("image"));
+                embedBuilder.setImage(new MediaServiceFactory().createTenorProvider().getRandomMedia("nuke").toMap().get("image"));
             } catch (IOException e) {
                 e.printStackTrace();
             }

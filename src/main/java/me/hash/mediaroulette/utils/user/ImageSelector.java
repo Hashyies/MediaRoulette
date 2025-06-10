@@ -1,11 +1,9 @@
 package me.hash.mediaroulette.utils.user;
 
-import me.hash.mediaroulette.bot.commands.images.ImageSource;
+import me.hash.mediaroulette.content.factory.MediaServiceFactory;
 import me.hash.mediaroulette.model.ImageOptions;
 import me.hash.mediaroulette.exceptions.InvalidChancesException;
 import me.hash.mediaroulette.exceptions.NoEnabledOptionsException;
-import me.hash.mediaroulette.content.RandomImage;
-import me.hash.mediaroulette.content.RandomMedia;
 import me.hash.mediaroulette.content.RandomText;
 
 import java.io.IOException;
@@ -77,17 +75,17 @@ public class ImageSelector {
 
     private Map<String, String> getImageByType(String imageType) throws IOException, ExecutionException, InterruptedException {
         return switch (imageType) {
-            case "4chan" -> RandomImage.get4ChanImage(null);
-            case "picsum" -> RandomImage.getPicSumImage();
-            case "imgur" -> RandomImage.getImgurImage();
-            case "reddit" -> ImageSource.randomRedditService.getRandomReddit(null);
-            case "rule34xxx" -> RandomImage.getRandomRule34xxx();
-            case "tenor" -> RandomImage.getTenor(null);
-            case "google" -> RandomImage.getGoogleQueryImage(null);
-            case "movies" -> RandomMedia.randomMovie();
-            case "tvshow" -> RandomMedia.randomTVShow();
-            case "youtube" -> RandomMedia.getRandomYoutube();
-            case "short" -> RandomMedia.getRandomYoutubeShorts();
+            case "4chan" -> new MediaServiceFactory().createFourChanProvider().getRandomMedia(null).toMap();
+            case "picsum" -> new MediaServiceFactory().createPicsumProvider().getRandomMedia(null).toMap();
+            case "imgur" -> new MediaServiceFactory().createImgurProvider().getRandomMedia(null).toMap();
+            case "reddit" -> new MediaServiceFactory().createRedditProvider().getRandomMedia(null).toMap();
+            case "rule34xxx" -> new MediaServiceFactory().createRule34Provider().getRandomMedia(null).toMap();
+            case "tenor" -> new MediaServiceFactory().createTenorProvider().getRandomMedia(null).toMap();
+            case "google" -> new MediaServiceFactory().createGoogleProvider().getRandomMedia(null).toMap();
+            case "movies" -> new MediaServiceFactory().createTMDBMovieProvider().getRandomMedia(null).toMap();
+            case "tvshow" -> new MediaServiceFactory().createTMDBTvProvider().getRandomMedia(null).toMap();
+            case "youtube" -> new MediaServiceFactory().createYouTubeProvider().getRandomMedia(null).toMap();
+            case "short" -> new MediaServiceFactory().createYouTubeShortsProvider().getRandomMedia(null).toMap();
             case "urban" -> RandomText.getRandomUrbanWord(null);
             default -> throw new IllegalArgumentException("Unknown image type: " + imageType);
         };

@@ -56,17 +56,20 @@ public class errorHandler {
     public static Map<String, String> getCensoredEnvVariables() {
         Map<String, String> censoredEnv = new HashMap<>();
 
-        // Loop through the environment variables in the application.
         for (DotenvEntry entry : Main.env.entries()) {
+            String key = entry.getKey();
             String value = entry.getValue();
+
+            String censoredValue;
             if (value == null || value.isEmpty()) {
-                value = "***"; // If the value is empty, replace it entirely with asterisks.
+                censoredValue = "***";
             } else if (value.length() > 3) {
-                value = value.substring(0, 3) + "***"; // Keep the first 3 characters, mask the rest.
+                censoredValue = value.substring(0, 3) + "***";
             } else {
-                value = "***"; // For values with fewer than 3 characters, mask them completely.
+                censoredValue = "***";
             }
-            censoredEnv.put(entry.getKey(), value);
+
+            censoredEnv.put(key, censoredValue);
         }
 
         return censoredEnv;
@@ -107,7 +110,7 @@ public class errorHandler {
 
     /**
      * Censors sensitive data from a throwable's stack trace using the application's
-     * environment variables.
+     * environment variables. Replaces environment variable keys and values with masked versions.
      *
      * @param throwable The throwable whose stack trace needs to be censored.
      * @return A string containing the censored stack trace.
@@ -118,21 +121,24 @@ public class errorHandler {
 
         // Write the stack trace to a StringWriter.
         throwable.printStackTrace(printWriter);
-        String fullStackTrace = stringWriter.toString();
+        String stackTrace = stringWriter.toString();
 
-        // Get censored environment variables for replacement.
-        Map<String, String> censoredEnvVariables = getCensoredEnvVariables();
-
-        // Replace each environment variable's value in the stack trace with its censored counterpart.
-        for (Map.Entry<String, String> entry : censoredEnvVariables.entrySet()) {
+        // Replace sensitive environment data in the stack trace
+        for (DotenvEntry entry : Main.env.entries()) {
             String key = entry.getKey();
-            String censoredValue = entry.getValue();
+            String value = entry.getValue();
 
-            // Replace both the key and possible raw values in the stack trace.
-            fullStackTrace = fullStackTrace.replace(key, "***"); // Replace raw keys.
-            fullStackTrace = fullStackTrace.replace(entry.getValue().replace("***", ""), censoredValue); // Replace raw uncensored values.
+            if (key != null && !key.isEmpty()) {
+                // Replace environment variable keys
+                stackTrace = stackTrace.replace(key, "[ENV_KEY_***]");
+            }
+
+            if (value != null && !value.isEmpty() && value.length() > 3) {
+                // Replace environment variable values (only if they're longer than 3 chars to avoid false positives)
+                stackTrace = stackTrace.replace(value, "[ENV_VALUE_" + value.substring(0, 3) + "***]");
+            }
         }
 
-        return fullStackTrace;
+        return stackTrace;
     }
 }

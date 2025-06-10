@@ -3,13 +3,11 @@ package me.hash.mediaroulette.bot.commands.images;
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.errorHandler;
-import me.hash.mediaroulette.content.RandomImage;
-import me.hash.mediaroulette.content.RandomMedia;
 import me.hash.mediaroulette.content.RandomText;
 import me.hash.mediaroulette.content.factory.MediaServiceFactory;
-import me.hash.mediaroulette.content.model.MediaResult;
-import me.hash.mediaroulette.content.provider.impl.RedditProvider;
-import me.hash.mediaroulette.content.reddit.RandomRedditService;
+import me.hash.mediaroulette.content.provider.impl.images.FourChanProvider;
+import me.hash.mediaroulette.content.provider.impl.images.RedditProvider;
+import me.hash.mediaroulette.model.content.MediaResult;
 import me.hash.mediaroulette.content.reddit.RedditClient;
 import me.hash.mediaroulette.content.reddit.SubredditManager;
 import me.hash.mediaroulette.model.User;
@@ -38,7 +36,6 @@ public enum ImageSource {
 
     public static final RedditClient redditClient = new RedditClient();
     public static final SubredditManager subredditManager = new SubredditManager(redditClient);
-    public static final RandomRedditService randomRedditService = new RandomRedditService(redditClient, subredditManager);
 
     ImageSource(String name) {
         this.name = name;
@@ -58,17 +55,17 @@ public enum ImageSource {
 
         return switch (this) {
             case REDDIT -> handleReddit(event, option);
-            case TENOR -> RandomImage.getTenor(option);
-            case IMGUR -> RandomImage.getImgurImage();
+            case TENOR -> new MediaServiceFactory().createTenorProvider().getRandomMedia(option).toMap();
+            case IMGUR -> new MediaServiceFactory().createImgurProvider().getRandomMedia(null).toMap();
             case _4CHAN -> handle4Chan(event, option);
-            case GOOGLE -> RandomImage.getGoogleQueryImage(option);
-            case PICSUM -> RandomImage.getPicSumImage();
-            case RULE34XXX -> RandomImage.getRandomRule34xxx();
-            case MOVIE -> RandomMedia.randomMovie();
-            case TVSHOW -> RandomMedia.randomTVShow();
+            case GOOGLE -> new MediaServiceFactory().createGoogleProvider().getRandomMedia(option).toMap();
+            case PICSUM -> new MediaServiceFactory().createPicsumProvider().getRandomMedia(null).toMap();
+            case RULE34XXX -> new MediaServiceFactory().createRule34Provider().getRandomMedia(null).toMap();
+            case MOVIE -> new MediaServiceFactory().createTMDBMovieProvider().getRandomMedia(null).toMap();
+            case TVSHOW -> new MediaServiceFactory().createTMDBTvProvider().getRandomMedia(null).toMap();
             case URBAN -> handleUrban(event, option);
-            case YOUTUBE -> RandomMedia.getRandomYoutube();
-            case SHORT -> RandomMedia.getRandomYoutubeShorts();
+            case YOUTUBE -> new MediaServiceFactory().createYouTubeProvider().getRandomMedia(null).toMap();
+            case SHORT -> new MediaServiceFactory().createYouTubeShortsProvider().getRandomMedia(null).toMap();
             case ALL -> user.getImage();
 
         };
@@ -96,16 +93,21 @@ public enum ImageSource {
             throw new Exception("Error fetching Reddit data");
         }
 
+        System.out.println(redditPost.toMap().toString());
+
         return redditPost.toMap();
     }
 
     private Map<String, String> handle4Chan(Interaction event, String option) throws Exception {
         User user = Main.userService.getOrCreateUser(event.getUser().getId());
-        if (option != null && !RandomImage.BOARDS.contains(option)) {
+
+        FourChanProvider provider = (FourChanProvider) new MediaServiceFactory().createFourChanProvider();
+
+        if (option != null && !provider.isValidBoard(option)) {
             errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.4chan_invalid_board_title"), new Locale(user.getLocale()).get("error.4chan_invalid_board_description"));
             throw new Exception("Board doesn't exist");
         }
-        return RandomImage.get4ChanImage(option);
+        return provider.getRandomMedia(option).toMap();
     }
 
     private Map<String, String> handleUrban(Interaction event, String option) throws Exception {

@@ -1,0 +1,110 @@
+[
+  {
+    "name": "default",
+    "backgroundImage": "images/Background.jpg",
+    "colorPalette": {
+      "primary": "rgba(50, 125, 255, 150)",
+      "secondary": "rgba(255, 255, 255, 100)",
+      "accent": "rgba(100, 200, 255, 120)",
+      "text": "#FFFFFF",
+      "overlay": "rgba(0, 0, 0, 20)",
+      "shadow": "rgba(0, 0, 0, 85)"
+    },
+    "textStyle": {
+      "fontFamily": "Montserrat",
+      "fontSize": 36,
+      "fontWeight": "BOLD",
+      "antiAliasing": true
+    },
+    "boxStyle": {
+      "cornerRadius": 40,
+      "paddingX": 50,
+      "paddingY": 30,
+      "borderWidth": 4,
+      "shadowOffsetX": 5,
+      "shadowOffsetY": 5,
+      "boxType": "rounded"
+    }
+  },
+  {
+    "name": "dark",
+    "backgroundImage": "images/DarkBackground.jpg",
+    "colorPalette": {
+      "primary": "rgba(30, 30, 30, 180)",
+      "secondary": "rgba(100, 100, 100, 120)",
+      "accent": "rgba(80, 80, 80, 140)",
+      "text": "#E0E0E0",
+      "overlay": "rgba(0, 0, 0, 200)",
+      "shadow": "rgba(0, 0, 0, 120)"
+    },
+    "textStyle": {
+      "fontFamily": "Montserrat",
+      "fontSize": 40,
+      "fontWeight": "BOLD",
+      "antiAliasing": true
+    },
+    "boxStyle": {
+      "cornerRadius": 25,
+      "paddingX": 60,
+      "paddingY": 35,
+      "borderWidth": 2,
+      "shadowOffsetX": 8,
+      "shadowOffsetY": 8,
+      "boxType": "rounded"
+    }
+  },
+  {
+    "name": "neon",
+    "backgroundImage": "images/NeonBackground.jpg",
+    "colorPalette": {
+      "primary": "rgba(255, 0, 255, 120)",
+      "secondary": "rgba(0, 255, 255, 100)",
+      "accent": "rgba(255, 255, 0, 110)",
+      "text": "#FFFFFF",
+      "overlay": "rgba(0, 0, 0, 180)",
+      "shadow": "rgba(0, 0, 0, 100)"
+    },
+    "textStyle": {
+      "fontFamily": "Roboto",
+      "fontSize": 38,
+      "fontWeight": "BOLD",
+      "antiAliasing": true
+    },
+    "boxStyle": {
+      "cornerRadius": 30,
+      "paddingX": 55,
+      "paddingY": 40,
+      "borderWidth": 3,
+      "shadowOffsetX": 6,
+      "shadowOffsetY": 6,
+      "boxType": "rounded"
+    }
+  },
+  {
+    "name": "minimal",
+    "backgroundImage": "images/MinimalBackground.jpg",
+    "colorPalette": {
+      "primary": "rgba(200, 200, 200, 150)",
+      "secondary": "rgba(255, 255, 255, 100)",
+      "accent": "rgba(150, 150, 150, 120)",
+      "text": "#333333",
+      "overlay": "rgba(255, 255, 255, 180)",
+      "shadow": "rgba(0, 0, 0, 50)"
+    },
+    "textStyle": {
+      "fontFamily": "Helvetica",
+      "fontSize": 34,
+      "fontWeight": "MEDIUM",
+      "antiAliasing": true
+    },
+    "boxStyle": {
+      "cornerRadius": 10,
+      "paddingX": 40,
+      "paddingY": 20,
+      "borderWidth": 1,
+      "shadowOffsetX": 3,
+      "shadowOffsetY": 3,
+      "boxType": "square"
+    }
+  }
+]
