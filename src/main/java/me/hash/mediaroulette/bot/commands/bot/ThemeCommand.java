@@ -13,6 +13,7 @@ import me.hash.mediaroulette.model.User;
 import me.hash.mediaroulette.utils.media.image_generation.ImageGenerator;
 import me.hash.mediaroulette.utils.media.image_generation.ThemeManager;
 import me.hash.mediaroulette.utils.media.image_generation.Theme;
+import me.hash.mediaroulette.utils.QuestGenerator;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -126,6 +127,10 @@ public class ThemeCommand extends ListenerAdapter implements CommandHandler {
 
                 // Update user's theme
                 user.setTheme(selectedTheme);
+                
+                // Update quest progress for theme change
+                QuestGenerator.onThemeChanged(user);
+                
                 Main.userService.updateUser(user);
 
                 // Create updated theme embed with success message

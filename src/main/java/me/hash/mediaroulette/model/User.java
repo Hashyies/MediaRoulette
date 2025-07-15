@@ -18,6 +18,12 @@ public class User {
     private Map<String, ImageOptions> imageOptions;
     private String locale; // locale support
     private String theme;
+    private long coins; // User's currency balance
+    private long totalCoinsEarned; // Total coins earned lifetime
+    private long totalCoinsSpent; // Total coins spent lifetime
+    private List<Quest> dailyQuests; // Current daily quests
+    private List<Transaction> transactionHistory; // Transaction history for monitoring
+    private java.time.LocalDate lastQuestReset; // Last time quests were reset
 
     public User(String userId) {
         this.userId = userId;
@@ -28,6 +34,12 @@ public class User {
         this.favorites = new ArrayList<>();
         this.imageOptions = new HashMap<>();
         this.locale = "en_US"; // default locale
+        this.coins = 100; // Starting balance
+        this.totalCoinsEarned = 100; // Starting coins count as earned
+        this.totalCoinsSpent = 0;
+        this.dailyQuests = new ArrayList<>();
+        this.transactionHistory = new ArrayList<>();
+        this.lastQuestReset = java.time.LocalDate.now(java.time.ZoneOffset.UTC);
     }
 
     // --- Getters and Setters ---
@@ -46,10 +58,150 @@ public class User {
     public void setLocale(String locale) { this.locale = locale; }
     public String getTheme() { return theme; }
     public void setTheme(String theme) { this.theme = theme; }
+    public long getCoins() { return coins; }
+    public void setCoins(long coins) { this.coins = coins; }
+    public long getTotalCoinsEarned() { return totalCoinsEarned; }
+    public void setTotalCoinsEarned(long totalCoinsEarned) { this.totalCoinsEarned = totalCoinsEarned; }
+    public long getTotalCoinsSpent() { return totalCoinsSpent; }
+    public void setTotalCoinsSpent(long totalCoinsSpent) { this.totalCoinsSpent = totalCoinsSpent; }
+    public List<Quest> getDailyQuests() { return dailyQuests; }
+    public void setDailyQuests(List<Quest> dailyQuests) { this.dailyQuests = dailyQuests; }
+    public List<Transaction> getTransactionHistory() { return transactionHistory; }
+    public void setTransactionHistory(List<Transaction> transactionHistory) { this.transactionHistory = transactionHistory; }
+    public java.time.LocalDate getLastQuestReset() { return lastQuestReset; }
+    public void setLastQuestReset(java.time.LocalDate lastQuestReset) { this.lastQuestReset = lastQuestReset; }
 
     // --- Business Logic Methods ---
     public void incrementImagesGenerated() {
         this.imagesGenerated++;
+        // Note: Coins are now earned through quests, not automatic generation
+    }
+
+    // --- Currency Management Methods ---
+    public Transaction addCoins(long amount, Transaction.TransactionType type, String description) {
+        return addCoins(amount, type, description, null);
+    }
+
+    public Transaction addCoins(long amount, Transaction.TransactionType type, String description, String adminId) {
+        if (amount <= 0) return null;
+        
+        long balanceBefore = this.coins;
+        this.coins += amount;
+        this.totalCoinsEarned += amount;
+        
+        Transaction transaction = new Transaction(this.userId, type, amount, balanceBefore, description);
+        if (adminId != null) {
+            transaction.setAdminId(adminId);
+        }
+        
+        addTransaction(transaction);
+        return transaction;
+    }
+
+    public Transaction spendCoins(long amount, Transaction.TransactionType type, String description) {
+        return spendCoins(amount, type, description, null);
+    }
+
+    public Transaction spendCoins(long amount, Transaction.TransactionType type, String description, String adminId) {
+        if (amount <= 0 || this.coins < amount) return null;
+        
+        long balanceBefore = this.coins;
+        this.coins -= amount;
+        this.totalCoinsSpent += amount;
+        
+        Transaction transaction = new Transaction(this.userId, type, -amount, balanceBefore, description);
+        if (adminId != null) {
+            transaction.setAdminId(adminId);
+        }
+        
+        addTransaction(transaction);
+        return transaction;
+    }
+
+    public boolean canAfford(long amount) {
+        return this.coins >= amount;
+    }
+
+    public long getNetWorth() {
+        return this.totalCoinsEarned - this.totalCoinsSpent;
+    }
+
+    private void addTransaction(Transaction transaction) {
+        this.transactionHistory.add(transaction);
+        
+        // Keep only last 100 transactions to prevent memory issues
+        if (this.transactionHistory.size() > 100) {
+            this.transactionHistory.remove(0);
+        }
+        
+        // Flag suspicious transactions
+        flagSuspiciousActivity(transaction);
+    }
+
+    private void flagSuspiciousActivity(Transaction transaction) {
+        // Flag large transactions
+        if (Math.abs(transaction.getAmount()) > 10000) {
+            transaction.setFlagged(true);
+        }
+        
+        // Flag rapid transactions (more than 10 in last minute)
+        long oneMinuteAgo = System.currentTimeMillis() - 60000;
+        long recentTransactions = transactionHistory.stream()
+                .filter(t -> t.getTimestamp().toEpochMilli() > oneMinuteAgo)
+                .count();
+        
+        if (recentTransactions > 10) {
+            transaction.setFlagged(true);
+        }
+    }
+
+    // --- Quest Management Methods ---
+    public void addQuest(Quest quest) {
+        this.dailyQuests.add(quest);
+    }
+
+    public void updateQuestProgress(Quest.QuestType questType, int amount) {
+        for (Quest quest : dailyQuests) {
+            if (quest.getType() == questType && !quest.isCompleted()) {
+                quest.addProgress(amount);
+            }
+        }
+    }
+
+    public List<Quest> getCompletedQuests() {
+        return dailyQuests.stream()
+                .filter(Quest::isCompleted)
+                .toList();
+    }
+
+    public List<Quest> getClaimableQuests() {
+        return dailyQuests.stream()
+                .filter(Quest::canClaim)
+                .toList();
+    }
+
+    public boolean needsQuestReset() {
+        return lastQuestReset == null || 
+               !lastQuestReset.equals(java.time.LocalDate.now(java.time.ZoneOffset.UTC));
+    }
+
+    public void resetDailyQuests() {
+        this.dailyQuests.clear();
+        this.lastQuestReset = java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+    }
+
+    public int getQuestLimit() {
+        // Regular users get 2 quests (1 easy, 1 hard), premium users get 3 (1 easy, 1 hard, 1 premium)
+        return isPremium() ? 3 : 2;
+    }
+
+    public Transaction claimQuestReward(Quest quest) {
+        if (quest.canClaim()) {
+            quest.claim();
+            return addCoins(quest.getCoinReward(), Transaction.TransactionType.QUEST_REWARD, 
+                    "Claimed reward for quest: " + quest.getTitle());
+        }
+        return null;
     }
 
     public int getFavoriteLimit() {

@@ -7,6 +7,9 @@ import me.hash.mediaroulette.bot.commands.bot.InfoCommand;
 import me.hash.mediaroulette.bot.commands.bot.ShardsCommand;
 import me.hash.mediaroulette.bot.commands.bot.ThemeCommand;
 import me.hash.mediaroulette.bot.commands.config.ConfigCommand;
+import me.hash.mediaroulette.bot.commands.economy.BalanceCommand;
+import me.hash.mediaroulette.bot.commands.economy.QuestsCommand;
+import me.hash.mediaroulette.bot.commands.economy.ShopCommand;
 import me.hash.mediaroulette.bot.commands.images.FavoritesCommand;
 import me.hash.mediaroulette.bot.commands.images.getRandomImage;
 import me.hash.mediaroulette.utils.Config;
@@ -65,7 +68,10 @@ public class Bot {
                     new ChannelNuke(),
                     new InfoCommand(),
                     new ShardsCommand(),
-                    new ThemeCommand()
+                    new ThemeCommand(),
+                    new BalanceCommand(),
+                    new QuestsCommand(),
+                    new ShopCommand()
             );
 
             // Add all event listeners (global to the entire bot)
@@ -88,7 +94,10 @@ public class Bot {
                     new ChannelNuke().getCommandData(),
                     new InfoCommand().getCommandData(),
                     new ShardsCommand().getCommandData(),
-                    new ThemeCommand().getCommandData()
+                    new ThemeCommand().getCommandData(),
+                    new BalanceCommand().getCommandData(),
+                    new QuestsCommand().getCommandData(),
+                    new ShopCommand().getCommandData()
             );
 
             shardManager.getShards().forEach(jda -> jda.updateCommands().addCommands(commands).queue());

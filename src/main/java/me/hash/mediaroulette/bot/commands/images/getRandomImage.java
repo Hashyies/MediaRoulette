@@ -8,6 +8,7 @@ import me.hash.mediaroulette.bot.errorHandler;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.model.User;
 import me.hash.mediaroulette.utils.Locale;
+import me.hash.mediaroulette.utils.QuestGenerator;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -145,6 +146,10 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
                                                 event.getChannel().getIdLong()
                                         );
                                         ACTIVE_MESSAGES.put(messageSent.getIdLong(), data);
+                                        
+                                        // Update quest progress for image generation
+                                        QuestGenerator.onImageGenerated(user, subcommand);
+                                        Main.userService.updateUser(user);
                                     })
                                     .exceptionally(ex -> {
                                         errorHandler.handleException(event, new Locale(user.getLocale()).get("error.unexpected_error"), new Locale(user.getLocale()).get("error.failed_to_send_image"), ex);
@@ -159,6 +164,7 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
                     errorHandler.handleException(event, new Locale(user.getLocale()).get("error.unexpected_error"), e.getMessage(), e);
                 }
                 user.incrementImagesGenerated();
+                Main.userService.updateUser(user);
             });
         });
     }
@@ -202,6 +208,11 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
                     break;
                 case "nsfw":
                 case "safe":
+                    // Update quest progress for rating images
+                    QuestGenerator.onImageRated(user);
+                    Main.userService.updateUser(user);
+                    Embeds.disableAllButtons(event);
+                    break;
                 case "exit":
                     Embeds.disableAllButtons(event);
                     break;
@@ -264,6 +275,10 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
                         event.getHook().editOriginalEmbeds(errorEmbed.build()).setComponents().queue();
                     });
                     user.incrementImagesGenerated();
+                    
+                    // Update quest progress for continue button
+                    QuestGenerator.onImageGenerated(user, data.getSubcommand());
+                    Main.userService.updateUser(user);
                 });
     }
 
@@ -289,6 +304,10 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
 
             // Add a favorite using the new favorites model ("image" type)
             user.addFavorite(description, imageUrl, "image");
+            
+            // Update quest progress for favoriting
+            QuestGenerator.onImageFavorited(user);
+            
             // Persist the update via the service
             Main.userService.updateUser(user);
 
