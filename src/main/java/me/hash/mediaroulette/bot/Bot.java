@@ -7,6 +7,7 @@ import me.hash.mediaroulette.bot.commands.bot.InfoCommand;
 import me.hash.mediaroulette.bot.commands.bot.ShardsCommand;
 import me.hash.mediaroulette.bot.commands.bot.ThemeCommand;
 import me.hash.mediaroulette.bot.commands.config.ConfigCommand;
+import me.hash.mediaroulette.bot.commands.config.ChancesCommand;
 import me.hash.mediaroulette.bot.commands.economy.BalanceCommand;
 import me.hash.mediaroulette.bot.commands.economy.QuestsCommand;
 import me.hash.mediaroulette.bot.commands.economy.ShopCommand;
@@ -66,6 +67,7 @@ public class Bot {
                     new FavoritesCommand(),
                     new getRandomImage(),
                     new ConfigCommand(),
+                    new ChancesCommand(),
                     new ChannelNuke(),
                     new InfoCommand(),
                     new ShardsCommand(),
@@ -93,6 +95,7 @@ public class Bot {
                     new FavoritesCommand().getCommandData(),
                     new getRandomImage().getCommandData(),
                     new ConfigCommand().getCommandData(),
+                    new ChancesCommand().getCommandData(),
                     new ChannelNuke().getCommandData(),
                     new InfoCommand().getCommandData(),
                     new ShardsCommand().getCommandData(),
