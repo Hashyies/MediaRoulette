@@ -181,7 +181,12 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
             data.updateLastInteractionTime();
 
             if (!data.isUserAllowed(event.getUser().getIdLong())) {
-                errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.unknown_button_title"), new Locale(user.getLocale()).get("error.unknown_button_title"));
+                // Show error embed using hook since interaction is already acknowledged
+                EmbedBuilder errorEmbed = new EmbedBuilder()
+                        .setTitle(new Locale(user.getLocale()).get("error.unknown_button_title"))
+                        .setDescription(new Locale(user.getLocale()).get("error.unknown_button_title"))
+                        .setColor(Color.RED);
+                event.getHook().editOriginalEmbeds(errorEmbed.build()).setComponents().queue();
                 return;
             }
 
@@ -202,26 +207,64 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
                     break;
                 case null:
                 default:
-                    errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.unknown_button_title"), new Locale(user.getLocale()).get("error.unknown_button_description"));
+                    // Show error embed using hook since interaction is already acknowledged
+                    EmbedBuilder errorEmbed = new EmbedBuilder()
+                            .setTitle(new Locale(user.getLocale()).get("error.unknown_button_title"))
+                            .setDescription(new Locale(user.getLocale()).get("error.unknown_button_description"))
+                            .setColor(Color.RED);
+                    event.getHook().editOriginalEmbeds(errorEmbed.build()).setComponents().queue();
             }
         });
     }
 
     private void handleContinue(ButtonInteractionEvent event, MessageData data) {
         User user = Main.userService.getOrCreateUser(event.getUser().getId());
-        ImageSource.fromName(data.getSubcommand().toUpperCase()).ifPresentOrElse(source -> {
-            try {
-                Map<String, String> image = source.handle(event, data.getQuery());
-                if (image == null || image.get("image") == null) {
-                    errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.no_more_images_title"), new Locale(user.getLocale()).get("error.no_more_images_description"));
-                    return;
-                }
-                Embeds.editImageEmbed(event, image);
-            } catch (Exception e) {
-                errorHandler.handleException(event, new Locale(user.getLocale()).get("error.title"), e.getMessage(), e);
-            }
-        }, () -> errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.title"), new Locale(user.getLocale()).get("error.invalid_subcommand_description")));
-        user.incrementImagesGenerated();
+        
+        // Show loading embed immediately
+        EmbedBuilder loadingEmbed = new EmbedBuilder()
+                .setTitle("<a:loading:1350829863157891094> Generating Next Image...")
+                .setDescription("Please wait while we fetch your next random image...")
+                .setColor(new Color(88, 101, 242)) // Discord Blurple
+                .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
+                .setTimestamp(Instant.now());
+
+        // Edit to loading state first
+        event.getHook().editOriginalEmbeds(loadingEmbed.build())
+                .setComponents() // Remove buttons temporarily
+                .queue(success -> {
+                    // Now fetch the new image
+                    ImageSource.fromName(data.getSubcommand().toUpperCase()).ifPresentOrElse(source -> {
+                        try {
+                            Map<String, String> image = source.handle(event, data.getQuery());
+                            if (image == null || image.get("image") == null) {
+                                // Show error embed using hook since interaction is already acknowledged
+                                EmbedBuilder errorEmbed = new EmbedBuilder()
+                                        .setTitle(new Locale(user.getLocale()).get("error.no_more_images_title"))
+                                        .setDescription(new Locale(user.getLocale()).get("error.no_more_images_description"))
+                                        .setColor(Color.RED);
+                                event.getHook().editOriginalEmbeds(errorEmbed.build()).setComponents().queue();
+                                return;
+                            }
+                            // Use LoadingEmbeds to edit the loading message to the final image
+                            LoadingEmbeds.editLoadingToImageEmbedFromHook(event.getHook(), image, true);
+                        } catch (Exception e) {
+                            // Show error embed using hook since interaction is already acknowledged
+                            EmbedBuilder errorEmbed = new EmbedBuilder()
+                                    .setTitle(new Locale(user.getLocale()).get("error.title"))
+                                    .setDescription(e.getMessage())
+                                    .setColor(Color.RED);
+                            event.getHook().editOriginalEmbeds(errorEmbed.build()).setComponents().queue();
+                        }
+                    }, () -> {
+                        // Show error embed using hook since interaction is already acknowledged
+                        EmbedBuilder errorEmbed = new EmbedBuilder()
+                                .setTitle(new Locale(user.getLocale()).get("error.title"))
+                                .setDescription(new Locale(user.getLocale()).get("error.invalid_subcommand_description"))
+                                .setColor(Color.RED);
+                        event.getHook().editOriginalEmbeds(errorEmbed.build()).setComponents().queue();
+                    });
+                    user.incrementImagesGenerated();
+                });
     }
 
     private void handleFavorite(ButtonInteractionEvent event) {
@@ -229,7 +272,12 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
         try {
             // Retrieve the user via the service layer
             if (event.getMessage().getEmbeds().isEmpty()) {
-                errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.no_image_title"), new Locale(user.getLocale()).get("error.no_image_description"));
+                // Show error embed using hook since interaction is already acknowledged
+                EmbedBuilder errorEmbed = new EmbedBuilder()
+                        .setTitle(new Locale(user.getLocale()).get("error.no_image_title"))
+                        .setDescription(new Locale(user.getLocale()).get("error.no_image_description"))
+                        .setColor(Color.RED);
+                event.getHook().editOriginalEmbeds(errorEmbed.build()).setComponents().queue();
                 return;
             }
 
@@ -247,7 +295,12 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
             // Disable the favorite button once it's been handled
             Embeds.disableButton(event, "favorite");
         } catch (Exception e) {
-            errorHandler.handleException(event, new Locale(user.getLocale()).get("error.title"), new Locale(user.getLocale()).get("error.title"), e);
+            // Show error embed using hook since interaction is already acknowledged
+            EmbedBuilder errorEmbed = new EmbedBuilder()
+                    .setTitle(new Locale(user.getLocale()).get("error.title"))
+                    .setDescription(e.getMessage())
+                    .setColor(Color.RED);
+            event.getHook().editOriginalEmbeds(errorEmbed.build()).setComponents().queue();
         }
     }
 

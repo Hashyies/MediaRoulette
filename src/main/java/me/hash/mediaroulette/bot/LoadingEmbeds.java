@@ -56,6 +56,31 @@ public class LoadingEmbeds {
         return future;
     }
 
+    public static void editLoadingToImageEmbedFromHook(net.dv8tion.jda.api.interactions.InteractionHook hook, Map<String, String> map, boolean shouldContinue) {
+        // Extract color asynchronously
+        extractDominantColor(map).thenAccept(color -> {
+            EmbedBuilder embed = createEmbedFromHook(hook, map, color);
+            List<Button> buttons = createButtons(shouldContinue);
+
+            if ("create".equals(map.get("image_type"))) {
+                handleGeneratedImageEditFromHook(hook, embed, buttons, map);
+            } else {
+                editMessageFromHookVoid(hook, embed.build(), buttons);
+            }
+        }).exceptionally(throwable -> {
+            // Fallback to default color on error
+            EmbedBuilder embed = createEmbedFromHook(hook, map, Color.CYAN);
+            List<Button> buttons = createButtons(shouldContinue);
+
+            if ("create".equals(map.get("image_type"))) {
+                handleGeneratedImageEditFromHook(hook, embed, buttons, map);
+            } else {
+                editMessageFromHookVoid(hook, embed.build(), buttons);
+            }
+            return null;
+        });
+    }
+
     private static EmbedBuilder createEmbedFromHook(net.dv8tion.jda.api.interactions.InteractionHook hook, Map<String, String> map, Color color) {
         EmbedBuilder embed = new EmbedBuilder()
                 .setTitle(map.get("title"))
@@ -94,6 +119,25 @@ public class LoadingEmbeds {
         hook.editOriginalEmbeds(embed)
                 .setComponents(ActionRow.of(buttons))
                 .queue(future::complete, future::completeExceptionally);
+    }
+
+    private static void handleGeneratedImageEditFromHook(net.dv8tion.jda.api.interactions.InteractionHook hook, EmbedBuilder embed, List<Button> buttons,
+                                                         Map<String, String> map) {
+        User user = Main.userService.getOrCreateUser(hook.getInteraction().getUser().getId());
+        byte[] imageBytes = new ImageGenerator().generateImage(map.get("image_content"), user.getTheme());
+        FileUpload file = FileUpload.fromData(imageBytes, "image.png");
+        embed.setImage("attachment://image.png");
+
+        hook.editOriginalEmbeds(embed.build())
+                .setFiles(file)
+                .setComponents(ActionRow.of(buttons))
+                .queue();
+    }
+
+    private static void editMessageFromHookVoid(net.dv8tion.jda.api.interactions.InteractionHook hook, MessageEmbed embed, List<Button> buttons) {
+        hook.editOriginalEmbeds(embed)
+                .setComponents(ActionRow.of(buttons))
+                .queue();
     }
 
     private static List<Button> createButtons(boolean shouldContinue) {
