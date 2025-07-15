@@ -19,13 +19,11 @@ public class UserService {
      * Fetches an existing user or creates a new one if not found.
      */
     public User getOrCreateUser(String userId) {
-        return cache.computeIfAbsent(userId, id -> {
-            return userRepository.findById(id)
-                    .orElseGet(() -> {
-                        User newUser = new User(id);
-                        return userRepository.save(newUser);
-                    });
-        });
+        return cache.computeIfAbsent(userId, id -> userRepository.findById(id)
+                .orElseGet(() -> {
+                    User newUser = new User(id);
+                    return userRepository.save(newUser);
+                }));
     }
 
     /**

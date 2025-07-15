@@ -17,6 +17,7 @@ public class User {
     private List<Favorite> favorites;
     private Map<String, ImageOptions> imageOptions;
     private String locale; // locale support
+    private String theme;
 
     public User(String userId) {
         this.userId = userId;
@@ -43,6 +44,8 @@ public class User {
     public Map<String, ImageOptions> getImageOptionsMap() { return imageOptions; }
     public String getLocale() { return locale; }
     public void setLocale(String locale) { this.locale = locale; }
+    public String getTheme() { return theme; }
+    public void setTheme(String theme) { this.theme = theme; }
 
     // --- Business Logic Methods ---
     public void incrementImagesGenerated() {

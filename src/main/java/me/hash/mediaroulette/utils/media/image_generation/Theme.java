@@ -75,23 +75,81 @@ public class Theme {
         public Color getShadowColor() { return parseColor(shadow); }
 
         private Color parseColor(String colorStr) {
-            if (colorStr == null || colorStr.isEmpty()) return Color.BLACK;
+            if (colorStr == null || colorStr.isEmpty()) {
+                System.err.println("Warning: Null or empty color string, using fallback");
+                return new Color(128, 128, 128, 255); // Gray fallback instead of black
+            }
+
+            colorStr = colorStr.trim();
+
             try {
                 if (colorStr.startsWith("#")) {
-                    return Color.decode(colorStr);
+                    // Handle hex colors
+                    Color color = Color.decode(colorStr);
+                    // Ensure full opacity for hex colors if not specified
+                    return new Color(color.getRed(), color.getGreen(), color.getBlue(), 255);
                 } else if (colorStr.startsWith("rgba(")) {
-                    // Parse rgba(r,g,b,a) format
+                    // Parse rgba(r,g,b,a) format - IMPROVED VERSION
                     String values = colorStr.substring(5, colorStr.length() - 1);
                     String[] parts = values.split(",");
-                    int r = Integer.parseInt(parts[0].trim());
-                    int g = Integer.parseInt(parts[1].trim());
-                    int b = Integer.parseInt(parts[2].trim());
-                    float a = Float.parseFloat(parts[3].trim());
-                    return new Color(r, g, b, (int)(a * 255));
+
+                    if (parts.length != 4) {
+                        throw new IllegalArgumentException("Invalid RGBA format: expected 4 values, got " + parts.length);
+                    }
+
+                    int r = Math.max(0, Math.min(255, Integer.parseInt(parts[0].trim())));
+                    int g = Math.max(0, Math.min(255, Integer.parseInt(parts[1].trim())));
+                    int b = Math.max(0, Math.min(255, Integer.parseInt(parts[2].trim())));
+
+                    // Improved alpha handling
+                    String alphaStr = parts[3].trim();
+                    int alpha;
+
+                    if (alphaStr.contains(".")) {
+                        // Alpha as decimal (0.0-1.0)
+                        float alphaFloat = Float.parseFloat(alphaStr);
+                        alpha = Math.round(Math.max(0, Math.min(1, alphaFloat)) * 255);
+                    } else {
+                        // Alpha as integer (0-255)
+                        int alphaInt = Integer.parseInt(alphaStr);
+                        // Handle case where alpha might be given as 0-255 or 0-1 scale
+                        if (alphaInt <= 1) {
+                            alpha = Math.round(alphaInt * 255);
+                        } else {
+                            alpha = Math.max(0, Math.min(255, alphaInt));
+                        }
+                    }
+
+                    // Ensure minimum alpha to prevent completely transparent colors
+                    alpha = Math.max(alpha, 10);
+                    
+                    Color result = new Color(r, g, b, alpha);
+                    System.out.println("Parsed RGBA(" + r + "," + g + "," + b + "," + alpha + ") from: " + colorStr);
+                    return result;
+                } else if (colorStr.startsWith("rgb(")) {
+                    // Parse rgb(r,g,b) format
+                    String values = colorStr.substring(4, colorStr.length() - 1);
+                    String[] parts = values.split(",");
+
+                    if (parts.length != 3) {
+                        throw new IllegalArgumentException("Invalid RGB format: expected 3 values, got " + parts.length);
+                    }
+
+                    int r = Math.max(0, Math.min(255, Integer.parseInt(parts[0].trim())));
+                    int g = Math.max(0, Math.min(255, Integer.parseInt(parts[1].trim())));
+                    int b = Math.max(0, Math.min(255, Integer.parseInt(parts[2].trim())));
+
+                    return new Color(r, g, b, 255); // Full opacity for RGB
+                } else {
+                    // Try to decode as hex without #
+                    Color color = Color.decode("#" + colorStr);
+                    return new Color(color.getRed(), color.getGreen(), color.getBlue(), 255);
                 }
-                return Color.decode(colorStr);
             } catch (Exception e) {
-                return Color.BLACK;
+                System.err.println("Failed to parse color: '" + colorStr + "' - " + e.getMessage());
+                e.printStackTrace();
+                // Return a visible fallback color instead of black
+                return new Color(128, 128, 128, 200); // Semi-transparent gray
             }
         }
     }

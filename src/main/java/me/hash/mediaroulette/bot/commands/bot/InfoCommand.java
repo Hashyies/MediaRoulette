@@ -1,6 +1,11 @@
 package me.hash.mediaroulette.bot.commands.bot;
 
 import java.awt.Color;
+import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.OperatingSystemMXBean;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 import me.hash.mediaroulette.Main;
@@ -21,12 +26,18 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 
 public class InfoCommand extends ListenerAdapter implements CommandHandler {
 
+    // Premium color palette
+    private static final Color PRIMARY_COLOR = new Color(88, 101, 242); // Discord Blurple
+    private static final Color SUCCESS_COLOR = new Color(87, 242, 135); // Green
+    private static final Color PREMIUM_COLOR = new Color(255, 215, 0); // Gold
+    private static final Color ACCENT_COLOR = new Color(114, 137, 218); // Light Blurple
+
     @Override
     public CommandData getCommandData() {
-        return Commands.slash("info", "Get bot or user information")
+        return Commands.slash("info", "📊 Get detailed bot or user information")
                 .addSubcommands(
-                        new SubcommandData("bot", "Get global info about the bot"),
-                        new SubcommandData("me", "Get info about yourself")
+                        new SubcommandData("bot", "🤖 Get comprehensive bot statistics and information"),
+                        new SubcommandData("me", "👤 View your personal profile and usage statistics")
                 )
                 .setIntegrationTypes(IntegrationType.ALL)
                 .setContexts(InteractionContextType.ALL);
@@ -45,9 +56,14 @@ public class InfoCommand extends ListenerAdapter implements CommandHandler {
 
             // Check if the user is on cooldown
             if (Bot.COOLDOWNS.containsKey(userId) && now - Bot.COOLDOWNS.get(userId) < Bot.COOLDOWN_DURATION) {
-                // The user is on cooldown, reply with an embed and return
-                errorHandler.sendErrorEmbed(event, "Slow down dude",
-                        "Please wait for 2 seconds before using this command again!...");
+                // Enhanced cooldown message
+                EmbedBuilder cooldownEmbed = new EmbedBuilder()
+                        .setTitle("⏰ Slow Down!")
+                        .setDescription("Please wait **2 seconds** before using this command again.")
+                        .setColor(new Color(255, 107, 107))
+                        .setTimestamp(Instant.now());
+
+                event.getHook().sendMessageEmbeds(cooldownEmbed.build()).queue();
                 return;
             }
 
@@ -57,53 +73,334 @@ public class InfoCommand extends ListenerAdapter implements CommandHandler {
             if (event.getSubcommandName().equals("bot")) {
                 event.getHook().sendMessageEmbeds(getGlobalEmbed()).queue();
             } else if (event.getSubcommandName().equals("me")) {
-                event.getHook().sendMessageEmbeds(getUserInfo(event.getUser().getId())).queue();
+                event.getHook().sendMessageEmbeds(getUserInfo(event.getUser().getId(), event.getUser().getName(), event.getUser().getAvatarUrl())).queue();
             }
         });
     }
 
     public MessageEmbed getGlobalEmbed() {
         EmbedBuilder embed = new EmbedBuilder();
-        embed.setTitle("Bot Information");
-        embed.setColor(Color.BLUE);
 
-        // Get the image generated value
+        // Header with stylish title
+        embed.setTitle("🤖 Media Roulette Bot");
+        embed.setDescription("*Your premium AI-powered media generation companion*");
+        embed.setColor(PRIMARY_COLOR);
+        embed.setTimestamp(Instant.now());
+
+        // Get configuration data
         Config config = new Config(Main.database);
         String imageGenerated = config.getOrDefault("image_generated", "0", String.class);
-        embed.addField("Images Generated", imageGenerated, true);
 
-        // Calculate the uptime
+        // Format the image count with commas for better readability
+        String formattedImages = formatNumber(Long.parseLong(imageGenerated));
+
+        // Calculate detailed uptime
         long uptimeMillis = System.currentTimeMillis() - Main.startTime;
-        long uptimeSeconds = TimeUnit.MILLISECONDS.toSeconds(uptimeMillis);
-        long uptimeMinutes = TimeUnit.MILLISECONDS.toMinutes(uptimeMillis);
-        long uptimeHours = TimeUnit.MILLISECONDS.toHours(uptimeMillis);
-        long uptimeDays = TimeUnit.MILLISECONDS.toDays(uptimeMillis);
+        String formattedUptime = formatUptime(uptimeMillis);
 
-        String uptime = String.format("%d days, %d hours, %d minutes, %d seconds",
-                uptimeDays,
-                uptimeHours - TimeUnit.DAYS.toHours(uptimeDays),
-                uptimeMinutes - TimeUnit.HOURS.toMinutes(uptimeHours),
-                uptimeSeconds - TimeUnit.MINUTES.toSeconds(uptimeMinutes));
+        // Get real system metrics
+        SystemMetrics metrics = getSystemMetrics();
 
-        embed.addField("Uptime", uptime, true);
+        // Statistics section with emojis and formatting
+        embed.addField("📈 **Total Images Generated**",
+                "```" + formattedImages + "```", true);
 
-        // Send the embed
+        embed.addField("⏱️ **Bot Uptime**",
+                "```" + formattedUptime + "```", true);
+
+        embed.addField("🏓 **Gateway Ping**",
+                "```" + Bot.getShardManager().getShards().getFirst().getGatewayPing() + "ms```", true);
+
+        // Memory usage with progress bar
+        String memoryUsage = String.format("```Used: %s\nMax: %s\n%s```",
+                metrics.getUsedMemory(),
+                metrics.getMaxMemory(),
+                createProgressBar(metrics.getUsedMemoryBytes(), metrics.getMaxMemoryBytes(), 12));
+        embed.addField("💾 **Memory Usage**", memoryUsage, true);
+
+        // CPU usage
+        embed.addField("⚡ **CPU Usage**",
+                String.format("```%s\nCores: %d\nLoad: %s```",
+                        metrics.getCpuUsage(),
+                        metrics.getCpuCores(),
+                        metrics.getSystemLoad()), true);
+
+        // Disk usage
+        embed.addField("💿 **Disk Usage**",
+                String.format("```Used: %s\nFree: %s\nTotal: %s```",
+                        metrics.getDiskUsed(),
+                        metrics.getDiskFree(),
+                        metrics.getDiskTotal()), true);
+
+        // JVM Information
+        embed.addField("☕ **JVM Info**",
+                String.format("```Version: %s\nVendor: %s\nThreads: %d```",
+                        System.getProperty("java.version"),
+                        System.getProperty("java.vendor").split(" ")[0],
+                        Thread.activeCount()), true);
+
+        // Discord API Statistics
+        embed.addField("🔗 **Discord Stats**",
+                String.format("```Guilds: %d\nShards: %d```",
+                        Bot.getShardManager().getShards().getFirst().getGuilds().size(),
+                        Bot.getShardManager().getShards().getFirst().getShardInfo().getShardTotal()), true);
+
+        // System Information
+        embed.addField("🖥️ **System Info**",
+                String.format("```OS: %s\nArch: %s\nJava: %s```",
+                        metrics.getOsName(),
+                        metrics.getOsArch(),
+                        System.getProperty("java.version")), true);
+
+        // Footer with additional info
+        embed.setFooter("Media Roulette • Real-time metrics", null);
+
+        // Add bot avatar if available
+        if (Bot.getShardManager().getShards().getFirst().getSelfUser().getAvatarUrl() != null) {
+            embed.setThumbnail(Bot.getShardManager().getShards().getFirst().getSelfUser().getAvatarUrl());
+        }
+
         return embed.build();
     }
 
-    public MessageEmbed getUserInfo(String id) {
+    public MessageEmbed getUserInfo(String id, String username, String avatarUrl) {
         EmbedBuilder embed = new EmbedBuilder();
-        embed.setTitle("Bot Information");
-        embed.setColor(Color.BLUE);
 
         User user = Main.userService.getOrCreateUser(id);
 
-        embed.addField("Images Generated", "" + user.getImagesGenerated(), true);
-        embed.addField("Favorites used", user.getFavorites().size() + "/" + user.getFavoriteLimit(), true);
-        embed.addField("Premium", "" + user.isPremium(), true);
-        embed.addField("Admin", "" + user.isAdmin(), true);
+        // Dynamic color based on user status
+        Color userColor = user.isPremium() ? PREMIUM_COLOR :
+                user.isAdmin() ? new Color(220, 20, 60) : ACCENT_COLOR;
+
+        embed.setColor(userColor);
+        embed.setTimestamp(Instant.now());
+
+        // User header with name and status badges
+        StringBuilder titleBuilder = new StringBuilder("👤 " + username);
+        if (user.isAdmin()) titleBuilder.append(" 🛡️");
+        if (user.isPremium()) titleBuilder.append(" 👑");
+
+        embed.setTitle(titleBuilder.toString());
+        embed.setDescription("*Your personal Media Roulette profile*");
+
+        // Set user avatar as thumbnail
+        if (avatarUrl != null) {
+            embed.setThumbnail(avatarUrl);
+        }
+
+        // User statistics with enhanced formatting
+        String formattedImages = formatNumber(user.getImagesGenerated());
+        embed.addField("🎨 **Images Generated**",
+                "```" + formattedImages + "```", true);
+
+        // Favorites with progress bar
+        int favoritesUsed = user.getFavorites().size();
+        int favoritesLimit = user.getFavoriteLimit();
+        String favoritesBar = createProgressBar(favoritesUsed, favoritesLimit, 10);
+
+        embed.addField("❤️ **Favorites**",
+                String.format("```%d/%d\n%s```", favoritesUsed, favoritesLimit, favoritesBar), true);
+
+        // Account status with badges
+        StringBuilder statusBuilder = new StringBuilder("```");
+        if (user.isPremium()) {
+            statusBuilder.append("👑 Premium Member\n");
+        } else {
+            statusBuilder.append("🆓 Free Tier\n");
+        }
+
+        if (user.isAdmin()) {
+            statusBuilder.append("🛡️ Administrator\n");
+        }
+
+        statusBuilder.append("✅ Account Active```");
+        embed.addField("🏷️ **Account Status**", statusBuilder.toString(), true);
+
+        // Usage statistics
+        embed.addField("📊 **Usage Stats**",
+                String.format("```📈 Generation Rate: %s\n⭐ Account Level: %s```",
+                        getUsageLevel(user.getImagesGenerated()),
+                        getAccountLevel(user)), true);
+
+        // Quick actions or tips
+        StringBuilder tipsBuilder = new StringBuilder("```");
+        if (!user.isPremium()) {
+            tipsBuilder.append("💡 Upgrade to Premium to higher the limit for favorite slots!\n");
+        }
+        if (favoritesUsed < favoritesLimit) {
+            tipsBuilder.append("💾 You have ").append(favoritesLimit - favoritesUsed).append(" favorite slots available\n");
+        }
+        tipsBuilder.append("🎨 Keep getting random stuff!```");
+
+        embed.addField("💡 **Tips & Info**", tipsBuilder.toString(), false);
+
+        // Footer with join date or additional info
+        embed.setFooter("Member since • Media Roulette", null);
 
         return embed.build();
     }
 
+    // Helper method to format large numbers with commas
+    private String formatNumber(long number) {
+        return String.format("%,d", number);
+    }
+
+    // Helper method to format uptime in a readable way
+    private String formatUptime(long uptimeMillis) {
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(uptimeMillis);
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(uptimeMillis);
+        long hours = TimeUnit.MILLISECONDS.toHours(uptimeMillis);
+        long days = TimeUnit.MILLISECONDS.toDays(uptimeMillis);
+
+        if (days > 0) {
+            return String.format("%dd %dh %dm",
+                    days,
+                    hours - TimeUnit.DAYS.toHours(days),
+                    minutes - TimeUnit.HOURS.toMinutes(hours));
+        } else if (hours > 0) {
+            return String.format("%dh %dm %ds",
+                    hours,
+                    minutes - TimeUnit.HOURS.toMinutes(hours),
+                    seconds - TimeUnit.MINUTES.toSeconds(minutes));
+        } else if (minutes > 0) {
+            return String.format("%dm %ds",
+                    minutes,
+                    seconds - TimeUnit.MINUTES.toSeconds(minutes));
+        } else {
+            return String.format("%ds", seconds);
+        }
+    }
+
+    // Helper method to create a visual progress bar
+    private String createProgressBar(int current, int max, int length) {
+        if (max == 0) return "░".repeat(length);
+
+        int filled = (int) ((double) current / max * length);
+        String bar = "█".repeat(Math.min(filled, length)) +
+                "░".repeat(Math.max(0, length - filled));
+        return bar;
+    }
+
+    // Overloaded version for long values (memory usage)
+    private String createProgressBar(long current, long max, int length) {
+        if (max == 0) return "░".repeat(length);
+
+        int filled = (int) ((double) current / max * length);
+        String bar = "█".repeat(Math.min(filled, length)) +
+                "░".repeat(Math.max(0, length - filled));
+        return bar;
+    }
+
+    // Helper method to determine usage level
+    private String getUsageLevel(long imagesGenerated) {
+        if (imagesGenerated >= 1000) return "Expert Creator";
+        if (imagesGenerated >= 500) return "Advanced User";
+        if (imagesGenerated >= 100) return "Regular User";
+        if (imagesGenerated >= 10) return "Active User";
+        return "New User";
+    }
+
+    // Helper method to determine account level
+    private String getAccountLevel(User user) {
+        if (user.isAdmin()) return "Administrator";
+        if (user.isPremium()) return "Premium";
+        return "Standard";
+    }
+
+    // System metrics helper class
+    private SystemMetrics getSystemMetrics() {
+        return new SystemMetrics();
+    }
+
+    // Inner class to handle system metrics
+    private static class SystemMetrics {
+        private final MemoryMXBean memoryBean;
+        private final OperatingSystemMXBean osBean;
+        private final Runtime runtime;
+        private final File rootDir;
+
+        public SystemMetrics() {
+            this.memoryBean = ManagementFactory.getMemoryMXBean();
+            this.osBean = ManagementFactory.getOperatingSystemMXBean();
+            this.runtime = Runtime.getRuntime();
+            this.rootDir = new File("/");
+        }
+
+        public String getUsedMemory() {
+            long usedMemory = memoryBean.getHeapMemoryUsage().getUsed();
+            return formatBytes(usedMemory);
+        }
+
+        public String getMaxMemory() {
+            long maxMemory = memoryBean.getHeapMemoryUsage().getMax();
+            return maxMemory == -1 ? "Unlimited" : formatBytes(maxMemory);
+        }
+
+        public long getUsedMemoryBytes() {
+            return memoryBean.getHeapMemoryUsage().getUsed();
+        }
+
+        public long getMaxMemoryBytes() {
+            long max = memoryBean.getHeapMemoryUsage().getMax();
+            return max == -1 ? runtime.maxMemory() : max;
+        }
+
+        public String getCpuUsage() {
+            double cpuLoad = osBean.getSystemLoadAverage();
+            if (cpuLoad < 0) {
+                return "N/A";
+            }
+            return String.format("%.1f%%", cpuLoad * 100);
+        }
+
+        public int getCpuCores() {
+            return osBean.getAvailableProcessors();
+        }
+
+        public String getSystemLoad() {
+            double systemLoad = osBean.getSystemLoadAverage();
+            if (systemLoad < 0) {
+                return "N/A";
+            }
+            return String.format("%.2f", systemLoad);
+        }
+
+        public String getDiskUsed() {
+            long total = rootDir.getTotalSpace();
+            long free = rootDir.getFreeSpace();
+            return formatBytes(total - free);
+        }
+
+        public String getDiskFree() {
+            return formatBytes(rootDir.getFreeSpace());
+        }
+
+        public String getDiskTotal() {
+            return formatBytes(rootDir.getTotalSpace());
+        }
+
+        public String getOsName() {
+            String osName = System.getProperty("os.name");
+            // Shorten common OS names
+            if (osName.toLowerCase().contains("windows")) {
+                return "Windows";
+            } else if (osName.toLowerCase().contains("linux")) {
+                return "Linux";
+            } else if (osName.toLowerCase().contains("mac")) {
+                return "macOS";
+            }
+            return osName.length() > 12 ? osName.substring(0, 12) + "..." : osName;
+        }
+
+        public String getOsArch() {
+            return System.getProperty("os.arch");
+        }
+
+        private String formatBytes(long bytes) {
+            if (bytes < 1024) return bytes + " B";
+            if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+            if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+            return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
+        }
+    }
 }

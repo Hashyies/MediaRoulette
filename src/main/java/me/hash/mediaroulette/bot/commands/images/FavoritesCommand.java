@@ -32,7 +32,7 @@ import net.dv8tion.jda.api.interactions.components.ActionRow;
 
 // TODO: make locales here
 public class FavoritesCommand extends ListenerAdapter implements CommandHandler {
-    private static final int ITEMS_PER_PAGE = 25; // Probably will be locked like this
+    private static final int ITEMS_PER_PAGE = 25;
 
     @Override
     public CommandData getCommandData() {

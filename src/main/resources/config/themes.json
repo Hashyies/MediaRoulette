@@ -3,12 +3,12 @@
     "name": "default",
     "backgroundImage": "images/Background.jpg",
     "colorPalette": {
-      "primary": "rgba(50, 125, 255, 150)",
-      "secondary": "rgba(255, 255, 255, 100)",
-      "accent": "rgba(100, 200, 255, 120)",
+      "primary": "rgba(70, 130, 255, 200)",
+      "secondary": "rgba(255, 255, 255, 180)",
+      "accent": "rgba(120, 200, 255, 160)",
       "text": "#FFFFFF",
-      "overlay": "rgba(0, 0, 0, 20)",
-      "shadow": "rgba(0, 0, 0, 85)"
+      "overlay": "rgba(0, 0, 0, 40)",
+      "shadow": "rgba(0, 0, 0, 120)"
     },
     "textStyle": {
       "fontFamily": "Montserrat",
@@ -30,12 +30,12 @@
     "name": "dark",
     "backgroundImage": "images/DarkBackground.jpg",
     "colorPalette": {
-      "primary": "rgba(30, 30, 30, 180)",
-      "secondary": "rgba(100, 100, 100, 120)",
-      "accent": "rgba(80, 80, 80, 140)",
-      "text": "#E0E0E0",
-      "overlay": "rgba(0, 0, 0, 200)",
-      "shadow": "rgba(0, 0, 0, 120)"
+      "primary": "rgba(60, 65, 75, 220)",
+      "secondary": "rgba(100, 110, 120, 180)",
+      "accent": "rgba(140, 150, 160, 200)",
+      "text": "#F5F5F5",
+      "overlay": "rgba(0, 0, 0, 80)",
+      "shadow": "rgba(0, 0, 0, 200)"
     },
     "textStyle": {
       "fontFamily": "Montserrat",
@@ -57,23 +57,77 @@
     "name": "neon",
     "backgroundImage": "images/NeonBackground.jpg",
     "colorPalette": {
-      "primary": "rgba(255, 0, 255, 120)",
-      "secondary": "rgba(0, 255, 255, 100)",
-      "accent": "rgba(255, 255, 0, 110)",
-      "text": "#FFFFFF",
-      "overlay": "rgba(0, 0, 0, 180)",
-      "shadow": "rgba(0, 0, 0, 100)"
+      "primary": "rgba(25, 25, 40, 240)",
+      "secondary": "rgba(0, 255, 255, 200)",
+      "accent": "rgba(255, 20, 147, 180)",
+      "text": "#00FFFF",
+      "overlay": "rgba(10, 10, 25, 100)",
+      "shadow": "rgba(0, 255, 255, 120)"
     },
     "textStyle": {
-      "fontFamily": "Roboto",
+      "fontFamily": "Orbitron",
       "fontSize": 38,
       "fontWeight": "BOLD",
       "antiAliasing": true
     },
     "boxStyle": {
+      "cornerRadius": 15,
+      "paddingX": 45,
+      "paddingY": 25,
+      "borderWidth": 2,
+      "shadowOffsetX": 0,
+      "shadowOffsetY": 0,
+      "boxType": "rounded"
+    }
+  },
+  {
+    "name": "minimal",
+    "backgroundImage": "",
+    "colorPalette": {
+      "primary": "rgba(250, 250, 250, 240)",
+      "secondary": "rgba(230, 230, 230, 200)",
+      "accent": "rgba(200, 200, 200, 180)",
+      "text": "#2C2C2C",
+      "overlay": "rgba(255, 255, 255, 50)",
+      "shadow": "rgba(0, 0, 0, 60)"
+    },
+    "textStyle": {
+      "fontFamily": "Inter",
+      "fontSize": 32,
+      "fontWeight": "MEDIUM",
+      "antiAliasing": true
+    },
+    "boxStyle": {
+      "cornerRadius": 8,
+      "paddingX": 35,
+      "paddingY": 18,
+      "borderWidth": 1,
+      "shadowOffsetX": 2,
+      "shadowOffsetY": 2,
+      "boxType": "rounded"
+    }
+  },
+  {
+    "name": "ocean",
+    "backgroundImage": "",
+    "colorPalette": {
+      "primary": "rgba(30, 144, 255, 220)",
+      "secondary": "rgba(135, 206, 250, 180)",
+      "accent": "rgba(70, 130, 180, 160)",
+      "text": "#FFFFFF",
+      "overlay": "rgba(0, 50, 100, 60)",
+      "shadow": "rgba(0, 0, 139, 100)"
+    },
+    "textStyle": {
+      "fontFamily": "Montserrat",
+      "fontSize": 34,
+      "fontWeight": "BOLD",
+      "antiAliasing": true
+    },
+    "boxStyle": {
       "cornerRadius": 30,
-      "paddingX": 55,
-      "paddingY": 40,
+      "paddingX": 45,
+      "paddingY": 28,
       "borderWidth": 3,
       "shadowOffsetX": 6,
       "shadowOffsetY": 6,
@@ -81,30 +135,57 @@
     }
   },
   {
-    "name": "minimal",
-    "backgroundImage": "images/MinimalBackground.jpg",
+    "name": "sunset",
+    "backgroundImage": "",
     "colorPalette": {
-      "primary": "rgba(200, 200, 200, 150)",
-      "secondary": "rgba(255, 255, 255, 100)",
-      "accent": "rgba(150, 150, 150, 120)",
-      "text": "#333333",
-      "overlay": "rgba(255, 255, 255, 180)",
-      "shadow": "rgba(0, 0, 0, 50)"
+      "primary": "rgba(255, 94, 77, 220)",
+      "secondary": "rgba(255, 154, 0, 180)",
+      "accent": "rgba(255, 206, 84, 160)",
+      "text": "#FFFFFF",
+      "overlay": "rgba(139, 69, 19, 50)",
+      "shadow": "rgba(139, 0, 0, 120)"
     },
     "textStyle": {
-      "fontFamily": "Helvetica",
-      "fontSize": 34,
-      "fontWeight": "MEDIUM",
+      "fontFamily": "Montserrat",
+      "fontSize": 36,
+      "fontWeight": "BOLD",
       "antiAliasing": true
     },
     "boxStyle": {
-      "cornerRadius": 10,
-      "paddingX": 40,
-      "paddingY": 20,
-      "borderWidth": 1,
-      "shadowOffsetX": 3,
-      "shadowOffsetY": 3,
-      "boxType": "square"
+      "cornerRadius": 35,
+      "paddingX": 50,
+      "paddingY": 32,
+      "borderWidth": 3,
+      "shadowOffsetX": 7,
+      "shadowOffsetY": 7,
+      "boxType": "rounded"
+    }
+  },
+  {
+    "name": "forest",
+    "backgroundImage": "",
+    "colorPalette": {
+      "primary": "rgba(34, 139, 34, 220)",
+      "secondary": "rgba(144, 238, 144, 180)",
+      "accent": "rgba(50, 205, 50, 160)",
+      "text": "#FFFFFF",
+      "overlay": "rgba(0, 100, 0, 60)",
+      "shadow": "rgba(0, 128, 0, 140)"
+    },
+    "textStyle": {
+      "fontFamily": "Montserrat",
+      "fontSize": 35,
+      "fontWeight": "BOLD",
+      "antiAliasing": true
+    },
+    "boxStyle": {
+      "cornerRadius": 28,
+      "paddingX": 48,
+      "paddingY": 30,
+      "borderWidth": 3,
+      "shadowOffsetX": 5,
+      "shadowOffsetY": 5,
+      "boxType": "rounded"
     }
   }
 ]

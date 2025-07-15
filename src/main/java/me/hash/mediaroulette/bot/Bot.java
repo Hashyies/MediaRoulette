@@ -5,6 +5,7 @@ import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.bot.commands.admin.ChannelNuke;
 import me.hash.mediaroulette.bot.commands.bot.InfoCommand;
 import me.hash.mediaroulette.bot.commands.bot.ShardsCommand;
+import me.hash.mediaroulette.bot.commands.bot.ThemeCommand;
 import me.hash.mediaroulette.bot.commands.config.ConfigCommand;
 import me.hash.mediaroulette.bot.commands.images.FavoritesCommand;
 import me.hash.mediaroulette.bot.commands.images.getRandomImage;
@@ -63,7 +64,8 @@ public class Bot {
                     new ConfigCommand(),
                     new ChannelNuke(),
                     new InfoCommand(),
-                    new ShardsCommand() // Include ShardsCommand
+                    new ShardsCommand(),
+                    new ThemeCommand()
             );
 
             // Add all event listeners (global to the entire bot)
@@ -85,10 +87,10 @@ public class Bot {
                     new ConfigCommand().getCommandData(),
                     new ChannelNuke().getCommandData(),
                     new InfoCommand().getCommandData(),
-                    new ShardsCommand().getCommandData() // Register ShardsCommand
+                    new ShardsCommand().getCommandData(),
+                    new ThemeCommand().getCommandData()
             );
 
-            // Register commands for each shard
             shardManager.getShards().forEach(jda -> jda.updateCommands().addCommands(commands).queue());
 
             System.out.println("Registered all global slash commands.");

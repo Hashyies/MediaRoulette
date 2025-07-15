@@ -51,6 +51,7 @@ public class MongoUserRepository implements UserRepository {
         user.setPremium(doc.getBoolean("premium", false));
         user.setAdmin(doc.getBoolean("admin", false));
         user.setLocale(doc.getString("locale") != null ? doc.getString("locale") : "en_US");
+        user.setTheme(doc.getString("theme") != null ? doc.getString("theme") : "default");
 
         // Map favorites (assumes favorites is stored as a List of Documents)
         List<Document> favDocs = (List<Document>) doc.get("favorites", new ArrayList<Document>());
@@ -81,7 +82,8 @@ public class MongoUserRepository implements UserRepository {
                 .append("nsfw", user.isNsfw())
                 .append("premium", user.isPremium())
                 .append("admin", user.isAdmin())
-                .append("locale", user.getLocale());
+                .append("locale", user.getLocale())
+                .append("theme", user.getTheme());
 
         // Map favorites
         List<Document> favDocs = new ArrayList<>();

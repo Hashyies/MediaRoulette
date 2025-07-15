@@ -147,6 +147,7 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
                 } catch (Exception e) {
                     errorHandler.handleException(event, new Locale(user.getLocale()).get("error.unexpected_error"), e.getMessage(), e);
                 }
+                user.incrementImagesGenerated();
             });
         });
     }
@@ -209,6 +210,7 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
                 errorHandler.handleException(event, new Locale(user.getLocale()).get("error.title"), e.getMessage(), e);
             }
         }, () -> errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.title"), new Locale(user.getLocale()).get("error.invalid_subcommand_description")));
+        user.incrementImagesGenerated();
     }
 
     private void handleFavorite(ButtonInteractionEvent event) {

@@ -28,7 +28,7 @@ repositories {
 }
 
 dependencies {
-    implementation("net.dv8tion:JDA:5.3.0")
+    implementation("net.dv8tion:JDA:5.6.1")
 
     implementation("org.json:json:20231013")
     implementation("org.jsoup:jsoup:1.16.1")

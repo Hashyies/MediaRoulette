@@ -60,7 +60,7 @@ public class RandomText {
             // Construct the description with emojis and clickable links
             String description = "📖 **Word:** " + word
                     + "\n📝 **Meaning:** " + processedDefinition
-                    + "\n🖋️ **Submitted by:** [" + author + "](https://www.urbandictionary.com/author.php?name=" + author.replace(" ", "%20") + ")"
+                    + "\n🖋️ **Submitted by:** [" + author + "](https://www.urbandictionary.com/author.php?author=" + author.replace(" ", "%20") + ")"
                     + "\n📅 **Date:** " + DiscordTimestamp.generateTimestampFromIso8601(writtenOn, DiscordTimestampType.SHORT_DATE_TIME);
 
             // Prepare the map to return
