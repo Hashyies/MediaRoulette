@@ -72,8 +72,8 @@ public class Bot {
                     new ThemeCommand(),
                     new BalanceCommand(),
                     new QuestsCommand(),
-                    new ShopCommand(),
-                    new MediaHuntCommand()
+                    new ShopCommand()
+                    // new MediaHuntCommand() // Temporarily disabled
             );
 
             // Add all event listeners (global to the entire bot)
@@ -99,8 +99,8 @@ public class Bot {
                     new ThemeCommand().getCommandData(),
                     new BalanceCommand().getCommandData(),
                     new QuestsCommand().getCommandData(),
-                    new ShopCommand().getCommandData(),
-                    new MediaHuntCommand().getCommandData()
+                    new ShopCommand().getCommandData()
+                    // new MediaHuntCommand().getCommandData() // Temporarily disabled
             );
 
             shardManager.getShards().forEach(jda -> jda.updateCommands().addCommands(commands).queue());

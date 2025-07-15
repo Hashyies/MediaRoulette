@@ -24,6 +24,9 @@ public class User {
     private List<Quest> dailyQuests; // Current daily quests
     private List<Transaction> transactionHistory; // Transaction history for monitoring
     private java.time.LocalDate lastQuestReset; // Last time quests were reset
+    private long totalQuestsCompleted; // Total number of quests completed lifetime
+    private long questsCompletedToday; // Number of quests completed today
+    private java.time.LocalDate lastQuestCompletionDate; // Last date a quest was completed
 
     public User(String userId) {
         this.userId = userId;
@@ -40,6 +43,9 @@ public class User {
         this.dailyQuests = new ArrayList<>();
         this.transactionHistory = new ArrayList<>();
         this.lastQuestReset = java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+        this.totalQuestsCompleted = 0;
+        this.questsCompletedToday = 0;
+        this.lastQuestCompletionDate = null;
     }
 
     // --- Getters and Setters ---
@@ -70,6 +76,12 @@ public class User {
     public void setTransactionHistory(List<Transaction> transactionHistory) { this.transactionHistory = transactionHistory; }
     public java.time.LocalDate getLastQuestReset() { return lastQuestReset; }
     public void setLastQuestReset(java.time.LocalDate lastQuestReset) { this.lastQuestReset = lastQuestReset; }
+    public long getTotalQuestsCompleted() { return totalQuestsCompleted; }
+    public void setTotalQuestsCompleted(long totalQuestsCompleted) { this.totalQuestsCompleted = totalQuestsCompleted; }
+    public long getQuestsCompletedToday() { return questsCompletedToday; }
+    public void setQuestsCompletedToday(long questsCompletedToday) { this.questsCompletedToday = questsCompletedToday; }
+    public java.time.LocalDate getLastQuestCompletionDate() { return lastQuestCompletionDate; }
+    public void setLastQuestCompletionDate(java.time.LocalDate lastQuestCompletionDate) { this.lastQuestCompletionDate = lastQuestCompletionDate; }
 
     // --- Business Logic Methods ---
     public void incrementImagesGenerated() {
@@ -198,6 +210,20 @@ public class User {
     public Transaction claimQuestReward(Quest quest) {
         if (quest.canClaim()) {
             quest.claim();
+            
+            // Update quest completion tracking
+            this.totalQuestsCompleted++;
+            
+            java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+            if (this.lastQuestCompletionDate == null || !this.lastQuestCompletionDate.equals(today)) {
+                // Reset daily count if it's a new day
+                this.questsCompletedToday = 1;
+                this.lastQuestCompletionDate = today;
+            } else {
+                // Same day, increment count
+                this.questsCompletedToday++;
+            }
+            
             return addCoins(quest.getCoinReward(), Transaction.TransactionType.QUEST_REWARD, 
                     "Claimed reward for quest: " + quest.getTitle());
         }

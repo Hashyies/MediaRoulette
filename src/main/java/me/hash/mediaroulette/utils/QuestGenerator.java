@@ -66,7 +66,7 @@ public class QuestGenerator {
     }
 
     public static void updateQuestProgress(User user, Quest.QuestType questType, int amount) {
-        user.updateQuestProgress(questType, amount);
+        QuestNotificationManager.updateQuestProgressWithNotification(user, questType, amount, user.getUserId());
     }
 
     public static void updateQuestProgress(User user, Quest.QuestType questType) {
