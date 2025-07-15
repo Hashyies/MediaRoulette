@@ -3,10 +3,7 @@ package me.hash.mediaroulette.bot.commands.dictionary;
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
-import me.hash.mediaroulette.model.Dictionary;
-import me.hash.mediaroulette.model.DictionaryAssignment;
-import me.hash.mediaroulette.model.ImageOptions;
-import me.hash.mediaroulette.model.User;
+import me.hash.mediaroulette.model.*;
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.service.DictionaryService;
 import com.mongodb.client.MongoCollection;
@@ -26,6 +23,7 @@ import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 
 import java.awt.Color;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -209,8 +207,8 @@ public class SettingsCommand extends ListenerAdapter implements CommandHandler {
                 configBuilder.append("No custom dictionary assignments (using defaults)\n");
             }
             
-            // User's Dictionaries
-            configBuilder.append("\n📚 YOUR DICTIONARIES\n");
+            // User's Dictionaries (Full Content for Independence)
+            configBuilder.append("\n📚 DICTIONARY DEFINITIONS\n");
             configBuilder.append("-".repeat(30)).append("\n");
             
             List<Dictionary> userDictionaries = dictionaryService.getUserDictionaries(userId);
@@ -218,21 +216,14 @@ public class SettingsCommand extends ListenerAdapter implements CommandHandler {
                 configBuilder.append("No custom dictionaries created\n");
             } else {
                 for (Dictionary dict : userDictionaries) {
-                    configBuilder.append(String.format("📖 %s (%s)\n", dict.getName(), dict.getId()));
-                    configBuilder.append(String.format("   Description: %s\n", dict.getDescription()));
-                    configBuilder.append(String.format("   Words: %d | Public: %s | Usage: %d\n", 
-                        dict.getWordCount(), dict.isPublic() ? "Yes" : "No", dict.getUsageCount()));
+                    configBuilder.append(String.format("DICT_DEF:%s|%s|%s|%s\n", 
+                        dict.getId(), dict.getName(), dict.getDescription(), dict.isPublic() ? "public" : "private"));
                     
+                    // Include ALL words for complete independence
                     if (dict.getWordCount() > 0) {
-                        configBuilder.append("   Content: ");
                         List<String> words = dict.getWords();
-                        if (words.size() <= 10) {
-                            configBuilder.append(String.join(", ", words));
-                        } else {
-                            configBuilder.append(String.join(", ", words.subList(0, 10)))
-                                .append("... (").append(words.size() - 10).append(" more)");
-                        }
-                        configBuilder.append("\n");
+                        configBuilder.append("DICT_WORDS:").append(dict.getId()).append("|");
+                        configBuilder.append(String.join(",", words)).append("\n");
                     }
                     configBuilder.append("\n");
                 }
@@ -264,15 +255,24 @@ public class SettingsCommand extends ListenerAdapter implements CommandHandler {
                 }
             }
             
-            // Usage Statistics
-            configBuilder.append("\n📊 USAGE STATISTICS\n");
+            // User Settings (Complete Configuration)
+            configBuilder.append("\n⚙️ USER SETTINGS\n");
             configBuilder.append("-".repeat(30)).append("\n");
-            configBuilder.append(String.format("Images Generated: %d\n", user.getImagesGenerated()));
-            configBuilder.append(String.format("Favorites Saved: %d\n", user.getFavorites().size()));
-            configBuilder.append(String.format("NSFW Enabled: %s\n", user.isNsfw() ? "Yes" : "No"));
-            configBuilder.append(String.format("Premium User: %s\n", user.isPremium() ? "Yes" : "No"));
-            configBuilder.append(String.format("Locale: %s\n", user.getLocale()));
-            configBuilder.append(String.format("Theme: %s\n", user.getTheme()));
+            configBuilder.append(String.format("USER_SETTING:nsfw|%s\n", user.isNsfw() ? "true" : "false"));
+            configBuilder.append(String.format("USER_SETTING:locale|%s\n", user.getLocale()));
+            configBuilder.append(String.format("USER_SETTING:theme|%s\n", user.getTheme()));
+            
+            // Favorites (Full Content)
+            configBuilder.append("\n💾 FAVORITES\n");
+            configBuilder.append("-".repeat(30)).append("\n");
+            if (user.getFavorites().isEmpty()) {
+                configBuilder.append("No favorites saved\n");
+            } else {
+                for (Favorite fav : user.getFavorites()) {
+                    configBuilder.append(String.format("FAVORITE:%s|%s|%s\n", 
+                        fav.getDescription(), fav.getImage(), fav.getType()));
+                }
+            }
             
             configBuilder.append("\n").append("=".repeat(50)).append("\n");
             configBuilder.append("💡 To import this configuration, use /settings import <hastebin-url>\n");
@@ -398,29 +398,50 @@ public class SettingsCommand extends ListenerAdapter implements CommandHandler {
             User user = Main.userService.getOrCreateUser(userId);
             String[] lines = configContent.split("\n");
             
-            boolean inDictionarySection = false;
-            boolean inSourceChancesSection = false;
+            // Maps to store created dictionaries for this import
+            Map<String, String> oldToNewDictIds = new HashMap<>();
             
             for (String line : lines) {
                 line = line.trim();
                 
-                // Check for section headers
-                if (line.contains("DICTIONARY ASSIGNMENTS")) {
-                    inDictionarySection = true;
-                    inSourceChancesSection = false;
-                    continue;
-                } else if (line.contains("SOURCE CHANCES CONFIGURATION")) {
-                    inDictionarySection = false;
-                    inSourceChancesSection = true;
-                    continue;
-                } else if (line.contains("YOUR DICTIONARIES") || line.contains("USAGE STATISTICS")) {
-                    inDictionarySection = false;
-                    inSourceChancesSection = false;
-                    continue;
+                // Parse dictionary definitions and create independent copies
+                if (line.startsWith("DICT_DEF:")) {
+                    String[] parts = line.substring("DICT_DEF:".length()).split("\\|");
+                    if (parts.length >= 4) {
+                        String oldDictId = parts[0];
+                        String dictName = parts[1];
+                        String dictDescription = parts[2];
+                        boolean isPublic = "public".equals(parts[3]);
+                        
+                        // Create new independent dictionary
+                        Dictionary newDict = dictionaryService.createDictionary(dictName, dictDescription, userId);
+                        newDict.setPublic(isPublic);
+                        
+                        oldToNewDictIds.put(oldDictId, newDict.getId());
+                    }
                 }
                 
-                // Parse dictionary assignments
-                if (inDictionarySection && line.contains(":") && !line.startsWith("-") && !line.startsWith("=")) {
+                // Parse dictionary words and add to created dictionaries
+                else if (line.startsWith("DICT_WORDS:")) {
+                    String[] parts = line.substring("DICT_WORDS:".length()).split("\\|", 2);
+                    if (parts.length == 2) {
+                        String oldDictId = parts[0];
+                        String wordsStr = parts[1];
+                        
+                        String newDictId = oldToNewDictIds.get(oldDictId);
+                        if (newDictId != null) {
+                            Optional<Dictionary> dictOpt = dictionaryService.getDictionary(newDictId);
+                            if (dictOpt.isPresent()) {
+                                List<String> words = Arrays.asList(wordsStr.split(","));
+                                dictOpt.get().addWords(words);
+                            }
+                        }
+                    }
+                }
+                
+                // Parse dictionary assignments (using new dictionary IDs)
+                else if (line.contains(":") && !line.startsWith("-") && !line.startsWith("=") && 
+                         (line.contains("Tenor GIFs") || line.contains("Reddit") || line.contains("Google Images"))) {
                     String[] parts = line.split(":", 2);
                     if (parts.length == 2) {
                         String sourceName = parts[0].trim().toLowerCase();
@@ -434,17 +455,16 @@ public class SettingsCommand extends ListenerAdapter implements CommandHandler {
                             default -> sourceName;
                         };
                         
-                        // Extract dictionary ID from parentheses
+                        // Extract old dictionary ID from parentheses
                         if (dictInfo.contains("(") && dictInfo.contains(")")) {
                             int start = dictInfo.lastIndexOf("(") + 1;
                             int end = dictInfo.lastIndexOf(")");
                             if (start < end) {
-                                String dictionaryId = dictInfo.substring(start, end);
+                                String oldDictionaryId = dictInfo.substring(start, end);
+                                String newDictionaryId = oldToNewDictIds.get(oldDictionaryId);
                                 
-                                // Verify dictionary exists and user has access
-                                Optional<Dictionary> dictOpt = dictionaryService.getDictionary(dictionaryId);
-                                if (dictOpt.isPresent() && dictOpt.get().canBeViewedBy(userId)) {
-                                    dictionaryService.assignDictionary(userId, sourceKey, dictionaryId);
+                                if (newDictionaryId != null) {
+                                    dictionaryService.assignDictionary(userId, sourceKey, newDictionaryId);
                                 }
                             }
                         }
@@ -452,7 +472,7 @@ public class SettingsCommand extends ListenerAdapter implements CommandHandler {
                 }
                 
                 // Parse source chances configuration
-                if (inSourceChancesSection && line.contains("✅") || line.contains("❌")) {
+                else if (line.contains("✅") || line.contains("❌")) {
                     String[] parts = line.split("\\s+");
                     if (parts.length >= 3) {
                         String sourceName = parts[0].toLowerCase();
@@ -486,6 +506,33 @@ public class SettingsCommand extends ListenerAdapter implements CommandHandler {
                         } catch (NumberFormatException e) {
                             // Skip invalid chance values
                         }
+                    }
+                }
+                
+                // Parse user settings
+                else if (line.startsWith("USER_SETTING:")) {
+                    String[] parts = line.substring("USER_SETTING:".length()).split("\\|");
+                    if (parts.length == 2) {
+                        String setting = parts[0];
+                        String value = parts[1];
+                        
+                        switch (setting) {
+                            case "nsfw" -> user.setNsfw("true".equals(value));
+                            case "locale" -> user.setLocale(value);
+                            case "theme" -> user.setTheme(value);
+                        }
+                    }
+                }
+                
+                // Parse favorites
+                else if (line.startsWith("FAVORITE:")) {
+                    String[] parts = line.substring("FAVORITE:".length()).split("\\|");
+                    if (parts.length == 3) {
+                        String description = parts[0];
+                        String image = parts[1];
+                        String type = parts[2];
+                        
+                        user.addFavorite(description, image, type);
                     }
                 }
             }

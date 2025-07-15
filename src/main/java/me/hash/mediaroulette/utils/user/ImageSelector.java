@@ -30,10 +30,16 @@ public class ImageSelector {
         for (ImageOptions defaultOption : defaultImageOptions) {
             String imageType = defaultOption.getImageType();
             ImageOptions userOption = userImageOptions.get(imageType);
-            if (userOption != null && userOption.isEnabled()) {
-                totalChance += userOption.getChance();
-                queue.add(userOption);
+            
+            if (userOption != null) {
+                // User has explicitly set this option, respect their choice
+                if (userOption.isEnabled()) {
+                    totalChance += userOption.getChance();
+                    queue.add(userOption);
+                }
+                // If user disabled it, don't add it at all (no fallback to default)
             } else if (defaultOption.isEnabled()) {
+                // User hasn't set this option, use default if enabled
                 totalChance += defaultOption.getChance();
                 queue.add(defaultOption);
             }
