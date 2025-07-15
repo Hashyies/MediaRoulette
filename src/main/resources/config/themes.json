@@ -109,7 +109,7 @@
   },
   {
     "name": "ocean",
-    "backgroundImage": "",
+    "backgroundImage": "images/OceanBackground.jpg",
     "colorPalette": {
       "primary": "rgba(30, 144, 255, 220)",
       "secondary": "rgba(135, 206, 250, 180)",
@@ -136,7 +136,7 @@
   },
   {
     "name": "sunset",
-    "backgroundImage": "",
+    "backgroundImage": "images/SunsetBackground.jpg",
     "colorPalette": {
       "primary": "rgba(255, 94, 77, 220)",
       "secondary": "rgba(255, 154, 0, 180)",
@@ -163,7 +163,7 @@
   },
   {
     "name": "forest",
-    "backgroundImage": "",
+    "backgroundImage": "images/ForestBackground.jpg",
     "colorPalette": {
       "primary": "rgba(34, 139, 34, 220)",
       "secondary": "rgba(144, 238, 144, 180)",
@@ -185,6 +185,33 @@
       "borderWidth": 3,
       "shadowOffsetX": 5,
       "shadowOffsetY": 5,
+      "boxType": "rounded"
+    }
+  },
+  {
+    "name": "anime",
+    "backgroundImage": "images/AnimeBackground.png",
+    "colorPalette": {
+      "primary": "rgba(255, 105, 180, 120)",
+      "secondary": "rgba(186, 85, 211, 100)",
+      "accent": "rgba(138, 43, 226, 80)",
+      "text": "#FFFFFF",
+      "overlay": "rgba(75, 0, 130, 20)",
+      "shadow": "rgba(148, 0, 211, 80)"
+    },
+    "textStyle": {
+      "fontFamily": "Nunito",
+      "fontSize": 38,
+      "fontWeight": "BOLD",
+      "antiAliasing": true
+    },
+    "boxStyle": {
+      "cornerRadius": 20,
+      "paddingX": 55,
+      "paddingY": 35,
+      "borderWidth": 3,
+      "shadowOffsetX": 4,
+      "shadowOffsetY": 4,
       "boxType": "rounded"
     }
   }
