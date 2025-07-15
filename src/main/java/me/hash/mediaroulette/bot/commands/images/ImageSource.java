@@ -88,12 +88,11 @@ public enum ImageSource {
     private Map<String, String> handleReddit(Interaction event, String option) throws Exception {
         User user = Main.userService.getOrCreateUser(event.getUser().getId());
 
-        String subreddit = (option != null)
-                ? option
-                : subredditManager.getRandomSubreddit();
+        // Only use the option if explicitly provided, otherwise let RedditProvider handle dictionary logic
+        String subreddit = option; // Don't set random subreddit here!
 
-        // Check if the subreddit exists
-        if (!subredditManager.doesSubredditExist(subreddit)) {
+        // Only validate if a specific subreddit was requested
+        if (subreddit != null && !subredditManager.doesSubredditExist(subreddit)) {
             errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.invalid_subreddit_title"), new Locale(user.getLocale()).get("error.invalid_subreddit_description"));
             throw new Exception("Subreddit doesn't exist");
         }

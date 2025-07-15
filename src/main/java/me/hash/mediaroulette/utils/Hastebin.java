@@ -17,22 +17,55 @@ public class Hastebin {
                 .url("https://hastebin.com/documents")
                 .post(body)
                 .addHeader("Authorization", "Bearer " + Main.getEnv("HASTEBIN_TOKEN"))
+                .addHeader("Content-Type", "text/plain")
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Unexpected response code: " + response.code() + " - " + response.message());
+            }
+
             String responseBody = response.body().string();
-            System.out.println(responseBody);
+            System.out.println("Hastebin response: " + responseBody);
             JSONObject json = new JSONObject(responseBody);
 
             if (json.has("key")) {
                 return json.getString("key");
             } else {
-                throw new IOException("Failed to create paste");
+                throw new IOException("Failed to create paste - no key in response: " + responseBody);
             }
         }
     }
 
     public static String getPaste(String pasteId) throws IOException {
+        OkHttpClient client = new OkHttpClient();
+
+        // Fixed: Use the correct endpoint for getting documents
+        Request request = new Request.Builder()
+                .url("https://hastebin.com/documents/" + pasteId)
+                .get()
+                .addHeader("Authorization", "Bearer " + Main.getEnv("HASTEBIN_TOKEN"))
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Unexpected response code: " + response.code() + " - " + response.message());
+            }
+
+            String responseBody = response.body().string();
+
+            // The response for getting a document is JSON with a "data" field
+            JSONObject json = new JSONObject(responseBody);
+            if (json.has("data")) {
+                return json.getString("data");
+            } else {
+                throw new IOException("Failed to get paste - no data in response: " + responseBody);
+            }
+        }
+    }
+
+    // Alternative method to get raw content (if needed)
+    public static String getPasteRaw(String pasteId) throws IOException {
         OkHttpClient client = new OkHttpClient();
 
         Request request = new Request.Builder()
@@ -42,40 +75,11 @@ public class Hastebin {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Unexpected response code: " + response.code() + " - " + response.message());
+            }
+
             return response.body().string();
         }
     }
-
-    private static final String IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image";
-    private static final String CLIENT_ID = Main.getEnv("IMGUR_ID"); // replace with your client ID
-
-    public static String uploadImage(byte[] imageBytes) throws IOException {
-        OkHttpClient client = new OkHttpClient();
-
-        RequestBody requestBody = new MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("image", "image.png",
-                        RequestBody.create(imageBytes, MediaType.parse("image/png")))
-                .build();
-
-        Request request = new Request.Builder()
-                .url(IMGUR_UPLOAD_URL)
-                .addHeader("Authorization", "Client-ID " + CLIENT_ID)
-                .post(requestBody)
-                .build();
-
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful())
-                throw new IOException("Unexpected code " + response);
-
-            // Parse the response body as JSON
-            JSONObject jsonObject = new JSONObject(response.body().string());
-
-            // Get the URL of the uploaded image
-            String imageUrl = jsonObject.getJSONObject("data").getString("link");
-
-            return imageUrl;
-        }
-    }
-
 }
