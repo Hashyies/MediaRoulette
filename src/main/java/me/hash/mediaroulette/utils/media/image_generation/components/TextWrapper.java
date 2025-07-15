@@ -1,5 +1,9 @@
 package me.hash.mediaroulette.utils.media.image_generation.components;
 
+import me.hash.mediaroulette.bot.Bot;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.requests.Route;
+
 import java.awt.FontMetrics;
 import java.util.ArrayList;
 import java.util.List;

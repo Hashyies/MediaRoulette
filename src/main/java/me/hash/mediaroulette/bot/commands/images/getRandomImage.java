@@ -3,12 +3,13 @@ package me.hash.mediaroulette.bot.commands.images;
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.bot.Embeds;
+import me.hash.mediaroulette.bot.LoadingEmbeds;
 import me.hash.mediaroulette.bot.errorHandler;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.model.User;
 import me.hash.mediaroulette.utils.Locale;
 
-
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -19,6 +20,7 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 
+import java.awt.Color;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -105,7 +107,15 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (!event.getName().equals("random")) return;
 
-        event.deferReply().queue(interactionHook -> {
+        // Send loading embed immediately
+        EmbedBuilder loadingEmbed = new EmbedBuilder()
+                .setTitle("<a:loading:1350829863157891094> Generating Image...")
+                .setDescription("Please wait while we fetch your random image...")
+                .setColor(new Color(88, 101, 242)) // Discord Blurple
+                .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
+                .setTimestamp(Instant.now());
+
+        event.replyEmbeds(loadingEmbed.build()).queue(interactionHook -> {
             Bot.executor.execute(() -> {
                 User user = Main.userService.getOrCreateUser(event.getUser().getId());
                 try {
@@ -123,7 +133,8 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
                                 return;
                             }
 
-                            Embeds.sendImageEmbed(interactionHook.getInteraction(), image, shouldContinue)
+                            // Edit the loading message with the actual image
+                            LoadingEmbeds.editLoadingToImageEmbed(interactionHook, image, shouldContinue)
                                     .thenAccept(messageSent -> {
                                         MessageData data = new MessageData(
                                                 messageSent.getIdLong(),
