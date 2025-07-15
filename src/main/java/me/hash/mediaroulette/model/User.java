@@ -273,6 +273,6 @@ public class User {
      */
     public Map<String, String> getImage() throws NoEnabledOptionsException, InvalidChancesException, me.hash.mediaroulette.exceptions.InvalidChancesException, me.hash.mediaroulette.exceptions.NoEnabledOptionsException {
         ImageSelector selector = new ImageSelector(imageOptions);
-        return selector.selectImage();
+        return selector.selectImage(this.userId);
     }
 }

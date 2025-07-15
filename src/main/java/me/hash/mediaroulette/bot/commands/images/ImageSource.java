@@ -55,10 +55,24 @@ public enum ImageSource {
 
         return switch (this) {
             case REDDIT -> handleReddit(event, option);
-            case TENOR -> new MediaServiceFactory().createTenorProvider().getRandomMedia(option).toMap();
+            case TENOR -> {
+                var provider = new MediaServiceFactory().createTenorProvider();
+                if (provider instanceof me.hash.mediaroulette.content.provider.impl.gifs.TenorProvider tenorProvider) {
+                    yield tenorProvider.getRandomMedia(option, event.getUser().getId()).toMap();
+                } else {
+                    yield provider.getRandomMedia(option).toMap();
+                }
+            }
             case IMGUR -> new MediaServiceFactory().createImgurProvider().getRandomMedia(null).toMap();
             case _4CHAN -> handle4Chan(event, option);
-            case GOOGLE -> new MediaServiceFactory().createGoogleProvider().getRandomMedia(option).toMap();
+            case GOOGLE -> {
+                var provider = new MediaServiceFactory().createGoogleProvider();
+                if (provider instanceof me.hash.mediaroulette.content.provider.impl.images.GoogleProvider googleProvider) {
+                    yield googleProvider.getRandomMedia(option, event.getUser().getId()).toMap();
+                } else {
+                    yield provider.getRandomMedia(option).toMap();
+                }
+            }
             case PICSUM -> new MediaServiceFactory().createPicsumProvider().getRandomMedia(null).toMap();
             case RULE34XXX -> new MediaServiceFactory().createRule34Provider().getRandomMedia(null).toMap();
             case MOVIE -> new MediaServiceFactory().createTMDBMovieProvider().getRandomMedia(null).toMap();
@@ -86,7 +100,7 @@ public enum ImageSource {
 
         RedditProvider reddit = (RedditProvider) new MediaServiceFactory().createRedditProvider();
 
-        MediaResult redditPost = reddit.getRandomReddit(subreddit);
+        MediaResult redditPost = reddit.getRandomReddit(subreddit, event.getUser().getId());
 
         if (redditPost == null) {
             errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.title"), new Locale(user.getLocale()).get("error.reddit_fetch"));

@@ -14,6 +14,9 @@ import io.github.cdimascio.dotenv.DotenvEntry;
 import me.hash.mediaroulette.bot.Bot;
 import me.hash.mediaroulette.repository.MongoUserRepository;
 import me.hash.mediaroulette.repository.UserRepository;
+import me.hash.mediaroulette.repository.DictionaryRepository;
+import me.hash.mediaroulette.repository.MongoDictionaryRepository;
+import me.hash.mediaroulette.service.DictionaryService;
 import me.hash.mediaroulette.utils.terminal.TerminalInterface;
 import me.hash.mediaroulette.utils.Database;
 import me.hash.mediaroulette.utils.user.UserService;
@@ -26,6 +29,7 @@ public class Main {
     public static final long startTime = System.currentTimeMillis();
     public static Bot bot = null;
     public static UserService userService;
+    public static DictionaryService dictionaryService;
     public static TerminalInterface terminal;
 
     public static void main(String[] args) throws Exception {
@@ -53,8 +57,17 @@ public class Main {
         MongoCollection<Document> userCollection = database.getCollection("user");
         UserRepository userRepository = new MongoUserRepository(userCollection);
 
+        // Create dictionary collections and repository
+        MongoCollection<Document> dictionaryCollection = database.getCollection("dictionary");
+        MongoCollection<Document> assignmentCollection = database.getCollection("dictionary_assignment");
+        DictionaryRepository dictionaryRepository = new MongoDictionaryRepository(dictionaryCollection, assignmentCollection);
+
         // Create our service layer that handles user business logic and persistence
         userService = new UserService(userRepository);
+        dictionaryService = new DictionaryService(dictionaryRepository);
+
+        // Initialize default dictionaries if they don't exist
+        initializeDefaultDictionaries();
 
         bot = new Bot(getEnv("DISCORD_TOKEN"));
 
@@ -146,6 +159,26 @@ public class Main {
 
     public static String getEnv(String key) {
         return env.get(key);
+    }
+
+    private static void initializeDefaultDictionaries() {
+        try {
+            if (dictionaryService.getAccessibleDictionaries("system").isEmpty()) {
+                me.hash.mediaroulette.model.Dictionary basicDict = dictionaryService.createDictionary(
+                    "Basic Dictionary", "Default words for general use", "system");
+                basicDict.setDefault(true);
+                basicDict.setPublic(true);
+                
+                java.util.List<String> basicWords = java.util.Arrays.asList(
+                    "funny", "cute", "happy", "random", "cool", "awesome", "nice", "good", "best", "amazing"
+                );
+                basicDict.addWords(basicWords);
+                
+                System.out.println("Default dictionary initialized with " + basicWords.size() + " words");
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to initialize default dictionaries: " + e.getMessage());
+        }
     }
 
     // Graceful shutdown method

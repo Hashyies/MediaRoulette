@@ -1,6 +1,7 @@
 package me.hash.mediaroulette.content.provider.impl.images;
 
 import me.hash.mediaroulette.RandomDictionaryLineFetcher;
+import me.hash.mediaroulette.utils.DictionaryIntegration;
 import me.hash.mediaroulette.model.content.MediaResult;
 import me.hash.mediaroulette.model.content.MediaSource;
 import me.hash.mediaroulette.content.provider.MediaProvider;
@@ -29,9 +30,16 @@ public class GoogleProvider implements MediaProvider {
 
     @Override
     public MediaResult getRandomMedia(String query) throws IOException {
+        return getRandomMedia(query, null);
+    }
+    
+    public MediaResult getRandomMedia(String query, String userId) throws IOException {
         if (query == null || query.isEmpty()) {
-            RandomDictionaryLineFetcher localFetcher = RandomDictionaryLineFetcher.getBasicDictionaryFetcher();
-            query = localFetcher.getRandomLine();
+            if (userId != null) {
+                query = DictionaryIntegration.getRandomWordForSource(userId, "google");
+            } else {
+                query = DictionaryIntegration.getRandomWordForSource("google");
+            }
         }
 
         Queue<MediaResult> cache = imageCache.computeIfAbsent(query, k -> new LinkedList<>());
@@ -69,7 +77,7 @@ public class GoogleProvider implements MediaProvider {
             String imageUrl = item.getString("link");
             String snippet = item.optString("snippet", "No description available");
 
-            String description = String.format("🌐 Source: Google\n🔎 Query: %s\n✏️ Title: %s",
+            String description = String.format("Source: Google\nQuery: %s\nTitle: %s",
                     query, snippet);
             String title = "Here is your random Google search image!";
 

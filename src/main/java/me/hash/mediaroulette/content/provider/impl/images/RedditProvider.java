@@ -2,6 +2,7 @@ package me.hash.mediaroulette.content.provider.impl.images;
 
 import me.hash.mediaroulette.model.content.MediaResult;
 import me.hash.mediaroulette.content.provider.MediaProvider;
+import me.hash.mediaroulette.utils.DictionaryIntegration;
 import me.hash.mediaroulette.content.reddit.RedditClient;
 import me.hash.mediaroulette.content.reddit.SubredditManager;
 import me.hash.mediaroulette.content.reddit.RedditPostProcessor;
@@ -40,8 +41,12 @@ public class RedditProvider implements MediaProvider {
 
     @Override
     public MediaResult getRandomMedia(String subreddit) throws IOException {
+        return getRandomMedia(subreddit, null);
+    }
+    
+    public MediaResult getRandomMedia(String subreddit, String userId) throws IOException {
         try {
-            return getRandomReddit(subreddit);
+            return getRandomReddit(subreddit, userId);
         } catch (ExecutionException | InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Error fetching Reddit media", e);
@@ -49,11 +54,30 @@ public class RedditProvider implements MediaProvider {
     }
 
     public MediaResult getRandomReddit(String subreddit) throws IOException, ExecutionException, InterruptedException {
+        return getRandomReddit(subreddit, null);
+    }
+    
+    public MediaResult getRandomReddit(String subreddit, String userId) throws IOException, ExecutionException, InterruptedException {
         logger.log(Level.INFO, "Fetching random Reddit image from subreddit: {0}", subreddit);
 
+        // Always try dictionary first if userId is provided and no specific subreddit requested
+        if (subreddit == null && userId != null) {
+            System.out.println("RedditProvider: Trying to get dictionary subreddit for user: " + userId);
+            String dictSubreddit = DictionaryIntegration.getRandomWordForSource(userId, "reddit");
+            System.out.println("RedditProvider: Dictionary returned subreddit: " + dictSubreddit);
+            if (dictSubreddit != null && subredditManager.doesSubredditExist(dictSubreddit)) {
+                subreddit = dictSubreddit;
+                System.out.println("RedditProvider: Using dictionary subreddit: " + subreddit);
+                logger.log(Level.INFO, "Using dictionary subreddit: {0}", subreddit);
+            } else {
+                System.out.println("RedditProvider: Dictionary subreddit invalid or null");
+            }
+        }
+        
+        // If still no subreddit or invalid subreddit, use fallback logic
         if (subreddit == null || !subredditManager.doesSubredditExist(subreddit)) {
             subreddit = subredditManager.getRandomSubreddit();
-            logger.log(Level.WARNING, "Invalid subreddit provided. Using random subreddit: {0}", subreddit);
+            logger.log(Level.WARNING, "Using fallback random subreddit: {0}", subreddit);
         }
 
         initializeCacheIfNeeded(subreddit);

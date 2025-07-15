@@ -19,6 +19,10 @@ public class ImageSelector {
     }
 
     public Map<String, String> selectImage() throws NoEnabledOptionsException, InvalidChancesException {
+        return selectImage(null);
+    }
+    
+    public Map<String, String> selectImage(String userId) throws NoEnabledOptionsException, InvalidChancesException {
         List<ImageOptions> defaultImageOptions = ImageOptions.getDefaultOptions();
         PriorityQueue<ImageOptions> queue = new PriorityQueue<>(Comparator.comparingDouble(ImageOptions::getChance));
 
@@ -41,7 +45,7 @@ public class ImageSelector {
 
         normalizeProbabilities(queue, totalChance);
 
-        return getRandomImageFromQueue(queue);
+        return getRandomImageFromQueue(queue, userId);
     }
 
     private void normalizeProbabilities(PriorityQueue<ImageOptions> queue, double totalChance) {
@@ -55,6 +59,10 @@ public class ImageSelector {
     }
 
     private Map<String, String> getRandomImageFromQueue(PriorityQueue<ImageOptions> queue) throws InvalidChancesException {
+        return getRandomImageFromQueue(queue, null);
+    }
+    
+    private Map<String, String> getRandomImageFromQueue(PriorityQueue<ImageOptions> queue, String userId) throws InvalidChancesException {
         double rand = random.nextDouble() * 100;
         double cumulativeProbability = 0;
         while (!queue.isEmpty()) {
@@ -62,7 +70,7 @@ public class ImageSelector {
             cumulativeProbability += selectedOption.getChance();
             if (rand <= cumulativeProbability) {
                 try {
-                    return getImageByType(selectedOption.getImageType());
+                    return getImageByType(selectedOption.getImageType(), userId);
                 } catch (IOException e) {
                     throw new InvalidChancesException("Failed to fetch image from source: " + selectedOption.getImageType());
                 } catch (ExecutionException | InterruptedException e) {
@@ -73,15 +81,36 @@ public class ImageSelector {
         throw new InvalidChancesException("Failed to select an image.");
     }
 
-    private Map<String, String> getImageByType(String imageType) throws IOException, ExecutionException, InterruptedException {
+    private Map<String, String> getImageByType(String imageType, String userId) throws IOException, ExecutionException, InterruptedException {
         return switch (imageType) {
             case "4chan" -> new MediaServiceFactory().createFourChanProvider().getRandomMedia(null).toMap();
             case "picsum" -> new MediaServiceFactory().createPicsumProvider().getRandomMedia(null).toMap();
             case "imgur" -> new MediaServiceFactory().createImgurProvider().getRandomMedia(null).toMap();
-            case "reddit" -> new MediaServiceFactory().createRedditProvider().getRandomMedia(null).toMap();
+            case "reddit" -> {
+                var provider = new MediaServiceFactory().createRedditProvider();
+                if (provider instanceof me.hash.mediaroulette.content.provider.impl.images.RedditProvider redditProvider && userId != null) {
+                    yield redditProvider.getRandomMedia(null, userId).toMap();
+                } else {
+                    yield provider.getRandomMedia(null).toMap();
+                }
+            }
             case "rule34xxx" -> new MediaServiceFactory().createRule34Provider().getRandomMedia(null).toMap();
-            case "tenor" -> new MediaServiceFactory().createTenorProvider().getRandomMedia(null).toMap();
-            case "google" -> new MediaServiceFactory().createGoogleProvider().getRandomMedia(null).toMap();
+            case "tenor" -> {
+                var provider = new MediaServiceFactory().createTenorProvider();
+                if (provider instanceof me.hash.mediaroulette.content.provider.impl.gifs.TenorProvider tenorProvider && userId != null) {
+                    yield tenorProvider.getRandomMedia(null, userId).toMap();
+                } else {
+                    yield provider.getRandomMedia(null).toMap();
+                }
+            }
+            case "google" -> {
+                var provider = new MediaServiceFactory().createGoogleProvider();
+                if (provider instanceof me.hash.mediaroulette.content.provider.impl.images.GoogleProvider googleProvider && userId != null) {
+                    yield googleProvider.getRandomMedia(null, userId).toMap();
+                } else {
+                    yield provider.getRandomMedia(null).toMap();
+                }
+            }
             case "movies" -> new MediaServiceFactory().createTMDBMovieProvider().getRandomMedia(null).toMap();
             case "tvshow" -> new MediaServiceFactory().createTMDBTvProvider().getRandomMedia(null).toMap();
             case "youtube" -> new MediaServiceFactory().createYouTubeProvider().getRandomMedia(null).toMap();

@@ -5,9 +5,12 @@ import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.bot.commands.admin.ChannelNuke;
 import me.hash.mediaroulette.bot.commands.bot.InfoCommand;
 import me.hash.mediaroulette.bot.commands.bot.ShardsCommand;
+import me.hash.mediaroulette.bot.commands.bot.SupportCommand;
 import me.hash.mediaroulette.bot.commands.bot.ThemeCommand;
 import me.hash.mediaroulette.bot.commands.config.ConfigCommand;
 import me.hash.mediaroulette.bot.commands.config.ChancesCommand;
+import me.hash.mediaroulette.bot.commands.dictionary.DictionaryCommand;
+import me.hash.mediaroulette.bot.commands.dictionary.SettingsCommand;
 import me.hash.mediaroulette.bot.commands.economy.BalanceCommand;
 import me.hash.mediaroulette.bot.commands.economy.QuestsCommand;
 import me.hash.mediaroulette.bot.commands.economy.ShopCommand;
@@ -68,9 +71,12 @@ public class Bot {
                     new getRandomImage(),
                     new ConfigCommand(),
                     new ChancesCommand(),
+                    new DictionaryCommand(Main.dictionaryService),
+                    new SettingsCommand(Main.dictionaryService),
                     new ChannelNuke(),
                     new InfoCommand(),
                     new ShardsCommand(),
+                    new SupportCommand(),
                     new ThemeCommand(),
                     new BalanceCommand(),
                     new QuestsCommand(),
@@ -96,9 +102,12 @@ public class Bot {
                     new getRandomImage().getCommandData(),
                     new ConfigCommand().getCommandData(),
                     new ChancesCommand().getCommandData(),
+                    new DictionaryCommand(Main.dictionaryService).getCommandData(),
+                    new SettingsCommand(Main.dictionaryService).getCommandData(),
                     new ChannelNuke().getCommandData(),
                     new InfoCommand().getCommandData(),
                     new ShardsCommand().getCommandData(),
+                    new SupportCommand().getCommandData(),
                     new ThemeCommand().getCommandData(),
                     new BalanceCommand().getCommandData(),
                     new QuestsCommand().getCommandData(),

@@ -1,6 +1,7 @@
 package me.hash.mediaroulette.content.provider.impl.gifs;
 
 import me.hash.mediaroulette.RandomDictionaryLineFetcher;
+import me.hash.mediaroulette.utils.DictionaryIntegration;
 import me.hash.mediaroulette.model.content.MediaResult;
 import me.hash.mediaroulette.model.content.MediaSource;
 import me.hash.mediaroulette.content.provider.MediaProvider;
@@ -26,9 +27,16 @@ public class TenorProvider implements MediaProvider {
 
     @Override
     public MediaResult getRandomMedia(String query) throws IOException {
+        return getRandomMedia(query, null);
+    }
+    
+    public MediaResult getRandomMedia(String query, String userId) throws IOException {
         if (query == null || query.isEmpty()) {
-            RandomDictionaryLineFetcher localFetcher = RandomDictionaryLineFetcher.getBasicDictionaryFetcher();
-            query = localFetcher.getRandomLine();
+            if (userId != null) {
+                query = DictionaryIntegration.getRandomWordForSource(userId, "tenor");
+            } else {
+                query = DictionaryIntegration.getRandomWordForSource("tenor");
+            }
         }
 
         String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
