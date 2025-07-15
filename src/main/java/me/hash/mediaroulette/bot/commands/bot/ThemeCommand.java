@@ -117,7 +117,7 @@ public class ThemeCommand extends ListenerAdapter implements CommandHandler {
         if (!event.getComponentId().equals("theme:selector"))
             return;
 
-        event.deferReply(true).queue(); // Ephemeral reply
+        event.deferEdit().queue(); // Defer edit instead of ephemeral reply
 
         Bot.executor.execute(() -> {
             try {
@@ -128,38 +128,33 @@ public class ThemeCommand extends ListenerAdapter implements CommandHandler {
                 user.setTheme(selectedTheme);
                 Main.userService.updateUser(user);
 
-                // Create success embed
-                EmbedBuilder successEmbed = new EmbedBuilder()
-                        .setTitle("🎨 Theme Updated!")
-                        .setDescription("Your theme has been successfully changed to **" + formatThemeName(selectedTheme) + "**")
-                        .setColor(SUCCESS_COLOR)
-                        .setTimestamp(Instant.now());
+                // Create updated theme embed with success message
+                MessageEmbed updatedThemeEmbed = createUpdatedThemeEmbed(user, selectedTheme, event.getUser().getName(), event.getUser().getAvatarUrl());
 
-                // Add theme preview
-                Theme theme = themeManager.getTheme(selectedTheme);
-                String themeDetails = String.format("```Name: %s\nDescription: %s\nEmoji: %s```",
-                        formatThemeName(selectedTheme),
-                        getThemeDescription(selectedTheme),
-                        getThemeEmoji(selectedTheme));
-
-                successEmbed.addField("📋 Theme Details", themeDetails, false);
+                // Create updated selection menu with new current theme
+                StringSelectMenu updatedThemeMenu = createThemeSelectionMenu(selectedTheme);
 
                 // Generate preview image of selected theme
                 try {
-                    byte[] previewImage = new ImageGenerator().generateImage("New Theme: " + formatThemeName(selectedTheme), selectedTheme);
+                    byte[] previewImage = new ImageGenerator().generateImage("Current Theme: " + formatThemeName(selectedTheme), selectedTheme);
 
                     if (previewImage.length > 0) {
                         InputStream imageStream = new ByteArrayInputStream(previewImage);
-                        FileUpload imageUpload = FileUpload.fromData(imageStream, "new_theme_preview.png");
+                        FileUpload imageUpload = FileUpload.fromData(imageStream, "theme_preview.png");
 
-                        event.getHook().sendMessageEmbeds(successEmbed.build())
-                                .addFiles(imageUpload)
+                        event.getHook().editOriginalEmbeds(updatedThemeEmbed)
+                                .setFiles(imageUpload)
+                                .setComponents(ActionRow.of(updatedThemeMenu))
                                 .queue();
                     } else {
-                        event.getHook().sendMessageEmbeds(successEmbed.build()).queue();
+                        event.getHook().editOriginalEmbeds(updatedThemeEmbed)
+                                .setComponents(ActionRow.of(updatedThemeMenu))
+                                .queue();
                     }
                 } catch (Exception e) {
-                    event.getHook().sendMessageEmbeds(successEmbed.build()).queue();
+                    event.getHook().editOriginalEmbeds(updatedThemeEmbed)
+                            .setComponents(ActionRow.of(updatedThemeMenu))
+                            .queue();
                 }
 
             } catch (Exception e) {
@@ -171,7 +166,7 @@ public class ThemeCommand extends ListenerAdapter implements CommandHandler {
                         .setColor(new Color(255, 107, 107))
                         .setTimestamp(Instant.now());
 
-                event.getHook().sendMessageEmbeds(errorEmbed.build()).queue();
+                event.getHook().editOriginalEmbeds(errorEmbed.build()).queue();
             }
         });
     }
@@ -237,6 +232,66 @@ public class ThemeCommand extends ListenerAdapter implements CommandHandler {
 
         // Footer
         embed.setFooter("Media Roulette • Theme Customization", null);
+
+        // Set the generated theme preview as image
+        embed.setImage("attachment://theme_preview.png");
+
+        return embed.build();
+    }
+
+    private MessageEmbed createUpdatedThemeEmbed(User user, String selectedTheme, String username, String avatarUrl) {
+        EmbedBuilder embed = new EmbedBuilder();
+
+        // Header with success message
+        embed.setTitle("🎨 Theme Updated Successfully!");
+        embed.setColor(SUCCESS_COLOR);
+        embed.setTimestamp(Instant.now());
+
+        // Add user info
+        if (avatarUrl != null && !avatarUrl.isEmpty()) {
+            embed.setAuthor(username + "'s Theme Settings", null, avatarUrl);
+        } else {
+            embed.setAuthor(username + "'s Theme Settings");
+        }
+
+        embed.setDescription("*Your theme has been changed to **" + formatThemeName(selectedTheme) + "***");
+
+        // Current theme information
+        embed.addField("🎨 Current Theme",
+                String.format("```%s %s```",
+                        getThemeEmoji(selectedTheme),
+                        formatThemeName(selectedTheme)), true);
+
+        // Theme statistics
+        int availableThemes = themeManager.getThemeCount();
+        embed.addField("📊 Theme Stats",
+                String.format("```Total: %d themes\nUnlocked: %s```",
+                        availableThemes,
+                        user.isPremium() ? "All themes" : "Basic themes"), true);
+
+        // User status
+        StringBuilder statusBuilder = new StringBuilder();
+        if (user.isPremium()) {
+            statusBuilder.append("👑 Premium Access\n✨ All themes unlocked");
+        } else {
+            statusBuilder.append("🆓 Free Access\n🔒 Some themes locked");
+        }
+        embed.addField("🔰 Account Status", statusBuilder.toString(), true);
+
+        // Instructions
+        embed.addField("📖 Instructions",
+                "```🔽 Use the dropdown menu below to select a different theme\n📸 Preview images show how your theme will look\n💾 Changes are saved automatically```",
+                false);
+
+        // Premium promotion for non-premium users
+        if (!user.isPremium()) {
+            embed.addField("⭐ Upgrade to Premium",
+                    "```✨ Unlock all premium themes\n🎨 Get exclusive color schemes\n🚀 Priority theme updates```",
+                    false);
+        }
+
+        // Set footer
+        embed.setFooter("Media Roulette • Theme System", null);
 
         // Set the generated theme preview as image
         embed.setImage("attachment://theme_preview.png");
