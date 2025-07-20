@@ -21,8 +21,9 @@
   "error.option_disabled_title": "Command Disabled",
   "error.option_disabled_description": "This command is globally disabled!",
   "error.4chan_invalid_board_title": "Invalid Board",
-  "error.4chan_invalid_board_description": "This board doesn't exist...",
+  "error.4chan_invalid_board_description": "The board '{0}' doesn't exist or is not accessible. Please use /support for help.",
   "error.reddit_fetch": "An error occurred fetching data from Reddit.",
+  "error.reddit_no_valid_subreddit": "No valid subreddits available. Please use /support for help.",
   "error.invalid_subreddit_title": "Invalid Subreddit",
-  "error.invalid_subreddit_description": "This subreddit doesn't exist..."
+  "error.invalid_subreddit_description": "The subreddit '{0}' doesn't exist or is not accessible. Please use /support for help."
 }

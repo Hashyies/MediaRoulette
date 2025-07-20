@@ -29,11 +29,11 @@ public class GoogleProvider implements MediaProvider {
     }
 
     @Override
-    public MediaResult getRandomMedia(String query) throws IOException {
+    public MediaResult getRandomMedia(String query) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
         return getRandomMedia(query, null);
     }
     
-    public MediaResult getRandomMedia(String query, String userId) throws IOException {
+    public MediaResult getRandomMedia(String query, String userId) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
         if (query == null || query.isEmpty()) {
             if (userId != null) {
                 query = DictionaryIntegration.getRandomWordForSource(userId, "google");
@@ -55,14 +55,14 @@ public class GoogleProvider implements MediaProvider {
         return result;
     }
 
-    private void populateCache(String query) throws IOException {
+    private void populateCache(String query) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
         int start = random.nextInt(5) + 1;
         String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
         String url = String.format(
                 "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&searchType=image&start=%d",
                 apiKey, cseId, encodedQuery, start);
 
-        String response = httpClient.get(url);
+        String response = httpClient.getBody(url);
         JSONObject json = new JSONObject(response);
 
         if (!json.has("items")) {

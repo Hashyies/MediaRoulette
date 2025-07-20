@@ -26,7 +26,7 @@ public class TMDBMovieProvider implements MediaProvider {
     }
 
     @Override
-    public MediaResult getRandomMedia(String query) throws IOException {
+    public MediaResult getRandomMedia(String query) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
         int year = random.nextInt(2023 - 1900) + 1900;
         Queue<MediaResult> cache = yearCache.computeIfAbsent(year, k -> new LinkedList<>());
 
@@ -41,11 +41,11 @@ public class TMDBMovieProvider implements MediaProvider {
         return result;
     }
 
-    private void populateCache(int year) throws IOException {
+    private void populateCache(int year) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
         String url = String.format("%s/discover/movie?primary_release_year=%d&api_key=%s",
                 BASE_URL, year, apiKey);
 
-        String response = httpClient.get(url);
+        String response = httpClient.getBody(url);
         JSONObject jsonObject = new JSONObject(response);
         JSONArray results = jsonObject.getJSONArray("results");
 

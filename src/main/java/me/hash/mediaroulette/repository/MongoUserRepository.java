@@ -1,12 +1,16 @@
 package me.hash.mediaroulette.repository;
 
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Accumulators;
 import me.hash.mediaroulette.model.User;
 import me.hash.mediaroulette.model.Favorite;
 import me.hash.mediaroulette.model.ImageOptions;
+import me.hash.mediaroulette.model.InventoryItem;
 import org.bson.Document;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -107,6 +111,20 @@ public class MongoUserRepository implements UserRepository {
                 user.getImageOptionsMap().put(key, new ImageOptions(key, enabled, chance));
             }
         }
+        
+        // Parse inventory
+        List<Document> inventoryDocs = doc.getList("inventory", Document.class);
+        if (inventoryDocs != null) {
+            List<InventoryItem> inventory = new ArrayList<>();
+            for (Document inventoryDoc : inventoryDocs) {
+                InventoryItem item = parseInventoryItem(inventoryDoc);
+                if (item != null) {
+                    inventory.add(item);
+                }
+            }
+            user.setInventory(inventory);
+        }
+        
         return user;
     }
 
@@ -162,6 +180,15 @@ public class MongoUserRepository implements UserRepository {
             imagesDoc.append(entry.getKey(), optionDoc);
         }
         doc.append("images", imagesDoc);
+        
+        // Map inventory
+        List<Document> inventoryDocs = new ArrayList<>();
+        for (InventoryItem item : user.getInventory()) {
+            Document itemDoc = inventoryItemToDocument(item);
+            inventoryDocs.add(itemDoc);
+        }
+        doc.append("inventory", inventoryDocs);
+        
         return doc;
     }
     
@@ -239,5 +266,64 @@ public class MongoUserRepository implements UserRepository {
                 .append("balanceAfter", transaction.getBalanceAfter())
                 .append("description", transaction.getDescription())
                 .append("timestamp", transaction.getTimestamp() != null ? transaction.getTimestamp().toString() : null);
+    }
+
+    private InventoryItem parseInventoryItem(Document doc) {
+        if (doc == null) return null;
+        
+        InventoryItem item = new InventoryItem();
+        item.setId(doc.getString("id"));
+        item.setName(doc.getString("name"));
+        item.setDescription(doc.getString("description"));
+        item.setType(doc.getString("type"));
+        item.setRarity(doc.getString("rarity"));
+        item.setQuantity(doc.getInteger("quantity", 1));
+        item.setSource(doc.getString("source"));
+        
+        String acquiredAtStr = doc.getString("acquiredAt");
+        if (acquiredAtStr != null) {
+            try {
+                item.setAcquiredAt(java.time.Instant.parse(acquiredAtStr));
+            } catch (Exception e) {
+                item.setAcquiredAt(java.time.Instant.now());
+            }
+        }
+        
+        return item;
+    }
+
+    private Document inventoryItemToDocument(InventoryItem item) {
+        return new Document()
+                .append("id", item.getId())
+                .append("name", item.getName())
+                .append("description", item.getDescription())
+                .append("type", item.getType())
+                .append("rarity", item.getRarity())
+                .append("quantity", item.getQuantity())
+                .append("source", item.getSource())
+                .append("acquiredAt", item.getAcquiredAt() != null ? item.getAcquiredAt().toString() : null);
+    }
+
+    @Override
+    public long getTotalUsers() {
+        return userCollection.countDocuments();
+    }
+
+    @Override
+    public long getTotalImagesGenerated() {
+        try {
+            // Use MongoDB aggregation to sum all imagesGenerated fields
+            Document result = userCollection.aggregate(Arrays.asList(
+                Aggregates.group(null, Accumulators.sum("totalImages", "$imagesGenerated"))
+            )).first();
+            
+            if (result != null && result.containsKey("totalImages")) {
+                return result.getLong("totalImages");
+            }
+            return 0L;
+        } catch (Exception e) {
+            System.err.println("Error calculating total images generated: " + e.getMessage());
+            return 0L;
+        }
     }
 }

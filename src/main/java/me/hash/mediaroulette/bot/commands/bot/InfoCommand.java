@@ -87,12 +87,13 @@ public class InfoCommand extends ListenerAdapter implements CommandHandler {
         embed.setColor(PRIMARY_COLOR);
         embed.setTimestamp(Instant.now());
 
-        // Get configuration data
-        Config config = new Config(Main.database);
-        String imageGenerated = config.getOrDefault("image_generated", "0", String.class);
+        // Get real total images from all users
+        long totalImages = Main.userService.getTotalImagesGenerated();
+        long totalUsers = Main.userService.getTotalUsers();
 
-        // Format the image count with commas for better readability
-        String formattedImages = formatNumber(Long.parseLong(imageGenerated));
+        // Format the counts with commas for better readability
+        String formattedImages = formatNumber(totalImages);
+        String formattedUsers = formatNumber(totalUsers);
 
         // Calculate detailed uptime
         long uptimeMillis = System.currentTimeMillis() - Main.startTime;
@@ -104,6 +105,9 @@ public class InfoCommand extends ListenerAdapter implements CommandHandler {
         // Statistics section with emojis and formatting
         embed.addField("📈 **Total Images Generated**",
                 "```" + formattedImages + "```", true);
+
+        embed.addField("👥 **Total Users**",
+                "```" + formattedUsers + "```", true);
 
         embed.addField("⏱️ **Bot Uptime**",
                 "```" + formattedUptime + "```", true);
@@ -144,13 +148,6 @@ public class InfoCommand extends ListenerAdapter implements CommandHandler {
                 String.format("```Guilds: %d\nShards: %d```",
                         Bot.getShardManager().getShards().getFirst().getGuilds().size(),
                         Bot.getShardManager().getShards().getFirst().getShardInfo().getShardTotal()), true);
-
-        // System Information
-        embed.addField("🖥️ **System Info**",
-                String.format("```OS: %s\nArch: %s\nJava: %s```",
-                        metrics.getOsName(),
-                        metrics.getOsArch(),
-                        System.getProperty("java.version")), true);
 
         // Footer with additional info
         embed.setFooter("Media Roulette • Real-time metrics", null);

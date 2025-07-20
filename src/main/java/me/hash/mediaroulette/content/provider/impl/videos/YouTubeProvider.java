@@ -28,7 +28,7 @@ public class YouTubeProvider implements MediaProvider {
     }
 
     @Override
-    public MediaResult getRandomMedia(String query) throws IOException {
+    public MediaResult getRandomMedia(String query) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
         String topic = FILTERS[random.nextInt(FILTERS.length)];
         String order = ORDERS[random.nextInt(ORDERS.length)];
         String cacheKey = topic + "_" + order;
@@ -46,12 +46,12 @@ public class YouTubeProvider implements MediaProvider {
         return result;
     }
 
-    private void populateCache(String topic, String order) throws IOException {
+    private void populateCache(String topic, String order) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
         String url = String.format(
                 "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=25&key=%s&topicId=%s&order=%s",
                 apiKey, topic, order);
 
-        String response = httpClient.get(url);
+        String response = httpClient.getBody(url);
         JSONObject jsonObject = new JSONObject(response);
         JSONArray itemsArray = jsonObject.getJSONArray("items");
 

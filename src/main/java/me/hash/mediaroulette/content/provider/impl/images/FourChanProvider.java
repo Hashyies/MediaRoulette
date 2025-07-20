@@ -4,12 +4,16 @@ import me.hash.mediaroulette.model.content.MediaResult;
 import me.hash.mediaroulette.model.content.MediaSource;
 import me.hash.mediaroulette.content.provider.MediaProvider;
 import me.hash.mediaroulette.content.http.HttpClientWrapper;
+import me.hash.mediaroulette.utils.ErrorReporter;
+import me.hash.mediaroulette.utils.GlobalLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class FourChanProvider implements MediaProvider {
     private static final List<String> BOARDS = Arrays.asList("a", "c", "w", "m", "cgl", "cm", "n", "jp", "vp", "v", "vg",
@@ -17,49 +21,141 @@ public class FourChanProvider implements MediaProvider {
             "wg", "mu", "fa", "3", "gd", "diy", "wsg", "s", "hc", "hm", "h", "e", "u", "d", "y", "t", "hr", "gif",
             "trv", "fit", "x", "lit", "adv", "lgbt", "mlp", "b", "r", "r9k", "pol", "soc", "s4s");
 
+    // Cache to track board validation results
+    private static final Map<String, Boolean> BOARD_VALIDATION_CACHE = new ConcurrentHashMap<>();
+    
     private final Map<String, Queue<MediaResult>> imageCache = new ConcurrentHashMap<>();
     private final HttpClientWrapper httpClient;
     private final Random random = new Random();
+    private final Logger logger = GlobalLogger.getLogger();
 
     public FourChanProvider(HttpClientWrapper httpClient) {
         this.httpClient = httpClient;
     }
 
     @Override
-    public MediaResult getRandomMedia(String board) throws IOException {
-        if (board == null || !BOARDS.contains(board)) {
-            board = BOARDS.get(random.nextInt(BOARDS.size()));
+    public MediaResult getRandomMedia(String board) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
+        return getRandomMedia(board, null);
+    }
+    
+    public MediaResult getRandomMedia(String board, String userId) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
+        if (board == null || !isValidBoard(board)) {
+            board = getValidRandomBoard(userId);
         }
 
         Queue<MediaResult> cache = imageCache.computeIfAbsent(board, k -> new LinkedList<>());
 
         if (cache.isEmpty()) {
-            populateCache(board);
+            populateCache(board, userId);
         }
 
         MediaResult result = cache.poll();
         if (result == null) {
-            throw new IOException("No images available for board: " + board);
+            String errorMsg = "No images available for board: " + board;
+            logger.log(Level.WARNING, errorMsg);
+            ErrorReporter.reportFailed4ChanBoard(board, errorMsg, userId);
+            throw new IOException(errorMsg + ". Please use /support for help.");
         }
         return result;
     }
-
-    private void populateCache(String board) throws IOException {
-        List<Integer> threadNumbers = fetchThreadNumbers(board);
-        if (threadNumbers.isEmpty()) {
-            return;
+    
+    /**
+     * Get a valid random board with validation
+     */
+    private String getValidRandomBoard(String userId) throws IOException {
+        List<String> shuffledBoards = new ArrayList<>(BOARDS);
+        Collections.shuffle(shuffledBoards);
+        
+        // Try to find a valid board, with a maximum of 10 attempts
+        int attempts = 0;
+        int maxAttempts = Math.min(10, shuffledBoards.size());
+        
+        for (String board : shuffledBoards) {
+            if (attempts >= maxAttempts) {
+                break;
+            }
+            attempts++;
+            
+            try {
+                if (validateBoardExists(board)) {
+                    logger.log(Level.INFO, "Using validated random 4chan board: {0}", board);
+                    return board;
+                }
+            } catch (IOException e) {
+                logger.log(Level.WARNING, "Board validation failed for {0}: {1}", new Object[]{board, e.getMessage()});
+                continue;
+            }
         }
-
-        int selectedThread = threadNumbers.get(random.nextInt(threadNumbers.size()));
-        List<MediaResult> images = fetchImagesFromThread(board, selectedThread);
-
-        Queue<MediaResult> cache = imageCache.get(board);
-        cache.addAll(images);
+        
+        // If no valid board found, report error and throw exception
+        String errorMsg = "No valid 4chan boards found after " + attempts + " attempts";
+        logger.log(Level.SEVERE, errorMsg);
+        ErrorReporter.reportProviderError("4chan", "board validation", errorMsg, userId);
+        throw new IOException(errorMsg + ". Please use /support for help.");
+    }
+    
+    /**
+     * Validate if a board exists by checking its catalog
+     */
+    private boolean validateBoardExists(String board) throws IOException {
+        // Check cache first
+        if (BOARD_VALIDATION_CACHE.containsKey(board)) {
+            return BOARD_VALIDATION_CACHE.get(board);
+        }
+        
+        try {
+            String url = String.format("https://a.4cdn.org/%s/catalog.json", board);
+            String response = httpClient.get(url, "4chan", null);
+            
+            // If we can parse the response as JSON array, the board exists
+            JSONArray data = new JSONArray(response);
+            boolean exists = data.length() > 0;
+            
+            // Cache the result
+            BOARD_VALIDATION_CACHE.put(board, exists);
+            
+            // Simple cache eviction policy
+            if (BOARD_VALIDATION_CACHE.size() > 100) {
+                BOARD_VALIDATION_CACHE.clear();
+            }
+            
+            return exists;
+        } catch (Exception e) {
+            // If any error occurs, consider the board invalid
+            BOARD_VALIDATION_CACHE.put(board, false);
+            return false;
+        }
     }
 
-    private List<Integer> fetchThreadNumbers(String board) throws IOException {
+    private void populateCache(String board, String userId) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
+        try {
+            List<Integer> threadNumbers = fetchThreadNumbers(board);
+            if (threadNumbers.isEmpty()) {
+                String errorMsg = "No threads found for board: " + board;
+                logger.log(Level.WARNING, errorMsg);
+                ErrorReporter.reportFailed4ChanBoard(board, errorMsg, userId);
+                return;
+            }
+
+            int selectedThread = threadNumbers.get(random.nextInt(threadNumbers.size()));
+            List<MediaResult> images = fetchImagesFromThread(board, selectedThread);
+
+            Queue<MediaResult> cache = imageCache.get(board);
+            cache.addAll(images);
+            
+            logger.log(Level.INFO, "Populated cache for board {0} with {1} images", 
+                new Object[]{board, images.size()});
+        } catch (IOException | HttpClientWrapper.RateLimitException | InterruptedException e) {
+            String errorMsg = "Failed to populate cache for board " + board + ": " + e.getMessage();
+            logger.log(Level.SEVERE, errorMsg);
+            ErrorReporter.reportFailed4ChanBoard(board, errorMsg, userId);
+            throw e;
+        }
+    }
+
+    private List<Integer> fetchThreadNumbers(String board) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
         String url = String.format("https://a.4cdn.org/%s/catalog.json", board);
-        String response = httpClient.get(url);
+        String response = httpClient.get(url, "4chan", null);
 
         JSONArray data = new JSONArray(response);
         List<Integer> threadNumbers = new ArrayList<>();
@@ -75,9 +171,9 @@ public class FourChanProvider implements MediaProvider {
         return threadNumbers;
     }
 
-    private List<MediaResult> fetchImagesFromThread(String board, int threadId) throws IOException {
+    private List<MediaResult> fetchImagesFromThread(String board, int threadId) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
         String url = String.format("https://a.4cdn.org/%s/thread/%d.json", board, threadId);
-        String response = httpClient.get(url);
+        String response = httpClient.get(url, "4chan", null);
 
         JSONObject postData = new JSONObject(response);
         JSONArray posts = postData.getJSONArray("posts");
@@ -89,9 +185,7 @@ public class FourChanProvider implements MediaProvider {
                 String imageUrl = String.format("https://i.4cdn.org/%s/%d%s",
                         board, post.getLong("tim"), post.getString("ext"));
 
-                String description = String.format("🌐 Source: 4Chan\n" +
-                                "\uD83D\uDD0D Board: %s\n" +
-                                "\uD83D\uDD17 Thread: <%s>",
+                String description = String.format("Source: 4Chan\nBoard: %s\nThread: <%s>",
                         board,
                         String.format("https://boards.4chan.org/%s/thread/%d", board, threadId));
 
@@ -102,7 +196,17 @@ public class FourChanProvider implements MediaProvider {
     }
 
     public boolean isValidBoard(String board) {
-        return BOARDS.contains(board);
+        if (!BOARDS.contains(board)) {
+            return false;
+        }
+        
+        // Also check if board actually exists (with caching)
+        try {
+            return validateBoardExists(board);
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Failed to validate board {0}: {1}", new Object[]{board, e.getMessage()});
+            return false;
+        }
     }
 
     @Override
@@ -112,6 +216,6 @@ public class FourChanProvider implements MediaProvider {
 
     @Override
     public String getProviderName() {
-        return "4Chan";
+        return "4Chan Enhanced";
     }
 }

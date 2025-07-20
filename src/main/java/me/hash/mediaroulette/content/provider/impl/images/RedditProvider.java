@@ -7,6 +7,7 @@ import me.hash.mediaroulette.content.reddit.RedditClient;
 import me.hash.mediaroulette.content.reddit.SubredditManager;
 import me.hash.mediaroulette.content.reddit.RedditPostProcessor;
 import me.hash.mediaroulette.utils.GlobalLogger;
+import me.hash.mediaroulette.utils.ErrorReporter;
 import okhttp3.Response;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -76,8 +77,14 @@ public class RedditProvider implements MediaProvider {
         
         // If still no subreddit or invalid subreddit, use fallback logic
         if (subreddit == null || !subredditManager.doesSubredditExist(subreddit)) {
-            subreddit = subredditManager.getRandomSubreddit();
-            logger.log(Level.WARNING, "Using fallback random subreddit: {0}", subreddit);
+            try {
+                subreddit = subredditManager.getRandomSubreddit();
+                logger.log(Level.WARNING, "Using fallback random subreddit: {0}", subreddit);
+            } catch (IOException e) {
+                logger.log(Level.SEVERE, "Failed to get random subreddit: {0}", e.getMessage());
+                ErrorReporter.reportProviderError("reddit", "random subreddit selection", e.getMessage(), userId);
+                throw new IOException("Unable to find a valid subreddit. " + e.getMessage());
+            }
         }
 
         initializeCacheIfNeeded(subreddit);

@@ -5,6 +5,7 @@ import me.hash.mediaroulette.exceptions.NoEnabledOptionsException;
 import me.hash.mediaroulette.utils.user.ImageSelector;
 
 import java.util.*;
+import java.util.Comparator;
 
 public class User {
     public static final int DEFAULT_FAVORITE_LIMIT = 25;
@@ -27,6 +28,7 @@ public class User {
     private long totalQuestsCompleted; // Total number of quests completed lifetime
     private long questsCompletedToday; // Number of quests completed today
     private java.time.LocalDate lastQuestCompletionDate; // Last date a quest was completed
+    private List<InventoryItem> inventory; // User's inventory items
 
     public User(String userId) {
         this.userId = userId;
@@ -46,6 +48,7 @@ public class User {
         this.totalQuestsCompleted = 0;
         this.questsCompletedToday = 0;
         this.lastQuestCompletionDate = null;
+        this.inventory = new ArrayList<>();
     }
 
     // --- Getters and Setters ---
@@ -82,6 +85,8 @@ public class User {
     public void setQuestsCompletedToday(long questsCompletedToday) { this.questsCompletedToday = questsCompletedToday; }
     public java.time.LocalDate getLastQuestCompletionDate() { return lastQuestCompletionDate; }
     public void setLastQuestCompletionDate(java.time.LocalDate lastQuestCompletionDate) { this.lastQuestCompletionDate = lastQuestCompletionDate; }
+    public List<InventoryItem> getInventory() { return inventory; }
+    public void setInventory(List<InventoryItem> inventory) { this.inventory = inventory; }
 
     // --- Business Logic Methods ---
     public void incrementImagesGenerated() {
@@ -274,5 +279,157 @@ public class User {
     public Map<String, String> getImage() throws NoEnabledOptionsException, InvalidChancesException, me.hash.mediaroulette.exceptions.InvalidChancesException, me.hash.mediaroulette.exceptions.NoEnabledOptionsException {
         ImageSelector selector = new ImageSelector(imageOptions);
         return selector.selectImage(this.userId);
+    }
+
+    // --- Inventory Management Methods ---
+    public static final int MAX_INVENTORY_SIZE = 100;
+    
+    /**
+     * Add an item to the user's inventory
+     * @param item The item to add
+     * @return true if added successfully, false if inventory is full
+     */
+    public boolean addInventoryItem(InventoryItem item) {
+        if (inventory.size() >= MAX_INVENTORY_SIZE) {
+            return false; // Inventory full
+        }
+        
+        // Check if item is stackable and already exists
+        if (item.isStackable()) {
+            for (InventoryItem existingItem : inventory) {
+                if (existingItem.getId().equals(item.getId())) {
+                    existingItem.addQuantity(item.getQuantity());
+                    return true;
+                }
+            }
+        }
+        
+        // Add as new item
+        inventory.add(item);
+        return true;
+    }
+    
+    /**
+     * Remove an item from inventory by ID
+     * @param itemId The ID of the item to remove
+     * @param quantity The quantity to remove (for stackable items)
+     * @return true if removed successfully
+     */
+    public boolean removeInventoryItem(String itemId, int quantity) {
+        for (int i = 0; i < inventory.size(); i++) {
+            InventoryItem item = inventory.get(i);
+            if (item.getId().equals(itemId)) {
+                if (item.getQuantity() <= quantity) {
+                    // Remove entire item
+                    inventory.remove(i);
+                    return true;
+                } else {
+                    // Reduce quantity
+                    return item.removeQuantity(quantity);
+                }
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Get an item from inventory by ID
+     * @param itemId The ID of the item
+     * @return The item if found, null otherwise
+     */
+    public InventoryItem getInventoryItem(String itemId) {
+        return inventory.stream()
+                .filter(item -> item.getId().equals(itemId))
+                .findFirst()
+                .orElse(null);
+    }
+    
+    /**
+     * Check if user has a specific item
+     * @param itemId The ID of the item
+     * @param quantity The minimum quantity needed
+     * @return true if user has the item with sufficient quantity
+     */
+    public boolean hasInventoryItem(String itemId, int quantity) {
+        InventoryItem item = getInventoryItem(itemId);
+        return item != null && item.getQuantity() >= quantity;
+    }
+    
+    /**
+     * Get inventory items by type
+     * @param type The type of items to get
+     * @return List of items of the specified type
+     */
+    public List<InventoryItem> getInventoryItemsByType(String type) {
+        return inventory.stream()
+                .filter(item -> type.equals(item.getType()))
+                .toList();
+    }
+    
+    /**
+     * Get inventory items by rarity
+     * @param rarity The rarity of items to get
+     * @return List of items of the specified rarity
+     */
+    public List<InventoryItem> getInventoryItemsByRarity(String rarity) {
+        return inventory.stream()
+                .filter(item -> rarity.equals(item.getRarity()))
+                .toList();
+    }
+    
+    /**
+     * Get total number of items in inventory (counting quantities)
+     * @return Total item count
+     */
+    public int getTotalInventoryItems() {
+        return inventory.stream()
+                .mapToInt(InventoryItem::getQuantity)
+                .sum();
+    }
+    
+    /**
+     * Get number of unique items in inventory
+     * @return Number of unique items
+     */
+    public int getUniqueInventoryItems() {
+        return inventory.size();
+    }
+    
+    /**
+     * Check if inventory has space for more items
+     * @return true if inventory has space
+     */
+    public boolean hasInventorySpace() {
+        return inventory.size() < MAX_INVENTORY_SIZE;
+    }
+    
+    /**
+     * Get available inventory space
+     * @return Number of slots available
+     */
+    public int getAvailableInventorySpace() {
+        return MAX_INVENTORY_SIZE - inventory.size();
+    }
+    
+    /**
+     * Sort inventory by a specific criteria
+     * @param sortBy "name", "type", "rarity", "quantity", "acquired"
+     */
+    public void sortInventory(String sortBy) {
+        switch (sortBy.toLowerCase()) {
+            case "name" -> inventory.sort(Comparator.comparing(InventoryItem::getName));
+            case "type" -> inventory.sort(Comparator.comparing(InventoryItem::getType));
+            case "rarity" -> inventory.sort(Comparator.comparing(InventoryItem::getRarity));
+            case "quantity" -> inventory.sort(Comparator.comparing(InventoryItem::getQuantity).reversed());
+            case "acquired" -> inventory.sort(Comparator.comparing(InventoryItem::getAcquiredAt).reversed());
+            default -> inventory.sort(Comparator.comparing(InventoryItem::getName));
+        }
+    }
+    
+    /**
+     * Clear all items from inventory
+     */
+    public void clearInventory() {
+        inventory.clear();
     }
 }

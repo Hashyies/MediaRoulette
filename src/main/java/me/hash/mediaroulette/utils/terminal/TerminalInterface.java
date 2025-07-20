@@ -23,6 +23,8 @@ public class TerminalInterface {
         commandSystem.registerCommand(new UserCommand());
         commandSystem.registerCommand(new ExitCommand());
         commandSystem.registerCommand(new StatusCommand());
+        commandSystem.registerCommand(new StatsCommand());
+        commandSystem.registerCommand(new RateLimitCommand());
     }
 
     public void start() {

@@ -56,7 +56,10 @@ public class SettingsCommand extends ListenerAdapter implements CommandHandler {
                         .addOption(OptionType.STRING, "source", "Source name", true),
                     new SubcommandData("shareconfig", "Share your configuration via Hastebin")
                         .addOption(OptionType.STRING, "title", "Title for the configuration share", false)
-                        .addOption(OptionType.STRING, "description", "Description for the configuration share", false)
+                        .addOption(OptionType.STRING, "description", "Description for the configuration share", false),
+                    new SubcommandData("assigndefault", "Remove dictionary assignment and use default")
+                        .addOption(OptionType.STRING, "source", "Source name (tenor, reddit, etc.)", true),
+                    new SubcommandData("reset", "Reset all settings to default values")
                 );
     }
     
@@ -74,6 +77,8 @@ public class SettingsCommand extends ListenerAdapter implements CommandHandler {
                 case "view" -> handleView(event, userId);
                 case "unassign" -> handleUnassign(event, userId);
                 case "shareconfig" -> handleShareConfig(event, userId);
+                case "assigndefault" -> handleAssignDefault(event, userId);
+                case "reset" -> handleReset(event, userId);
             }
         });
     }
@@ -196,6 +201,7 @@ public class SettingsCommand extends ListenerAdapter implements CommandHandler {
                 if (assignedDict.isPresent()) {
                     Optional<Dictionary> dict = dictionaryService.getDictionary(assignedDict.get());
                     if (dict.isPresent()) {
+                        configBuilder.append(String.format("DICT_ASSIGN:%s|%s\n", source, dict.get().getId()));
                         configBuilder.append(String.format("%-10s: %s (%s)\n", 
                             formatSourceName(source), dict.get().getName(), dict.get().getId()));
                         hasAssignments = true;
@@ -439,7 +445,21 @@ public class SettingsCommand extends ListenerAdapter implements CommandHandler {
                     }
                 }
                 
-                // Parse dictionary assignments (using new dictionary IDs)
+                // Parse dictionary assignments from DICT_ASSIGN lines
+                else if (line.startsWith("DICT_ASSIGN:")) {
+                    String[] parts = line.substring("DICT_ASSIGN:".length()).split("\\|");
+                    if (parts.length == 2) {
+                        String sourceKey = parts[0];
+                        String oldDictionaryId = parts[1];
+                        String newDictionaryId = oldToNewDictIds.get(oldDictionaryId);
+                        
+                        if (newDictionaryId != null && SUPPORTED_SOURCES.contains(sourceKey)) {
+                            dictionaryService.assignDictionary(userId, sourceKey, newDictionaryId);
+                        }
+                    }
+                }
+                
+                // Parse dictionary assignments (using new dictionary IDs) - legacy format
                 else if (line.contains(":") && !line.startsWith("-") && !line.startsWith("=") && 
                          (line.contains("Tenor GIFs") || line.contains("Reddit") || line.contains("Google Images"))) {
                     String[] parts = line.split(":", 2);
@@ -560,6 +580,85 @@ public class SettingsCommand extends ListenerAdapter implements CommandHandler {
             .setDescription(message)
             .setColor(SUCCESS_COLOR);
         event.getHook().sendMessageEmbeds(embed.build()).queue();
+    }
+    
+    private void handleAssignDefault(SlashCommandInteractionEvent event, String userId) {
+        String source = event.getOption("source").getAsString().toLowerCase();
+        
+        if (!SUPPORTED_SOURCES.contains(source)) {
+            sendError(event, "Unsupported source. Supported: " + String.join(", ", SUPPORTED_SOURCES));
+            return;
+        }
+        
+        // Remove the assignment (same as unassign)
+        if (dictionaryService.unassignDictionary(userId, source)) {
+            sendSuccess(event, String.format("Dictionary assignment removed from **%s**. Now using default dictionary.", 
+                formatSourceName(source)));
+        } else {
+            sendError(event, String.format("No dictionary assigned to **%s**. Already using default.", formatSourceName(source)));
+        }
+    }
+    
+    private void handleReset(SlashCommandInteractionEvent event, String userId) {
+        try {
+            User user = Main.userService.getOrCreateUser(userId);
+            
+            // Remove all dictionary assignments
+            int removedAssignments = 0;
+            for (String source : SUPPORTED_SOURCES) {
+                if (dictionaryService.unassignDictionary(userId, source)) {
+                    removedAssignments++;
+                }
+            }
+            
+            // Reset all image source chances to default values
+            // Load default values from randomWeightValues.json
+            try {
+                java.io.InputStream inputStream = getClass().getClassLoader().getResourceAsStream("config/randomWeightValues.json");
+                if (inputStream != null) {
+                    String jsonContent = new String(inputStream.readAllBytes());
+                    org.json.JSONArray defaultValues = new org.json.JSONArray(jsonContent);
+                    
+                    // Clear existing image options
+                    user.getImageOptionsMap().clear();
+                    
+                    // Set default values
+                    for (int i = 0; i < defaultValues.length(); i++) {
+                        org.json.JSONObject item = defaultValues.getJSONObject(i);
+                        String imageType = item.getString("imageType");
+                        boolean enabled = item.getBoolean("enabled");
+                        double chance = item.getDouble("chance");
+                        
+                        ImageOptions imageOptions = new ImageOptions(imageType, enabled, chance);
+                        user.setChances(imageOptions);
+                    }
+                    
+                    // Save the updated user
+                    Main.userService.updateUser(user);
+                    
+                    EmbedBuilder embed = new EmbedBuilder()
+                        .setTitle("🔄 Settings Reset Complete")
+                        .setDescription(String.format("Successfully reset your configuration:\n\n" +
+                            "✅ Removed %d dictionary assignments\n" +
+                            "✅ Reset all source chances to default values\n" +
+                            "✅ All sources now use default dictionaries\n\n" +
+                            "Your account is now using the default MediaRoulette configuration.", 
+                            removedAssignments))
+                        .setColor(SUCCESS_COLOR)
+                        .setFooter("Reset completed at", null)
+                        .setTimestamp(java.time.Instant.now());
+                        
+                    event.getHook().sendMessageEmbeds(embed.build()).queue();
+                } else {
+                    throw new Exception("Could not load default configuration values");
+                }
+            } catch (Exception e) {
+                throw new Exception("Failed to reset image source chances: " + e.getMessage());
+            }
+            
+        } catch (Exception e) {
+            sendError(event, "Failed to reset settings: " + e.getMessage());
+        }
     }
     
     private void sendError(SlashCommandInteractionEvent event, String message) {

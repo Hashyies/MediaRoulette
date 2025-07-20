@@ -2,7 +2,9 @@ package me.hash.mediaroulette.bot;
 
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
+import me.hash.mediaroulette.bot.commands.admin.AdminCommand;
 import me.hash.mediaroulette.bot.commands.admin.ChannelNuke;
+import me.hash.mediaroulette.bot.commands.admin.GiveawayCommand;
 import me.hash.mediaroulette.bot.commands.bot.InfoCommand;
 import me.hash.mediaroulette.bot.commands.bot.ShardsCommand;
 import me.hash.mediaroulette.bot.commands.bot.SupportCommand;
@@ -38,7 +40,7 @@ public class Bot {
     public Bot(String token) {
         // Initialize ShardManager
         shardManager = DefaultShardManagerBuilder.createDefault(token)
-                .setActivity(Activity.playing("ALPHAAAA WOOO! :3")) // Set activity to all shards
+                .setActivity(Activity.playing("Use /support for help! | Alpha :3")) // Set activity to all shards
                 .setStatus(OnlineStatus.ONLINE) // Default status
                 .setShardsTotal(-1) // Auto-detect number of shards
                 .build();
@@ -73,14 +75,16 @@ public class Bot {
                     new ChancesCommand(),
                     new DictionaryCommand(Main.dictionaryService),
                     new SettingsCommand(Main.dictionaryService),
+                    new AdminCommand(),
+                    new GiveawayCommand(),
                     new ChannelNuke(),
                     new InfoCommand(),
                     new ShardsCommand(),
                     new SupportCommand(),
                     new ThemeCommand(),
                     new BalanceCommand(),
-                    new QuestsCommand(),
-                    new ShopCommand()
+                    new QuestsCommand()
+                    // new ShopCommand()
                     // new MediaHuntCommand() // Temporarily disabled
             );
 
@@ -104,14 +108,16 @@ public class Bot {
                     new ChancesCommand().getCommandData(),
                     new DictionaryCommand(Main.dictionaryService).getCommandData(),
                     new SettingsCommand(Main.dictionaryService).getCommandData(),
+                    new AdminCommand().getCommandData(),
+                    new GiveawayCommand().getCommandData(),
                     new ChannelNuke().getCommandData(),
                     new InfoCommand().getCommandData(),
                     new ShardsCommand().getCommandData(),
                     new SupportCommand().getCommandData(),
                     new ThemeCommand().getCommandData(),
                     new BalanceCommand().getCommandData(),
-                    new QuestsCommand().getCommandData(),
-                    new ShopCommand().getCommandData()
+                    new QuestsCommand().getCommandData()
+                    // new ShopCommand().getCommandData()
                     // new MediaHuntCommand().getCommandData() // Temporarily disabled
             );
 

@@ -17,7 +17,7 @@ import java.time.Instant;
 
 public class SupportCommand extends ListenerAdapter implements CommandHandler {
     private static final Color PRIMARY_COLOR = new Color(88, 101, 242);
-    private static final String SUPPORT_SERVER_URL = "https://discord.gg/632JUPJKPB";
+    private static final String SUPPORT_SERVER_URL = "https://discord.gg/Kr7qvutZ4N";
 
     @Override
     public CommandData getCommandData() {

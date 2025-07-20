@@ -1,6 +1,7 @@
 package me.hash.mediaroulette.utils.user;
 
 import me.hash.mediaroulette.content.factory.MediaServiceFactory;
+import me.hash.mediaroulette.content.http.HttpClientWrapper;
 import me.hash.mediaroulette.model.ImageOptions;
 import me.hash.mediaroulette.exceptions.InvalidChancesException;
 import me.hash.mediaroulette.exceptions.NoEnabledOptionsException;
@@ -79,7 +80,7 @@ public class ImageSelector {
                     return getImageByType(selectedOption.getImageType(), userId);
                 } catch (IOException e) {
                     throw new InvalidChancesException("Failed to fetch image from source: " + selectedOption.getImageType());
-                } catch (ExecutionException | InterruptedException e) {
+                } catch (ExecutionException | InterruptedException | HttpClientWrapper.RateLimitException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -87,7 +88,7 @@ public class ImageSelector {
         throw new InvalidChancesException("Failed to select an image.");
     }
 
-    private Map<String, String> getImageByType(String imageType, String userId) throws IOException, ExecutionException, InterruptedException {
+    private Map<String, String> getImageByType(String imageType, String userId) throws IOException, ExecutionException, InterruptedException, HttpClientWrapper.RateLimitException {
         return switch (imageType) {
             case "4chan" -> new MediaServiceFactory().createFourChanProvider().getRandomMedia(null).toMap();
             case "picsum" -> new MediaServiceFactory().createPicsumProvider().getRandomMedia(null).toMap();

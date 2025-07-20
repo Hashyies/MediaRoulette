@@ -2,6 +2,7 @@ package me.hash.mediaroulette.content.reddit;
 
 import okhttp3.Response;
 import org.json.JSONObject;
+import me.hash.mediaroulette.utils.ErrorReporter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -54,7 +55,34 @@ public class SubredditManager {
                 throw new IOException("No subreddits available in the list.");
             }
             Collections.shuffle(subreddits);
-            return subreddits.get(0);
+            
+            // Try to find a valid subreddit, with a maximum of 10 attempts to avoid infinite loops
+            int attempts = 0;
+            int maxAttempts = Math.min(10, subreddits.size());
+            
+            for (String subreddit : subreddits) {
+                if (attempts >= maxAttempts) {
+                    break;
+                }
+                attempts++;
+                
+                try {
+                    if (doesSubredditExist(subreddit)) {
+                        return subreddit;
+                    } else {
+                        // Report invalid subreddit for monitoring
+                        ErrorReporter.reportFailedSubreddit(subreddit, "Subreddit validation failed - does not exist", null);
+                    }
+                } catch (IOException e) {
+                    // Report validation error
+                    ErrorReporter.reportFailedSubreddit(subreddit, "Subreddit validation error: " + e.getMessage(), null);
+                    // Continue to next subreddit if validation fails
+                    continue;
+                }
+            }
+            
+            // If no valid subreddit found after attempts, throw an exception with helpful message
+            throw new IOException("No valid subreddits found after " + attempts + " attempts. Please use /support for help.");
         }
     }
 }

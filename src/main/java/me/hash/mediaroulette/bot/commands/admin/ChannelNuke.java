@@ -5,6 +5,7 @@ import java.io.IOException;
 import me.hash.mediaroulette.bot.errorHandler;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.content.factory.MediaServiceFactory;
+import me.hash.mediaroulette.content.http.HttpClientWrapper;
 import net.dv8tion.jda.api.Permission;
 import me.hash.mediaroulette.bot.Bot;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -69,6 +70,10 @@ public class ChannelNuke extends ListenerAdapter implements CommandHandler {
                 embedBuilder.setImage(new MediaServiceFactory().createTenorProvider().getRandomMedia("nuke").toMap().get("image"));
             } catch (IOException e) {
                 e.printStackTrace();
+            } catch (HttpClientWrapper.RateLimitException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
             newChannel.sendMessageEmbeds(embedBuilder.build()).queue();
 

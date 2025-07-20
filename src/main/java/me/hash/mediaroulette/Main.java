@@ -72,6 +72,9 @@ public class Main {
         bot = new Bot(getEnv("DISCORD_TOKEN"));
 
         init();
+        
+        // Initialize giveaway manager after bot initialization
+        me.hash.mediaroulette.utils.GiveawayManager.initialize();
 
         // Initialize and start the terminal interface
         initializeTerminal();

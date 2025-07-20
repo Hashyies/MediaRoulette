@@ -26,11 +26,11 @@ public class TenorProvider implements MediaProvider {
     }
 
     @Override
-    public MediaResult getRandomMedia(String query) throws IOException {
+    public MediaResult getRandomMedia(String query) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
         return getRandomMedia(query, null);
     }
     
-    public MediaResult getRandomMedia(String query, String userId) throws IOException {
+    public MediaResult getRandomMedia(String query, String userId) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
         if (query == null || query.isEmpty()) {
             if (userId != null) {
                 query = DictionaryIntegration.getRandomWordForSource(userId, "tenor");
@@ -43,7 +43,7 @@ public class TenorProvider implements MediaProvider {
         String url = String.format("https://tenor.googleapis.com/v2/search?key=%s&q=%s&limit=50",
                 apiKey, encodedQuery);
 
-        String response = httpClient.get(url);
+        String response = httpClient.getBody(url);
         JSONObject jsonObject = new JSONObject(response);
 
         if (!jsonObject.has("results")) {

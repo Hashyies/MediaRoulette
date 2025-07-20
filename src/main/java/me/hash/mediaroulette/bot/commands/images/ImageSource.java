@@ -93,13 +93,26 @@ public enum ImageSource {
 
         // Only validate if a specific subreddit was requested
         if (subreddit != null && !subredditManager.doesSubredditExist(subreddit)) {
-            errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.invalid_subreddit_title"), new Locale(user.getLocale()).get("error.invalid_subreddit_description"));
-            throw new Exception("Subreddit doesn't exist");
+            String errorMessage = new Locale(user.getLocale()).get("error.invalid_subreddit_description").replace("{0}", subreddit);
+            errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.invalid_subreddit_title"), errorMessage);
+            throw new Exception("Subreddit doesn't exist: " + subreddit);
         }
 
         RedditProvider reddit = (RedditProvider) new MediaServiceFactory().createRedditProvider();
 
-        MediaResult redditPost = reddit.getRandomReddit(subreddit, event.getUser().getId());
+        MediaResult redditPost;
+        try {
+            redditPost = reddit.getRandomReddit(subreddit, event.getUser().getId());
+        } catch (Exception e) {
+            // Check if it's a subreddit validation error
+            if (e.getMessage().contains("No valid subreddits found") || e.getMessage().contains("Unable to find a valid subreddit")) {
+                errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.title"), new Locale(user.getLocale()).get("error.reddit_no_valid_subreddit"));
+                throw new Exception("No valid subreddits available");
+            } else {
+                errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.title"), new Locale(user.getLocale()).get("error.reddit_fetch"));
+                throw new Exception("Error fetching Reddit data: " + e.getMessage());
+            }
+        }
 
         if (redditPost == null) {
             errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.title"), new Locale(user.getLocale()).get("error.reddit_fetch"));
@@ -117,10 +130,23 @@ public enum ImageSource {
         FourChanProvider provider = (FourChanProvider) new MediaServiceFactory().createFourChanProvider();
 
         if (option != null && !provider.isValidBoard(option)) {
-            errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.4chan_invalid_board_title"), new Locale(user.getLocale()).get("error.4chan_invalid_board_description"));
-            throw new Exception("Board doesn't exist");
+            String errorMessage = new Locale(user.getLocale()).get("error.4chan_invalid_board_description").replace("{0}", option);
+            errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.4chan_invalid_board_title"), errorMessage);
+            throw new Exception("Board doesn't exist: " + option);
         }
-        return provider.getRandomMedia(option).toMap();
+        
+        try {
+            return provider.getRandomMedia(option, event.getUser().getId()).toMap();
+        } catch (Exception e) {
+            // Check if it's a board validation error
+            if (e.getMessage().contains("No valid 4chan boards found") || e.getMessage().contains("No images available for board")) {
+                errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.title"), "No valid 4chan boards available. Please use /support for help.");
+                throw new Exception("No valid 4chan boards available");
+            } else {
+                errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.title"), "Error fetching 4chan data. Please use /support for help.");
+                throw new Exception("Error fetching 4chan data: " + e.getMessage());
+            }
+        }
     }
 
     private Map<String, String> handleUrban(Interaction event, String option) throws Exception {
