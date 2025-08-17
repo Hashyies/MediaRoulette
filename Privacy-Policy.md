@@ -104,5 +104,5 @@ We may update this Privacy Policy from time to time. We will notify you of any c
 
 If you have any questions about this Privacy Policy or our data practices, please contact us at:
 
-*   **Email:** yeticool53@gmail.com
+*   **Email:** hashys12@gmail.com
 *   **Discord:** hashys
