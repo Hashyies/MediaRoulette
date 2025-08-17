@@ -6,17 +6,73 @@
  */
 
 plugins {
-    // Apply the application plugin to add support for building a CLI application in Java.
     application
-    id("com.github.johnrengelman.shadow") version "7.1.2"
+    id("com.gradleup.shadow") version "9.0.0"
 }
 
 tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {
     archiveClassifier.set("")
+
+    // Enable JAR minimization - removes unused classes
+    minimize()
+
+    // Compress the JAR contents
+    isZip64 = true
+
     manifest {
         attributes["Main-Class"] = "me.hash.mediaroulette.Main"
+        // Add compression hint
+        attributes["Created-By"] = "Gradle Shadow Plugin"
     }
+
+    // Exclude unnecessary files to reduce size
+    exclude("META-INF/*.SF")
+    exclude("META-INF/*.DSA")
+    exclude("META-INF/*.RSA")
+    exclude("META-INF/MANIFEST.MF")
+    exclude("META-INF/DEPENDENCIES")
+    exclude("META-INF/LICENSE*")
+    exclude("META-INF/NOTICE*")
+    exclude("META-INF/README*")
+    exclude("META-INF/*.txt")
+    exclude("META-INF/*.xml")
+    exclude("**/*.kotlin_metadata")
+    exclude("**/*.kotlin_builtins")
+    exclude("**/*.kotlin_module")
+
+    // Exclude documentation and source files
+    exclude("**/*.md")
+    exclude("**/*.txt")
+    exclude("**/README*")
+    exclude("**/CHANGELOG*")
+    exclude("**/LICENSE*")
+    exclude("**/NOTICE*")
+
+    // Transform services files to avoid conflicts
+    mergeServiceFiles()
+
+    // Optional: Relocate packages to avoid conflicts (if needed)
+    // relocate("org.apache.commons", "shadow.org.apache.commons")
 }
+
+// Add ProGuard/R8 for advanced obfuscation and shrinking (optional)
+// This requires additional setup but can significantly reduce JAR size
+/*
+task proguard(type: proguard.gradle.ProGuardTask, dependsOn: shadowJar) {
+    injars shadowJar.archiveFile
+    outjars "build/libs/${project.name}-${project.version}-minified.jar"
+
+    libraryjars "${System.getProperty('java.home')}/jmods/java.base.jmod"
+    libraryjars "${System.getProperty('java.home')}/jmods/java.desktop.jmod"
+
+    keep 'public class me.hash.mediaroulette.Main { public static void main(java.lang.String[]); }'
+    keepclasseswithmembers 'public class * { public static void main(java.lang.String[]); }'
+
+    dontoptimize
+    dontobfuscate
+    dontwarn
+}
+*/
 
 repositories {
     // Use Maven Central for resolving dependencies.
@@ -35,9 +91,10 @@ dependencies {
 
     implementation("org.json:json:20231013")
     implementation("org.jsoup:jsoup:1.16.1")
+    implementation("com.opencsv:opencsv:5.12.0")
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
     implementation("club.minnced:discord-webhooks:0.8.4")
-    implementation("org.mongodb:mongodb-driver-sync:4.10.2")
+    implementation("org.mongodb:mongodb-driver-sync:5.5.1")
     implementation("ch.qos.logback:logback-classic:1.5.18")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.19.0")
     implementation("com.fasterxml.jackson.core:jackson-core:2.19.0")
@@ -46,11 +103,43 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(24))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
 
 application {
-    // Define the main class for the application.
     mainClass.set("me.hash.mediaroulette.Main")
+}
+
+// Optional: Create a separate task for ultra-minimized JAR
+tasks.register<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJarMinimal") {
+    group = "shadow"
+    description = "Create an ultra-minimized shadow JAR"
+
+    from(project.the<SourceSetContainer>()["main"].output)
+    configurations = listOf(project.configurations["runtimeClasspath"])
+
+    archiveClassifier.set("minimal")
+
+    // Aggressive minimization
+    minimize {
+        // Exclude specific dependencies from minimization if they cause issues
+        // exclude(dependency("com.microsoft.playwright:.*"))
+    }
+
+    // More aggressive exclusions
+    exclude("META-INF/**")
+    exclude("**/*.md")
+    exclude("**/*.txt")
+    exclude("**/*.xml")
+    exclude("**/*.properties") // Be careful with this - may break some libraries
+    exclude("**/module-info.class")
+    exclude("**/*.kotlin_*")
+
+    manifest {
+        attributes["Main-Class"] = "me.hash.mediaroulette.Main"
+        attributes["Multi-Release"] = "true"
+    }
+
+    mergeServiceFiles()
 }

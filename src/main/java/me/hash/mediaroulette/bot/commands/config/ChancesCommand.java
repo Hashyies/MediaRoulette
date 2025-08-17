@@ -153,11 +153,11 @@ public class ChancesCommand extends ListenerAdapter implements CommandHandler {
             String componentId = event.getComponentId();
             
             if (componentId.equals("chances:category")) {
-                String category = event.getValues().get(0);
+                String category = event.getValues().getFirst();
                 session.setSelectedCategory(category);
                 updateChancesDisplay(event, session);
             } else if (componentId.equals("chances:source_select")) {
-                String selectedSource = event.getValues().get(0);
+                String selectedSource = event.getValues().getFirst();
                 if (!selectedSource.equals("none")) {
                     handleSourceSelect(event, session, selectedSource);
                 }
@@ -237,14 +237,13 @@ public class ChancesCommand extends ListenerAdapter implements CommandHandler {
         if (categoryItems.isEmpty()) {
             embed.addField("📦 No Sources", "```No sources in this category.```", false);
         } else {
-            StringBuilder sourceList = new StringBuilder("```");
+            StringBuilder sourceList = new StringBuilder("");
             for (ImageOptions option : categoryItems) {
                 String status = option.isEnabled() ? "🟢" : "🔴";
                 sourceList.append(String.format("%s %s %s - %.1f%%\n", 
                     status, getSourceEmoji(option.getImageType()), 
                     formatSourceName(option.getImageType()), option.getChance()));
             }
-            sourceList.append("```");
             embed.addField("📋 " + session.getSelectedCategory() + " Sources", sourceList.toString(), false);
         }
 
@@ -495,8 +494,8 @@ public class ChancesCommand extends ListenerAdapter implements CommandHandler {
 
     // Simplified session class
     private static class ChancesSession {
-        private User user;
-        private Map<String, ImageOptions> workingOptions;
+        private final User user;
+        private final Map<String, ImageOptions> workingOptions;
         private String selectedCategory;
         private String lastSelectedSource;
         private boolean hasUnsavedChanges;
@@ -618,7 +617,7 @@ public class ChancesCommand extends ListenerAdapter implements CommandHandler {
             this.lastSelectedSource = source;
         }
 
-        // Getters
+        // Getters 
         public User getUser() { return user; }
         public String getSelectedCategory() { return selectedCategory; }
         public String getLastSelectedSource() { return lastSelectedSource; }

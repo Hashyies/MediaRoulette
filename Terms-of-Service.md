@@ -2,7 +2,7 @@
 # **Terms of Service (ToS)**
 
 **Effective Date:** 12/9/2024  
-**Last Updated:** 12/9/2024
+**Last Updated:** August 17, 2025
 
 These Terms of Service ("ToS") govern your access to and use of the Discord bot (the "Media Roulette Bot") developed by **Hashy** ("we," "us," or "our"). By adding, using, or interacting with the Bot on a Discord server or as an individual, you ("user," "you") agree to be bound by these ToS.
 
@@ -100,7 +100,13 @@ We reserve the right to modify or update this ToS at any time without prior noti
 
 ---
 
-## **7. Contact Information**
+## **7. Privacy Policy**
+
+Your privacy is important to us. Our Privacy Policy explains how we collect, use, and protect your information. By using the Bot, you also agree to the terms of our [Privacy Policy](Privacy-Policy.md), which is incorporated into these ToS by reference.
+
+---
+
+## **8. Contact Information**
 
 If you have any questions about the Terms of Service or wish to report violations, please contact us through the following means:  
 - **Email:** yeticool53@gmail.com

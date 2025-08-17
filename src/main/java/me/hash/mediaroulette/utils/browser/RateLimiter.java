@@ -1,8 +1,8 @@
-package me.hash.mediaroulette.utils;
+package me.hash.mediaroulette.utils.browser;
 
 import me.hash.mediaroulette.utils.ErrorReporter;
+import me.hash.mediaroulette.utils.GlobalLogger;
 
-import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;

@@ -22,7 +22,14 @@ public class UserService {
         return cache.computeIfAbsent(userId, id -> userRepository.findById(id)
                 .orElseGet(() -> {
                     User newUser = new User(id);
-                    return userRepository.save(newUser);
+                    User savedUser = userRepository.save(newUser);
+                    
+                    // Track new user registration in stats service
+                    if (me.hash.mediaroulette.Main.statsService != null) {
+                        me.hash.mediaroulette.Main.statsService.trackNewUser(userId);
+                    }
+                    
+                    return savedUser;
                 }));
     }
 

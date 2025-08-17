@@ -98,10 +98,11 @@ public class RedGifsResolver implements UrlResolver {
             return null;
         }
     }
-    
+
     private boolean isUrlAccessible(String url) {
         try {
-            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+            java.net.URI uri = java.net.URI.create(url);
+            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) uri.toURL().openConnection();
             connection.setRequestMethod("HEAD");
             connection.setConnectTimeout(2000);
             connection.setReadTimeout(2000);

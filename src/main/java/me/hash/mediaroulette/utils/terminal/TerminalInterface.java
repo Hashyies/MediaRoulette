@@ -37,8 +37,8 @@ public class TerminalInterface {
                 System.out.print("mediaroulette> ");
                 String input = reader.readLine();
 
-                if (input == null) {
-                    break; // EOF
+                if (input == null || !running) {
+                    break; // EOF or shutdown requested
                 }
 
                 input = input.trim();
@@ -65,12 +65,21 @@ public class TerminalInterface {
                 System.out.println();
 
             } catch (IOException e) {
-                System.err.println("Error reading input: " + e.getMessage());
+                if (running) {
+                    System.err.println("Error reading input: " + e.getMessage());
+                }
                 break;
             } catch (Exception e) {
                 System.err.println("Unexpected error: " + e.getMessage());
                 e.printStackTrace();
             }
+        }
+        
+        // Close the reader when exiting the loop
+        try {
+            reader.close();
+        } catch (IOException e) {
+            // Ignore close errors
         }
     }
 
@@ -88,5 +97,11 @@ public class TerminalInterface {
 
     public void stop() {
         running = false;
+        // Close the reader to interrupt the readLine() call
+        try {
+            reader.close();
+        } catch (IOException e) {
+            // Ignore close errors during shutdown
+        }
     }
 }

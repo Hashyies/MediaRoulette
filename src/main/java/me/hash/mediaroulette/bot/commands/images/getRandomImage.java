@@ -188,6 +188,13 @@ public class getRandomImage extends ListenerAdapter implements CommandHandler {
                                 return;
                             }
 
+                            // Track image generation in stats service
+                            if (Main.statsService != null) {
+                                Main.statsService.trackImageGenerated(userId, subcommand, user.isNsfw(), user.isPremium());
+                                Main.statsService.trackCommandUsed(userId, "random", user.isPremium());
+                                Main.statsService.trackUserActivity(userId, user.isPremium());
+                            }
+
                             // Edit the loading message with the actual image using Components V2
                             MediaContainerManager.editLoadingToImageContainer(interactionHook, image, shouldContinue)
                                     .thenAccept(messageSent -> {

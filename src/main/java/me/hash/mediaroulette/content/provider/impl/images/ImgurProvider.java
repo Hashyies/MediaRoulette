@@ -7,6 +7,8 @@ import me.hash.mediaroulette.content.provider.MediaProvider;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Random;
 
@@ -28,13 +30,15 @@ public class ImgurProvider implements MediaProvider {
                     IMAGE_FORMATS[random.nextInt(IMAGE_FORMATS.length)];
 
             try {
-                BufferedImage image = ImageIO.read(new URL(imageUrl));
+                BufferedImage image = ImageIO.read(new URI(imageUrl).toURL());
                 if (isValidImage(image)) {
                     String description = String.format("🌐 Source: Imgur\n🔁 Failed Image Count: %s", attempts);
                     return new MediaResult(imageUrl, "Here is your random Imgur picture!", description, MediaSource.IMGUR);
                 }
             } catch (IOException e) {
                 // Continue to next attempt
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
             }
             attempts++;
         }

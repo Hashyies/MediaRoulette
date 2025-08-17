@@ -18,6 +18,7 @@ import me.hash.mediaroulette.repository.UserRepository;
 import me.hash.mediaroulette.repository.DictionaryRepository;
 import me.hash.mediaroulette.repository.MongoDictionaryRepository;
 import me.hash.mediaroulette.service.DictionaryService;
+import me.hash.mediaroulette.service.StatsTrackingService;
 import me.hash.mediaroulette.utils.terminal.TerminalInterface;
 import me.hash.mediaroulette.utils.Database;
 import me.hash.mediaroulette.utils.user.UserService;
@@ -25,83 +26,112 @@ import me.hash.mediaroulette.utils.media.MediaInitializer;
 import org.bson.Document;
 
 public class Main {
-
+    // Static services and components
     public static Dotenv env;
     public static LocalConfig localConfig;
     public static Database database;
-    public static final long startTime = System.currentTimeMillis();
-    public static Bot bot = null;
+    public static Bot bot;
     public static UserService userService;
     public static DictionaryService dictionaryService;
+    public static StatsTrackingService statsService;
     public static TerminalInterface terminal;
+    public static final long startTime = System.currentTimeMillis();
 
     public static void main(String[] args) throws Exception {
-        // Load .env file for sensitive data (API keys, tokens, etc.)
-        InputStream inputStream = Main.class.getClassLoader().getResourceAsStream(".env");
-        Path tempFile = Files.createTempFile("dotenv", ".env");
-        tempFile.toFile().deleteOnExit();
-        
-        assert inputStream != null;
-        Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
-        
-        env = Dotenv.configure()
-                .directory(tempFile.getParent().toString())
-                .filename(tempFile.getFileName().toString())
-                .load();
-        
-        // Initialize local config for non-sensitive settings
-        localConfig = LocalConfig.getInstance();
-
-        // Initialize the MongoDB connection and database
-        String connectionString = getEnv("MONGODB_CONNECTION");
-        database = new Database(connectionString, "MediaRoulette");
-
-        // Create the repository using the MongoDB collection
-        MongoCollection<Document> userCollection = database.getCollection("user");
-        UserRepository userRepository = new MongoUserRepository(userCollection);
-
-        // Create dictionary collections and repository
-        MongoCollection<Document> dictionaryCollection = database.getCollection("dictionary");
-        MongoCollection<Document> assignmentCollection = database.getCollection("dictionary_assignment");
-        DictionaryRepository dictionaryRepository = new MongoDictionaryRepository(dictionaryCollection, assignmentCollection);
-
-        // Create our service layer that handles user business logic and persistence
-        userService = new UserService(userRepository);
-        dictionaryService = new DictionaryService(dictionaryRepository);
-
-        // Initialize default dictionaries if they don't exist
-        initializeDefaultDictionaries();
-
-        // Initialize media processing capabilities (FFmpeg download and setup)
-        System.out.println("Initializing media processing capabilities...");
-        try {
-            MediaInitializer.initialize().get(); // Wait for completion during startup
-            System.out.println("✅ Media processing initialization complete!");
-        } catch (Exception e) {
-            System.err.println("⚠️ Media processing initialization failed: " + e.getMessage());
-            System.err.println("   Video processing features will be unavailable, but bot will continue normally.");
-        }
-
-        bot = new Bot(getEnv("DISCORD_TOKEN"));
-
-        init();
-        
-        // Initialize giveaway manager after bot initialization
-        me.hash.mediaroulette.utils.GiveawayManager.initialize();
-
-        // Initialize and start the terminal interface
-        initializeTerminal();
-
-        // Add shutdown hook for graceful cleanup
+        // Setup shutdown hook first for proper cleanup
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("\nShutdown signal received...");
             shutdown();
         }));
 
-        // System.out.println(RandomMedia.getRandomYoutube());
+        // Initialize environment and configuration
+        initializeEnvironment();
+        
+        // Initialize database and services
+        initializeServices();
+        
+        // Initialize media processing
+        initializeMediaProcessing();
+        
+        // Initialize bot and related components
+        bot = new Bot(getEnv("DISCORD_TOKEN"));
+        configureBot();
+        me.hash.mediaroulette.utils.GiveawayManager.initialize();
+        
+        // Start terminal interface
+        startTerminalInterface();
+        
+        System.out.println("MediaRoulette started successfully! Press Ctrl+C to stop.");
     }
 
-    static void init() {
+    private static void initializeEnvironment() throws Exception {
+        // Load environment variables from resources
+        try (InputStream inputStream = Main.class.getClassLoader().getResourceAsStream(".env")) {
+            if (inputStream == null) throw new RuntimeException(".env file not found in resources");
+            
+            Path tempFile = Files.createTempFile("dotenv", ".env");
+            tempFile.toFile().deleteOnExit();
+            Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            
+            env = Dotenv.configure()
+                    .directory(tempFile.getParent().toString())
+                    .filename(tempFile.getFileName().toString())
+                    .load();
+            
+            Files.delete(tempFile);
+        }
+        
+        localConfig = LocalConfig.getInstance();
+    }
+
+    private static void initializeServices() {
+        // Database setup
+        database = new Database(getEnv("MONGODB_CONNECTION"), "MediaRoulette");
+        
+        // Repository setup
+        MongoCollection<Document> userCollection = database.getCollection("user");
+        MongoCollection<Document> dictionaryCollection = database.getCollection("dictionary");
+        MongoCollection<Document> assignmentCollection = database.getCollection("dictionary_assignment");
+        
+        UserRepository userRepository = new MongoUserRepository(userCollection);
+        DictionaryRepository dictionaryRepository = new MongoDictionaryRepository(dictionaryCollection, assignmentCollection);
+        
+        // Service layer setup
+        userService = new UserService(userRepository);
+        dictionaryService = new DictionaryService(dictionaryRepository);
+        statsService = new StatsTrackingService(userRepository);
+        
+        // Initialize default dictionaries
+        initializeDefaultDictionaries();
+    }
+
+    private static void initializeMediaProcessing() {
+        System.out.println("Initializing media processing capabilities...");
+        try {
+            MediaInitializer.initialize().get();
+            System.out.println("✅ Media processing initialization complete!");
+        } catch (Exception e) {
+            System.err.println("⚠️ Media processing initialization failed: " + e.getMessage());
+            System.err.println("   Video processing features will be unavailable, but bot will continue normally.");
+        }
+    }
+
+    private static void startTerminalInterface() {
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("MediaRoulette application started successfully!");
+        System.out.println("Bot Status: " + (bot != null ? "Initialized" : "Failed to initialize"));
+        System.out.println("Database Status: " + (database != null ? "Connected" : "Failed to connect"));
+        System.out.println("Media Processing: " + (MediaInitializer.isInitialized() ? "Ready (FFmpeg available)" : "Limited (FFmpeg unavailable)"));
+        System.out.println("Maintenance mode: " + localConfig.getMaintenanceMode());
+        System.out.println("=".repeat(50));
+
+        terminal = new TerminalInterface();
+        Thread terminalThread = new Thread(terminal::start, "Terminal-Interface");
+        terminalThread.setDaemon(true); // Allow JVM to exit when main thread ends
+        terminalThread.start();
+    }
+
+    private static void configureBot() {
         Set<DotenvEntry> entries = env.entries();
         Map<String, String> configMap = new HashMap<>();
         configMap.put("DISCORD_NSFW_WEBHOOK", "NSFW_WEBHOOK");
@@ -109,6 +139,7 @@ public class Main {
         configMap.put("TENOR_API", "TENOR");
         configMap.put("TMDB_API", "TMDB");
 
+        // Configure bot settings based on available environment variables
         for (Map.Entry<String, String> entry : configMap.entrySet()) {
             String envKey = entry.getKey();
             String configKey = entry.getValue();
@@ -121,42 +152,13 @@ public class Main {
             }
         }
 
-        // Check for Reddit credentials
-        checkCredentials(entries, "REDDIT", "REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET", "REDDIT_USERNAME",
-                "REDDIT_PASSWORD");
-
-        // Check for Google credentials
+        // Check for service credentials
+        checkCredentials(entries, "REDDIT", "REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET", "REDDIT_USERNAME", "REDDIT_PASSWORD");
         checkCredentials(entries, "GOOGLE", "GOOGLE_API_KEY", "GOOGLE_CX");
     }
 
-    private static void initializeTerminal() {
-        System.out.println("\n" + "=".repeat(50));
-        System.out.println("MediaRoulette application started successfully!");
-        System.out.println("Bot Status: " + (bot != null ? "Initialized" : "Failed to initialize"));
-        System.out.println("Database Status: " + (database != null ? "Connected" : "Failed to connect"));
-        System.out.println("Media Processing: " + (MediaInitializer.isInitialized() ? "Ready (FFmpeg available)" : "Limited (FFmpeg unavailable)"));
-        System.out.println("Configuration loaded:");
-        System.out.println("  - Sensitive data (API keys, tokens): .env file");
-        System.out.println("  - Bot settings (maintenance, sources): config.json");
-        System.out.println("  - Maintenance mode: " + localConfig.getMaintenanceMode());
-        System.out.println("=".repeat(50));
-
-        // Start terminal interface
-        terminal = new TerminalInterface();
-        Thread terminalThread = new Thread(terminal::start);
-        terminalThread.setName("Terminal-Interface");
-        terminalThread.setDaemon(false); // Keep the application running
-        terminalThread.start();
-    }
-
     private static void checkCredentials(Set<DotenvEntry> entries, String configKey, String... keys) {
-        boolean allKeysPresent = true;
-        for (String key : keys) {
-            if (!containsKey(entries, key)) {
-                allKeysPresent = false;
-                break;
-            }
-        }
+        boolean allKeysPresent = checkCredentialsBoolean(entries, configKey, keys);
         if (allKeysPresent) {
             System.out.println(configKey + " Loaded!");
             Bot.config.set(configKey, Bot.config.getOrDefault(configKey, true, Boolean.class));
@@ -176,12 +178,7 @@ public class Main {
     }
 
     public static boolean containsKey(Set<DotenvEntry> entries, String key) {
-        for (DotenvEntry entry : entries) {
-            if (entry.getKey().equals(key)) {
-                return true;
-            }
-        }
-        return false;
+        return entries.stream().anyMatch(entry -> entry.getKey().equals(key));
     }
 
     public static String getEnv(String key) {
@@ -191,14 +188,11 @@ public class Main {
     private static void initializeDefaultDictionaries() {
         try {
             if (dictionaryService.getAccessibleDictionaries("system").isEmpty()) {
-                me.hash.mediaroulette.model.Dictionary basicDict = dictionaryService.createDictionary(
-                    "Basic Dictionary", "Default words for general use", "system");
+                var basicDict = dictionaryService.createDictionary("Basic Dictionary", "Default words for general use", "system");
                 basicDict.setDefault(true);
                 basicDict.setPublic(true);
                 
-                java.util.List<String> basicWords = java.util.Arrays.asList(
-                    "funny", "cute", "happy", "random", "cool", "awesome", "nice", "good", "best", "amazing"
-                );
+                var basicWords = java.util.Arrays.asList("funny", "cute", "happy", "random", "cool", "awesome", "nice", "good", "best", "amazing");
                 basicDict.addWords(basicWords);
                 
                 System.out.println("Default dictionary initialized with " + basicWords.size() + " words");
@@ -208,20 +202,32 @@ public class Main {
         }
     }
 
-    // Graceful shutdown method
     public static void shutdown() {
         System.out.println("Initiating graceful shutdown...");
 
+        // Stop terminal interface
         if (terminal != null) {
             terminal.stop();
+            // Give the terminal thread a moment to clean up
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
 
+        // Shutdown services
+        if (statsService != null) {
+            statsService.shutdown();
+            System.out.println("Stats service shutdown complete.");
+        }
+
+        // Shutdown bot
         if (bot != null) {
-            // Add bot shutdown logic here
             System.out.println("Bot shutdown complete.");
         }
 
-        // Cleanup media processing resources
+        // Cleanup media processing
         try {
             MediaInitializer.shutdown();
             System.out.println("Media processing cleanup complete.");
@@ -229,8 +235,8 @@ public class Main {
             System.err.println("Error during media processing cleanup: " + e.getMessage());
         }
 
+        // Close database connections
         if (database != null) {
-            // Add database connection cleanup here
             System.out.println("Database connections closed.");
         }
 

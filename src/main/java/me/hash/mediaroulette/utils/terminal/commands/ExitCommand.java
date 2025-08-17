@@ -14,7 +14,8 @@ public class ExitCommand extends Command {
     @Override
     public CommandResult execute(String[] args) {
         System.out.println("Shutting down...");
-        System.exit(0);
+        // Use the proper shutdown method instead of System.exit(0)
+        me.hash.mediaroulette.Main.shutdown();
         return CommandResult.success("Goodbye!");
     }
 }

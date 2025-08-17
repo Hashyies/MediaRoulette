@@ -1,6 +1,6 @@
 package me.hash.mediaroulette.utils.terminal.commands;
 
-import me.hash.mediaroulette.utils.RateLimiter;
+import me.hash.mediaroulette.utils.browser.RateLimiter;
 import me.hash.mediaroulette.utils.terminal.Command;
 import me.hash.mediaroulette.utils.terminal.CommandResult;
 
