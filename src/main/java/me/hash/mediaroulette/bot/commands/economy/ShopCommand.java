@@ -2,12 +2,17 @@ package me.hash.mediaroulette.bot.commands.economy;
 
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
+import me.hash.mediaroulette.bot.MediaContainerManager;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.model.ShopItem;
 import me.hash.mediaroulette.model.Transaction;
 import me.hash.mediaroulette.model.User;
+import me.hash.mediaroulette.utils.MaintenanceChecker;
 import me.hash.mediaroulette.utils.ShopManager;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
+import net.dv8tion.jda.api.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
@@ -16,9 +21,6 @@ import net.dv8tion.jda.api.interactions.IntegrationType;
 import net.dv8tion.jda.api.interactions.InteractionContextType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 
 import java.awt.Color;
 import java.text.NumberFormat;
@@ -47,6 +49,12 @@ public class ShopCommand extends ListenerAdapter implements CommandHandler {
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (!event.getName().equals("shop")) return;
+        
+        // Check maintenance mode
+        if (MaintenanceChecker.isMaintenanceBlocked(event)) {
+            MaintenanceChecker.sendMaintenanceMessage(event);
+            return;
+        }
 
         event.deferReply().queue();
         Bot.executor.execute(() -> {
@@ -56,13 +64,7 @@ public class ShopCommand extends ListenerAdapter implements CommandHandler {
 
             // Check if the user is on cooldown
             if (Bot.COOLDOWNS.containsKey(userId) && now - Bot.COOLDOWNS.get(userId) < Bot.COOLDOWN_DURATION) {
-                EmbedBuilder cooldownEmbed = new EmbedBuilder()
-                        .setTitle("⏰ Slow Down!")
-                        .setDescription("Please wait **2 seconds** before using this command again.")
-                        .setColor(new Color(255, 107, 107))
-                        .setTimestamp(Instant.now());
-
-                event.getHook().sendMessageEmbeds(cooldownEmbed.build()).queue();
+                event.getHook().sendMessageEmbeds(MediaContainerManager.createCooldown("2 seconds").build()).queue();
                 return;
             }
 
@@ -116,9 +118,6 @@ public class ShopCommand extends ListenerAdapter implements CommandHandler {
                 case "refresh" -> {
                     session.refreshItems();
                     updateShopDisplay(event, session);
-                }
-                case "filter" -> {
-                    // Filter dropdown will be handled in StringSelectInteraction
                 }
                 default -> {
                     if (action.startsWith("buy_")) {

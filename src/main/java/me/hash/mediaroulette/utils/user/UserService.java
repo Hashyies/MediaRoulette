@@ -107,4 +107,60 @@ public class UserService {
     public long getTotalImagesGenerated() {
         return userRepository.getTotalImagesGenerated();
     }
+
+    // --- Usage Statistics Tracking Methods ---
+
+    /**
+     * Track source usage for a user
+     */
+    public void trackSourceUsage(String userId, String source) {
+        User user = getOrCreateUser(userId);
+        user.incrementSourceUsage(source);
+        updateUser(user);
+    }
+
+    /**
+     * Track command usage for a user
+     */
+    public void trackCommandUsage(String userId, String command) {
+        User user = getOrCreateUser(userId);
+        user.incrementCommandUsage(command);
+        updateUser(user);
+    }
+
+    /**
+     * Add custom subreddit for a user
+     */
+    public void addCustomSubreddit(String userId, String subreddit) {
+        User user = getOrCreateUser(userId);
+        user.addCustomSubreddit(subreddit);
+        updateUser(user);
+    }
+
+    /**
+     * Add custom query for a user
+     */
+    public void addCustomQuery(String userId, String service, String query) {
+        User user = getOrCreateUser(userId);
+        user.addCustomQuery(service, query);
+        updateUser(user);
+    }
+
+    /**
+     * Update user's last active timestamp
+     */
+    public void updateLastActive(String userId) {
+        User user = getOrCreateUser(userId);
+        user.updateLastActive();
+        updateUser(user);
+    }
+
+    /**
+     * Set user's theme
+     */
+    public void setTheme(String userId, String theme) {
+        User user = getOrCreateUser(userId);
+        user.setTheme(theme);
+        updateUser(user);
+    }
 }

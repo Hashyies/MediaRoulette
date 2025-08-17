@@ -2,6 +2,8 @@ package me.hash.mediaroulette.bot.commands.admin;
 
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
+import me.hash.mediaroulette.utils.LocalConfig;
+import me.hash.mediaroulette.bot.MediaContainerManager;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.model.BotInventoryItem;
 import me.hash.mediaroulette.model.User;
@@ -9,22 +11,27 @@ import me.hash.mediaroulette.service.BotInventoryService;
 import me.hash.mediaroulette.service.GiveawayService;
 import me.hash.mediaroulette.utils.Locale;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.IntegrationType;
+import net.dv8tion.jda.api.interactions.InteractionContextType;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.OnlineStatus;
 
 import java.awt.Color;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AdminCommand extends ListenerAdapter implements CommandHandler {
@@ -65,11 +72,20 @@ public class AdminCommand extends ListenerAdapter implements CommandHandler {
                         new SubcommandData("setpremium", "Set user premium status")
                                 .addOption(OptionType.USER, "user", "User to modify", true)
                                 .addOption(OptionType.BOOLEAN, "premium", "Premium status", true),
+                        new SubcommandData("userlookup", "Look up detailed user information")
+                                .addOption(OptionType.USER, "user", "Target user", true),
+                        new SubcommandData("userstats", "View user usage statistics")
+                                .addOption(OptionType.USER, "user", "Target user", true),
                         new SubcommandData("stats", "View comprehensive admin statistics"),
                         new SubcommandData("cleanup", "Clean up expired items and old data"),
                         new SubcommandData("maintenance", "Toggle maintenance mode")
-                                .addOption(OptionType.BOOLEAN, "enabled", "Enable maintenance mode", true)
-                );
+                                .addOption(OptionType.BOOLEAN, "enabled", "Enable maintenance mode", true),
+                        new SubcommandData("togglesource", "Toggle a source on/off")
+                                .addOption(OptionType.STRING, "source", "Source to toggle", true, true)
+                                .addOption(OptionType.BOOLEAN, "enabled", "Enable or disable the source", true),
+                        new SubcommandData("listsources", "List all sources and their status")
+                ).setIntegrationTypes(IntegrationType.ALL)
+                .setContexts(InteractionContextType.ALL);
     }
 
     @Override
@@ -90,9 +106,13 @@ public class AdminCommand extends ListenerAdapter implements CommandHandler {
             case "removeitem" -> handleRemoveItem(event);
             case "givecoins" -> handleGiveCoins(event);
             case "setpremium" -> handleSetPremium(event);
+            case "userlookup" -> handleUserLookup(event);
+            case "userstats" -> handleUserStats(event);
             case "stats" -> handleStats(event);
             case "cleanup" -> handleCleanup(event);
             case "maintenance" -> handleMaintenance(event);
+            case "togglesource" -> handleToggleSource(event);
+            case "listsources" -> handleListSources(event);
             default -> sendError(event, "Unknown admin subcommand.");
         }
     }
@@ -428,45 +448,6 @@ public class AdminCommand extends ListenerAdapter implements CommandHandler {
         });
     }
 
-    private void handleMaintenance(SlashCommandInteractionEvent event) {
-        boolean enabled = event.getOption("enabled").getAsBoolean();
-        
-        event.deferReply(true).queue();
-        
-        Bot.executor.submit(() -> {
-            try {
-                String status = enabled ? "MAINTENANCE" : "ONLINE";
-                String activity = enabled ? "Under Maintenance" : "Use /support for help! | Alpha :3";
-                
-                // Update bot status across all shards
-                Bot.getShardManager().getShards().forEach(jda -> {
-                    if (enabled) {
-                        jda.getPresence().setActivity(net.dv8tion.jda.api.entities.Activity.watching("Under Maintenance"));
-                        jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.DO_NOT_DISTURB);
-                    } else {
-                        jda.getPresence().setActivity(net.dv8tion.jda.api.entities.Activity.playing("Use /support for help! | Alpha :3"));
-                        jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.ONLINE);
-                    }
-                });
-                
-                EmbedBuilder embed = new EmbedBuilder()
-                    .setTitle(enabled ? "Maintenance Mode Enabled" : "Maintenance Mode Disabled")
-                    .setColor(enabled ? ERROR_COLOR : SUCCESS_COLOR)
-                    .setDescription(String.format(
-                        "**Status:** %s\n" +
-                        "**Activity:** %s\n" +
-                        "**Applied to:** %d shards",
-                        status, activity, Bot.getShardManager().getShards().size()))
-                    .setTimestamp(Instant.now());
-                
-                event.getHook().sendMessageEmbeds(embed.build()).queue();
-                
-            } catch (Exception e) {
-                sendError(event, "Failed to toggle maintenance mode: " + e.getMessage());
-            }
-        });
-    }
-
     private String getUptimeString() {
         long uptime = System.currentTimeMillis() - Bot.getShardManager().getShards().get(0).getGatewayPing();
         long seconds = uptime / 1000;
@@ -505,11 +486,232 @@ public class AdminCommand extends ListenerAdapter implements CommandHandler {
     }
 
     private void sendModalError(ModalInteractionEvent event, String message) {
-        EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("Error")
-                .setDescription(message)
-                .setColor(ERROR_COLOR)
-                .setTimestamp(Instant.now());
+        event.replyEmbeds(MediaContainerManager.createError("Error", message).build()).setEphemeral(true).queue();
+    }
+    
+    private void handleUserLookup(SlashCommandInteractionEvent event) {
+        net.dv8tion.jda.api.entities.User targetDiscordUser = event.getOption("user").getAsUser();
+        User targetUser = Main.userService.getOrCreateUser(targetDiscordUser.getId());
+        
+        EmbedBuilder embed = MediaContainerManager.createUserEmbed("User Lookup", null, targetDiscordUser, targetUser);
+        
+        // Basic Information
+        embed.addField("👤 Basic Info", 
+                String.format("**User ID:** `%s`\n**Username:** %s\n**Premium:** %s\n**Admin:** %s", 
+                        targetUser.getUserId(), 
+                        targetDiscordUser.getAsMention(),
+                        targetUser.isPremium() ? "✅ Yes" : "❌ No",
+                        targetUser.isAdmin() ? "✅ Yes" : "❌ No"), true);
+        
+        // Account Statistics
+        embed.addField("📊 Account Stats", 
+                String.format("**Images Generated:** %,d\n**NSFW Enabled:** %s\n**Locale:** %s\n**Theme:** %s", 
+                        targetUser.getImagesGenerated(),
+                        targetUser.isNsfw() ? "✅ Yes" : "❌ No",
+                        targetUser.getLocale(),
+                        targetUser.getTheme() != null ? targetUser.getTheme() : "Default"), true);
+        
+        // Economy Information
+        MediaContainerManager.addCoinField(embed, "💰 Current Balance", targetUser.getCoins(), true);
+        MediaContainerManager.addCoinField(embed, "📈 Total Earned", targetUser.getTotalCoinsEarned(), true);
+        MediaContainerManager.addCoinField(embed, "📉 Total Spent", targetUser.getTotalCoinsSpent(), true);
+        
+        // Quest Information
+        embed.addField("🎯 Quest Stats", 
+                String.format("**Total Completed:** %,d\n**Today:** %d\n**Active Quests:** %d", 
+                        targetUser.getTotalQuestsCompleted(),
+                        targetUser.getQuestsCompletedToday(),
+                        targetUser.getDailyQuests().size()), true);
+        
+        // Inventory Information
+        embed.addField("📦 Inventory", 
+                String.format("**Unique Items:** %d/%d\n**Total Items:** %d\n**Favorites:** %d/%d", 
+                        targetUser.getUniqueInventoryItems(),
+                        User.MAX_INVENTORY_SIZE,
+                        targetUser.getTotalInventoryItems(),
+                        targetUser.getFavorites().size(),
+                        targetUser.getFavoriteLimit()), true);
+        
+        // Activity Information
+        if (targetUser.getAccountCreatedDate() != null) {
+            embed.addField("📅 Account Created", 
+                    String.format("<t:%d:F>", targetUser.getAccountCreatedDate().toEpochSecond(java.time.ZoneOffset.UTC)), true);
+        }
+        
+        if (targetUser.getLastActiveDate() != null) {
+            embed.addField("🕐 Last Active", 
+                    String.format("<t:%d:R>", targetUser.getLastActiveDate().toEpochSecond(java.time.ZoneOffset.UTC)), true);
+        }
+        
+        embed.setFooter("Admin User Lookup • Use /admin userstats for detailed usage statistics", null);
+        
+        event.replyEmbeds(embed.build()).setEphemeral(true).queue();
+    }
+    
+    private void handleUserStats(SlashCommandInteractionEvent event) {
+        net.dv8tion.jda.api.entities.User targetDiscordUser = event.getOption("user").getAsUser();
+        User targetUser = Main.userService.getOrCreateUser(targetDiscordUser.getId());
+        
+        EmbedBuilder embed = MediaContainerManager.createUserEmbed("User Usage Statistics", null, targetDiscordUser, targetUser);
+        
+        // Command Usage Statistics
+        StringBuilder commandStats = new StringBuilder();
+        commandStats.append(String.format("**Total Commands Used:** %,d\n", targetUser.getTotalCommandsUsed()));
+        commandStats.append(String.format("**Most Used Command:** %s\n", targetUser.getMostUsedCommand()));
+        
+        var topCommands = targetUser.getCommandUsageCount().entrySet().stream()
+                .sorted(java.util.Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(3)
+                .collect(java.util.stream.Collectors.toList());
+        
+        if (!topCommands.isEmpty()) {
+            commandStats.append("**Top Commands:**\n");
+            for (var entry : topCommands) {
+                commandStats.append(String.format("• %s: %,d uses\n", entry.getKey(), entry.getValue()));
+            }
+        }
+        
+        embed.addField("🎮 Command Usage", commandStats.toString(), true);
+        
+        // Source Usage Statistics
+        StringBuilder sourceStats = new StringBuilder();
+        sourceStats.append(String.format("**Most Used Source:** %s\n", targetUser.getMostUsedSource()));
+        
+        var topSources = targetUser.getSourceUsageCount().entrySet().stream()
+                .sorted(java.util.Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(5)
+                .collect(java.util.stream.Collectors.toList());
+        
+        if (!topSources.isEmpty()) {
+            sourceStats.append("**Source Usage:**\n");
+            for (var entry : topSources) {
+                sourceStats.append(String.format("• %s: %,d times\n", entry.getKey(), entry.getValue()));
+            }
+        }
+        
+        embed.addField("📊 Source Usage", sourceStats.toString(), true);
+        
+        // Subreddit Usage Statistics
+        StringBuilder subredditStats = new StringBuilder();
+        var topSubreddits = targetUser.getTopSubreddits(5);
+        
+        if (!topSubreddits.isEmpty()) {
+            subredditStats.append("**Top Subreddits:**\n");
+            for (String subreddit : topSubreddits) {
+                int count = targetUser.getSubredditUsageCount().getOrDefault(subreddit, 0);
+                subredditStats.append(String.format("• r/%s: %d times\n", subreddit, count));
+            }
+        } else {
+            subredditStats.append("No custom subreddits used yet.");
+        }
+        
+        subredditStats.append(String.format("\n**Custom Subreddits Saved:** %d/%d", 
+                targetUser.getCustomSubreddits().size(), User.MAX_CUSTOM_SUBREDDITS));
+        
+        embed.addField("🔍 Subreddit Usage", subredditStats.toString(), false);
+        
+        // Activity Pattern
+        if (targetUser.getLastActiveDate() != null && targetUser.getAccountCreatedDate() != null) {
+            long daysSinceCreation = java.time.temporal.ChronoUnit.DAYS.between(
+                    targetUser.getAccountCreatedDate().toLocalDate(), 
+                    java.time.LocalDate.now());
+            
+            double avgCommandsPerDay = daysSinceCreation > 0 ? 
+                    (double) targetUser.getTotalCommandsUsed() / daysSinceCreation : 0;
+            
+            embed.addField("📈 Activity Pattern", 
+                    String.format("**Account Age:** %d days\n**Avg Commands/Day:** %.1f\n**Images/Day:** %.1f", 
+                            daysSinceCreation,
+                            avgCommandsPerDay,
+                            daysSinceCreation > 0 ? (double) targetUser.getImagesGenerated() / daysSinceCreation : 0), true);
+        }
+        
+        embed.setFooter("Admin User Statistics • Data tracked since user registration", null);
+        
+        event.replyEmbeds(embed.build()).setEphemeral(true).queue();
+    }
+    
+    private void handleMaintenance(SlashCommandInteractionEvent event) {
+        boolean enabled = event.getOption("enabled").getAsBoolean();
+        LocalConfig config = LocalConfig.getInstance();
+        
+        try {
+            // Update local config
+            config.setMaintenanceMode(enabled);
+            
+            if (enabled) {
+                Bot.getShardManager().setActivity(Activity.playing("🔧 Under Maintenance"));
+                Bot.getShardManager().setStatus(OnlineStatus.DO_NOT_DISTURB);
+            } else {
+                Bot.getShardManager().setActivity(Activity.playing("Use /support for help! | Alpha :3"));
+                Bot.getShardManager().setStatus(OnlineStatus.ONLINE);
+            }
+            
+            String status = enabled ? "DO_NOT_DISTURB" : "ONLINE";
+            String activity = enabled ? "🔧 Under Maintenance" : "Use /support for help! | Alpha :3";
+            
+            EmbedBuilder embed = MediaContainerManager.createSuccess(
+                enabled ? "Maintenance Mode Enabled" : "Maintenance Mode Disabled",
+                String.format("**Status:** %s\n**Activity:** %s\n**Shards:** %d\n**Saved to:** config.json", 
+                        status, activity, Bot.getShardManager().getShards().size()));
+            
+            event.replyEmbeds(embed.build()).setEphemeral(true).queue();
+            
+        } catch (Exception e) {
+            sendError(event, "Failed to toggle maintenance mode: " + e.getMessage());
+        }
+    }
+    
+    private void handleToggleSource(SlashCommandInteractionEvent event) {
+        String source = event.getOption("source").getAsString();
+        boolean enabled = event.getOption("enabled").getAsBoolean();
+        LocalConfig config = LocalConfig.getInstance();
+        
+        // Update source status
+        config.setSourceEnabled(source, enabled);
+        
+        EmbedBuilder embed = MediaContainerManager.createSuccess("Source Updated", 
+                String.format("**Source:** %s\n**Status:** %s\n**Saved to:** config.json", 
+                        source, enabled ? "✅ Enabled" : "❌ Disabled"));
+        
+        event.replyEmbeds(embed.build()).setEphemeral(true).queue();
+    }
+    
+    private void handleListSources(SlashCommandInteractionEvent event) {
+        LocalConfig config = LocalConfig.getInstance();
+        Map<String, Boolean> sources = config.getEnabledSources();
+        
+        EmbedBuilder embed = MediaContainerManager.createInfo("Source Status", null);
+        
+        StringBuilder enabledSources = new StringBuilder();
+        StringBuilder disabledSources = new StringBuilder();
+        
+        for (Map.Entry<String, Boolean> entry : sources.entrySet()) {
+            String sourceName = entry.getKey();
+            boolean isEnabled = entry.getValue();
+            
+            if (isEnabled) {
+                enabledSources.append("✅ ").append(sourceName).append("\n");
+            } else {
+                disabledSources.append("❌ ").append(sourceName).append("\n");
+            }
+        }
+        
+        if (enabledSources.length() > 0) {
+            embed.addField("🟢 Enabled Sources", enabledSources.toString(), true);
+        }
+        
+        if (disabledSources.length() > 0) {
+            embed.addField("🔴 Disabled Sources", disabledSources.toString(), true);
+        }
+        
+        embed.addField("📝 Configuration", 
+                String.format("**Total Sources:** %d\n**Config File:** config.json\n**Maintenance Mode:** %s\n**Sensitive Data:** .env file", 
+                        sources.size(), 
+                        config.getMaintenanceMode() ? "🔧 Enabled" : "✅ Disabled"), false);
+        
+        embed.setFooter("Use /admin togglesource to change source status", null);
+        
         event.replyEmbeds(embed.build()).setEphemeral(true).queue();
     }
 }

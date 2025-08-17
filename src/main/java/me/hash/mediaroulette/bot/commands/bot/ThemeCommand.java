@@ -8,6 +8,7 @@ import java.util.Set;
 
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
+import me.hash.mediaroulette.bot.MediaContainerManager;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.model.User;
 import me.hash.mediaroulette.utils.media.image_generation.ImageGenerator;
@@ -15,6 +16,8 @@ import me.hash.mediaroulette.utils.media.image_generation.ThemeManager;
 import me.hash.mediaroulette.utils.media.image_generation.Theme;
 import me.hash.mediaroulette.utils.QuestGenerator;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
@@ -23,8 +26,6 @@ import net.dv8tion.jda.api.interactions.IntegrationType;
 import net.dv8tion.jda.api.interactions.InteractionContextType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.utils.FileUpload;
 
 public class ThemeCommand extends ListenerAdapter implements CommandHandler {
@@ -63,19 +64,16 @@ public class ThemeCommand extends ListenerAdapter implements CommandHandler {
             // Check if the user is on cooldown
             if (Bot.COOLDOWNS.containsKey(userId) && now - Bot.COOLDOWNS.get(userId) < Bot.COOLDOWN_DURATION) {
                 // Enhanced cooldown message
-                EmbedBuilder cooldownEmbed = new EmbedBuilder()
-                        .setTitle("⏰ Slow Down!")
-                        .setDescription("Please wait **2 seconds** before using this command again.")
-                        .setColor(new Color(255, 107, 107))
-                        .setTimestamp(Instant.now());
-
-                event.getHook().sendMessageEmbeds(cooldownEmbed.build()).queue();
+                event.getHook().sendMessageEmbeds(MediaContainerManager.createCooldown("2 seconds").build()).queue();
                 return;
             }
 
             // Update the user's cooldown
             Bot.COOLDOWNS.put(userId, now);
 
+            // Track command usage
+            Main.userService.trackCommandUsage(event.getUser().getId(), "theme");
+            
             // Get user data
             User user = Main.userService.getOrCreateUser(event.getUser().getId());
             String currentTheme = user.getTheme() != null ? user.getTheme() : "default";

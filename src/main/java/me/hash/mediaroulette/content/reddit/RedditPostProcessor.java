@@ -21,7 +21,10 @@ public class RedditPostProcessor {
     private final OkHttpClient httpClient = new OkHttpClient();
 
     // RedGifs API patterns
-    private static final Pattern REDGIFS_URL_PATTERN = Pattern.compile("https?://(?:www\\.)?redgifs\\.com/watch/([a-zA-Z0-9]+)");
+    private static final Pattern REDGIFS_URL_PATTERN = Pattern.compile(
+            "https?://(?:[a-z0-9]+\\.)?redgifs\\.com/(?:watch/|ifr/)?[a-zA-Z0-9]+(?:\\.[a-z0-9]+)?",
+            Pattern.CASE_INSENSITIVE | Pattern.MULTILINE
+    );
     private static final Pattern GFYCAT_URL_PATTERN = Pattern.compile("https?://(?:www\\.)?gfycat\\.com/([a-zA-Z0-9]+)");
 
     // Minimum image dimensions for quality filtering
@@ -173,6 +176,8 @@ public class RedditPostProcessor {
         String url = postData.optString("url", "");
         if (!url.isEmpty()) {
             String resolvedUrl = resolveExternalMediaUrl(url);
+            if (resolvedUrl == null)
+                System.out.println("URL> " + url);
             if (!resolvedUrl.equals(url)) {
                 return resolvedUrl; // External URL was resolved
             }
@@ -303,17 +308,15 @@ public class RedditPostProcessor {
             // Handle RedGifs URLs
             Matcher redgifsMatcher = REDGIFS_URL_PATTERN.matcher(url);
             if (redgifsMatcher.find()) {
-                String gifId = redgifsMatcher.group(1);
-                return resolveRedgifsUrl(gifId);
+                return redgifsMatcher.group();
             }
 
             // Handle Gfycat URLs (many now redirect to RedGifs)
             Matcher gfycatMatcher = GFYCAT_URL_PATTERN.matcher(url);
             if (gfycatMatcher.find()) {
-                String gifId = gfycatMatcher.group(1);
+                String redgifsUrl = gfycatMatcher.group();
                 // Try RedGifs first, then fallback to Gfycat
-                String redgifsUrl = resolveRedgifsUrl(gifId);
-                return Objects.requireNonNullElseGet(redgifsUrl, () -> resolveGfycatUrl(gifId));
+                return Objects.requireNonNullElseGet(redgifsUrl, () -> resolveGfycatUrl(redgifsUrl));
             }
 
             // Handle other external URLs
@@ -326,44 +329,6 @@ public class RedditPostProcessor {
         }
 
         return url;
-    }
-
-    private String resolveRedgifsUrl(String gifId) {
-        try {
-            // Use RedGifs API to get the actual media URL
-            String apiUrl = "https://api.redgifs.com/v2/gifs/" + gifId;
-            Request request = new Request.Builder()
-                    .url(apiUrl)
-                    .addHeader("User-Agent", "MediaRoulette/1.0")
-                    .build();
-
-            try (Response response = httpClient.newCall(request).execute()) {
-                if (response.isSuccessful() && response.body() != null) {
-                    String responseBody = response.body().string();
-                    JSONObject json = new JSONObject(responseBody);
-                    JSONObject gif = json.optJSONObject("gif");
-
-                    if (gif != null) {
-                        JSONObject urls = gif.optJSONObject("urls");
-                        if (urls != null) {
-                            // Prefer HD, then SD
-                            String hdUrl = urls.optString("hd", "");
-                            if (!hdUrl.isEmpty()) {
-                                return hdUrl;
-                            }
-                            String sdUrl = urls.optString("sd", "");
-                            if (!sdUrl.isEmpty()) {
-                                return sdUrl;
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Failed to resolve RedGifs URL for ID {0}: {1}", new Object[]{gifId, e.getMessage()});
-        }
-
-        return null;
     }
 
     private String resolveGfycatUrl(String gifId) {

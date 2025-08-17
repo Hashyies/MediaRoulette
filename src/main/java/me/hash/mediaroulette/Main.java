@@ -12,6 +12,7 @@ import com.mongodb.client.MongoCollection;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.github.cdimascio.dotenv.DotenvEntry;
 import me.hash.mediaroulette.bot.Bot;
+import me.hash.mediaroulette.utils.LocalConfig;
 import me.hash.mediaroulette.repository.MongoUserRepository;
 import me.hash.mediaroulette.repository.UserRepository;
 import me.hash.mediaroulette.repository.DictionaryRepository;
@@ -20,11 +21,13 @@ import me.hash.mediaroulette.service.DictionaryService;
 import me.hash.mediaroulette.utils.terminal.TerminalInterface;
 import me.hash.mediaroulette.utils.Database;
 import me.hash.mediaroulette.utils.user.UserService;
+import me.hash.mediaroulette.utils.media.MediaInitializer;
 import org.bson.Document;
 
 public class Main {
 
     public static Dotenv env;
+    public static LocalConfig localConfig;
     public static Database database;
     public static final long startTime = System.currentTimeMillis();
     public static Bot bot = null;
@@ -33,21 +36,21 @@ public class Main {
     public static TerminalInterface terminal;
 
     public static void main(String[] args) throws Exception {
-        // Get an InputStream for the .env file
+        // Load .env file for sensitive data (API keys, tokens, etc.)
         InputStream inputStream = Main.class.getClassLoader().getResourceAsStream(".env");
-
-        // Create a temporary file to hold the contents of the .env file
         Path tempFile = Files.createTempFile("dotenv", ".env");
         tempFile.toFile().deleteOnExit();
-
-        // Copy the contents of the .env file to the temporary file
+        
         assert inputStream != null;
         Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
-
+        
         env = Dotenv.configure()
                 .directory(tempFile.getParent().toString())
                 .filename(tempFile.getFileName().toString())
                 .load();
+        
+        // Initialize local config for non-sensitive settings
+        localConfig = LocalConfig.getInstance();
 
         // Initialize the MongoDB connection and database
         String connectionString = getEnv("MONGODB_CONNECTION");
@@ -69,6 +72,16 @@ public class Main {
         // Initialize default dictionaries if they don't exist
         initializeDefaultDictionaries();
 
+        // Initialize media processing capabilities (FFmpeg download and setup)
+        System.out.println("Initializing media processing capabilities...");
+        try {
+            MediaInitializer.initialize().get(); // Wait for completion during startup
+            System.out.println("✅ Media processing initialization complete!");
+        } catch (Exception e) {
+            System.err.println("⚠️ Media processing initialization failed: " + e.getMessage());
+            System.err.println("   Video processing features will be unavailable, but bot will continue normally.");
+        }
+
         bot = new Bot(getEnv("DISCORD_TOKEN"));
 
         init();
@@ -78,6 +91,12 @@ public class Main {
 
         // Initialize and start the terminal interface
         initializeTerminal();
+
+        // Add shutdown hook for graceful cleanup
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("\nShutdown signal received...");
+            shutdown();
+        }));
 
         // System.out.println(RandomMedia.getRandomYoutube());
     }
@@ -115,6 +134,11 @@ public class Main {
         System.out.println("MediaRoulette application started successfully!");
         System.out.println("Bot Status: " + (bot != null ? "Initialized" : "Failed to initialize"));
         System.out.println("Database Status: " + (database != null ? "Connected" : "Failed to connect"));
+        System.out.println("Media Processing: " + (MediaInitializer.isInitialized() ? "Ready (FFmpeg available)" : "Limited (FFmpeg unavailable)"));
+        System.out.println("Configuration loaded:");
+        System.out.println("  - Sensitive data (API keys, tokens): .env file");
+        System.out.println("  - Bot settings (maintenance, sources): config.json");
+        System.out.println("  - Maintenance mode: " + localConfig.getMaintenanceMode());
         System.out.println("=".repeat(50));
 
         // Start terminal interface
@@ -195,6 +219,14 @@ public class Main {
         if (bot != null) {
             // Add bot shutdown logic here
             System.out.println("Bot shutdown complete.");
+        }
+
+        // Cleanup media processing resources
+        try {
+            MediaInitializer.shutdown();
+            System.out.println("Media processing cleanup complete.");
+        } catch (Exception e) {
+            System.err.println("Error during media processing cleanup: " + e.getMessage());
         }
 
         if (database != null) {

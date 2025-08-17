@@ -9,3 +9,6 @@ bin/*
 /gradle/wrapper/gradle-wrapper.jar
 /app.log.lck
 /app.log
+
+# Ignore cache directory
+cache/

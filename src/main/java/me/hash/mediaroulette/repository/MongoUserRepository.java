@@ -125,6 +125,9 @@ public class MongoUserRepository implements UserRepository {
             user.setInventory(inventory);
         }
         
+        // Map usage statistics
+        mapUsageStatistics(doc, user);
+        
         return user;
     }
 
@@ -188,6 +191,9 @@ public class MongoUserRepository implements UserRepository {
             inventoryDocs.add(itemDoc);
         }
         doc.append("inventory", inventoryDocs);
+        
+        // Map usage statistics
+        mapUsageStatisticsToDocument(doc, user);
         
         return doc;
     }
@@ -324,6 +330,146 @@ public class MongoUserRepository implements UserRepository {
         } catch (Exception e) {
             System.err.println("Error calculating total images generated: " + e.getMessage());
             return 0L;
+        }
+    }
+    
+    // Helper methods for usage statistics mapping
+    private void mapUsageStatistics(Document doc, User user) {
+        // Map source usage count
+        Document sourceUsageDoc = doc.get("sourceUsageCount", Document.class);
+        if (sourceUsageDoc != null) {
+            Map<String, Long> sourceUsageCount = new java.util.HashMap<>();
+            for (String key : sourceUsageDoc.keySet()) {
+                Object value = sourceUsageDoc.get(key);
+                if (value instanceof Number) {
+                    sourceUsageCount.put(key, ((Number) value).longValue());
+                }
+            }
+            user.setSourceUsageCount(sourceUsageCount);
+        }
+        
+        // Map command usage count
+        Document commandUsageDoc = doc.get("commandUsageCount", Document.class);
+        if (commandUsageDoc != null) {
+            Map<String, Long> commandUsageCount = new java.util.HashMap<>();
+            for (String key : commandUsageDoc.keySet()) {
+                Object value = commandUsageDoc.get(key);
+                if (value instanceof Number) {
+                    commandUsageCount.put(key, ((Number) value).longValue());
+                }
+            }
+            user.setCommandUsageCount(commandUsageCount);
+        }
+        
+        // Map custom subreddits
+        List<String> customSubreddits = doc.getList("customSubreddits", String.class);
+        if (customSubreddits != null) {
+            user.setCustomSubreddits(new ArrayList<>(customSubreddits));
+        }
+        
+        // Map subreddit usage count
+        Document subredditUsageDoc = doc.get("subredditUsageCount", Document.class);
+        if (subredditUsageDoc != null) {
+            Map<String, Integer> subredditUsageCount = new java.util.HashMap<>();
+            for (String key : subredditUsageDoc.keySet()) {
+                Object value = subredditUsageDoc.get(key);
+                if (value instanceof Number) {
+                    subredditUsageCount.put(key, ((Number) value).intValue());
+                }
+            }
+            user.setSubredditUsageCount(subredditUsageCount);
+        }
+        
+        // Map custom queries
+        Document customQueriesDoc = doc.get("customQueries", Document.class);
+        if (customQueriesDoc != null) {
+            Map<String, List<String>> customQueries = new java.util.HashMap<>();
+            for (String service : customQueriesDoc.keySet()) {
+                List<String> queries = customQueriesDoc.getList(service, String.class);
+                if (queries != null) {
+                    customQueries.put(service, new ArrayList<>(queries));
+                }
+            }
+            user.setCustomQueries(customQueries);
+        }
+        
+        // Map total commands used
+        user.setTotalCommandsUsed(doc.getLong("totalCommandsUsed") != null ? doc.getLong("totalCommandsUsed") : 0L);
+        
+        // Map last active date
+        String lastActiveDateStr = doc.getString("lastActiveDate");
+        if (lastActiveDateStr != null) {
+            try {
+                user.setLastActiveDate(java.time.LocalDateTime.parse(lastActiveDateStr));
+            } catch (Exception e) {
+                user.setLastActiveDate(java.time.LocalDateTime.now());
+            }
+        }
+        
+        // Map account created date
+        String accountCreatedDateStr = doc.getString("accountCreatedDate");
+        if (accountCreatedDateStr != null) {
+            try {
+                user.setAccountCreatedDate(java.time.LocalDateTime.parse(accountCreatedDateStr));
+            } catch (Exception e) {
+                user.setAccountCreatedDate(java.time.LocalDateTime.now());
+            }
+        }
+    }
+    
+    private void mapUsageStatisticsToDocument(Document doc, User user) {
+        // Map source usage count
+        if (user.getSourceUsageCount() != null && !user.getSourceUsageCount().isEmpty()) {
+            Document sourceUsageDoc = new Document();
+            for (Map.Entry<String, Long> entry : user.getSourceUsageCount().entrySet()) {
+                sourceUsageDoc.append(entry.getKey(), entry.getValue());
+            }
+            doc.append("sourceUsageCount", sourceUsageDoc);
+        }
+        
+        // Map command usage count
+        if (user.getCommandUsageCount() != null && !user.getCommandUsageCount().isEmpty()) {
+            Document commandUsageDoc = new Document();
+            for (Map.Entry<String, Long> entry : user.getCommandUsageCount().entrySet()) {
+                commandUsageDoc.append(entry.getKey(), entry.getValue());
+            }
+            doc.append("commandUsageCount", commandUsageDoc);
+        }
+        
+        // Map custom subreddits
+        if (user.getCustomSubreddits() != null) {
+            doc.append("customSubreddits", user.getCustomSubreddits());
+        }
+        
+        // Map subreddit usage count
+        if (user.getSubredditUsageCount() != null && !user.getSubredditUsageCount().isEmpty()) {
+            Document subredditUsageDoc = new Document();
+            for (Map.Entry<String, Integer> entry : user.getSubredditUsageCount().entrySet()) {
+                subredditUsageDoc.append(entry.getKey(), entry.getValue());
+            }
+            doc.append("subredditUsageCount", subredditUsageDoc);
+        }
+        
+        // Map custom queries
+        if (user.getCustomQueries() != null && !user.getCustomQueries().isEmpty()) {
+            Document customQueriesDoc = new Document();
+            for (Map.Entry<String, List<String>> entry : user.getCustomQueries().entrySet()) {
+                customQueriesDoc.append(entry.getKey(), entry.getValue());
+            }
+            doc.append("customQueries", customQueriesDoc);
+        }
+        
+        // Map total commands used
+        doc.append("totalCommandsUsed", user.getTotalCommandsUsed());
+        
+        // Map last active date
+        if (user.getLastActiveDate() != null) {
+            doc.append("lastActiveDate", user.getLastActiveDate().toString());
+        }
+        
+        // Map account created date
+        if (user.getAccountCreatedDate() != null) {
+            doc.append("accountCreatedDate", user.getAccountCreatedDate().toString());
         }
     }
 }

@@ -2,11 +2,14 @@ package me.hash.mediaroulette.bot.commands.user;
 
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
+import me.hash.mediaroulette.bot.MediaContainerManager;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.model.InventoryItem;
 import me.hash.mediaroulette.model.User;
 import me.hash.mediaroulette.utils.Locale;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -16,18 +19,15 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
-import java.awt.Color;
 import java.time.Instant;
 import java.util.List;
 
+import static me.hash.mediaroulette.bot.MediaContainerManager.PRIMARY_COLOR;
+import static me.hash.mediaroulette.bot.MediaContainerManager.SUCCESS_COLOR;
+
 public class InventoryCommand extends ListenerAdapter implements CommandHandler {
 
-    private static final Color PRIMARY_COLOR = new Color(88, 101, 242);
-    private static final Color SUCCESS_COLOR = new Color(87, 242, 135);
-    private static final Color ERROR_COLOR = new Color(220, 53, 69);
     private static final int ITEMS_PER_PAGE = 10;
 
     @Override
@@ -150,11 +150,8 @@ public class InventoryCommand extends ListenerAdapter implements CommandHandler 
         user.sortInventory(sortBy);
         Main.userService.updateUser(user);
 
-        EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("✅ Inventory Sorted")
-                .setDescription("Your inventory has been sorted by **" + sortBy + "**.")
-                .setColor(SUCCESS_COLOR)
-                .setTimestamp(Instant.now());
+        String description = "Your inventory has been sorted by **" + sortBy + "**.";
+        EmbedBuilder embed = MediaContainerManager.createSuccess("Inventory Sorted", description);
 
         event.getHook().sendMessageEmbeds(embed.build()).queue();
     }
@@ -210,11 +207,10 @@ public class InventoryCommand extends ListenerAdapter implements CommandHandler 
             return;
         }
 
-        EmbedBuilder embed = new EmbedBuilder()
+        EmbedBuilder embed = MediaContainerManager.createBase()
                 .setTitle(item.getTypeEmoji() + " " + item.getName())
                 .setDescription(item.getDescription())
-                .setColor(PRIMARY_COLOR)
-                .setTimestamp(Instant.now());
+                .setColor(PRIMARY_COLOR);
 
         embed.addField("📊 Details", 
                 String.format("**Type:** %s\n**Rarity:** %s\n**Quantity:** %d", 
@@ -313,11 +309,6 @@ public class InventoryCommand extends ListenerAdapter implements CommandHandler 
     }
 
     private void sendError(SlashCommandInteractionEvent event, String message) {
-        EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("❌ Error")
-                .setDescription(message)
-                .setColor(ERROR_COLOR)
-                .setTimestamp(Instant.now());
-        event.getHook().sendMessageEmbeds(embed.build()).queue();
+        event.getHook().sendMessageEmbeds(MediaContainerManager.createError("Error", message).build()).queue();
     }
 }

@@ -6,6 +6,7 @@ import me.hash.mediaroulette.model.ImageOptions;
 import me.hash.mediaroulette.exceptions.InvalidChancesException;
 import me.hash.mediaroulette.exceptions.NoEnabledOptionsException;
 import me.hash.mediaroulette.content.RandomText;
+import me.hash.mediaroulette.utils.LocalConfig;
 
 import java.io.IOException;
 import java.util.*;
@@ -26,10 +27,17 @@ public class ImageSelector {
     public Map<String, String> selectImage(String userId) throws NoEnabledOptionsException, InvalidChancesException {
         List<ImageOptions> defaultImageOptions = ImageOptions.getDefaultOptions();
         PriorityQueue<ImageOptions> queue = new PriorityQueue<>(Comparator.comparingDouble(ImageOptions::getChance));
+        LocalConfig config = LocalConfig.getInstance();
 
         double totalChance = 0;
         for (ImageOptions defaultOption : defaultImageOptions) {
             String imageType = defaultOption.getImageType();
+            
+            // Check if source is enabled in admin config first
+            if (!isSourceEnabledInConfig(config, imageType)) {
+                continue; // Skip disabled sources
+            }
+            
             ImageOptions userOption = userImageOptions.get(imageType);
             
             if (userOption != null) {
@@ -124,6 +132,36 @@ public class ImageSelector {
             case "short" -> new MediaServiceFactory().createYouTubeShortsProvider().getRandomMedia(null).toMap();
             case "urban" -> RandomText.getRandomUrbanWord(null);
             default -> throw new IllegalArgumentException("Unknown image type: " + imageType);
+        };
+    }
+    
+    /**
+     * Check if a source is enabled in the admin configuration
+     * Maps image types to their corresponding config keys
+     */
+    private boolean isSourceEnabledInConfig(LocalConfig config, String imageType) {
+        String configKey = mapImageTypeToConfigKey(imageType);
+        return config.isSourceEnabled(configKey);
+    }
+    
+    /**
+     * Map image types used in ImageOptions to config keys used in LocalConfig
+     */
+    private String mapImageTypeToConfigKey(String imageType) {
+        return switch (imageType) {
+            case "4chan" -> "4chan";
+            case "picsum" -> "picsum";
+            case "imgur" -> "imgur";
+            case "reddit" -> "reddit";
+            case "rule34xxx" -> "rule34";
+            case "tenor" -> "tenor";
+            case "google" -> "google";
+            case "movies" -> "tmdb_movie";
+            case "tvshow" -> "tmdb_tv";
+            case "youtube" -> "youtube";
+            case "short" -> "youtube_shorts";
+            case "urban" -> "urban_dictionary";
+            default -> imageType; // fallback to original name
         };
     }
 }

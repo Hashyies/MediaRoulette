@@ -61,15 +61,18 @@ public class BalanceCommand extends ListenerAdapter implements CommandHandler {
             Bot.COOLDOWNS.put(userId, now);
 
             // Determine which user to check
-            net.dv8tion.jda.api.entities.User targetUser = event.getOption("user") != null 
-                    ? event.getOption("user").getAsUser() 
+            net.dv8tion.jda.api.entities.User targetUser = event.getOption("user") != null
+                    ? event.getOption("user").getAsUser()
                     : event.getUser();
-            
+
             boolean isOwnBalance = targetUser.getId().equals(event.getUser().getId());
 
+            // Track command usage
+            Main.userService.trackCommandUsage(event.getUser().getId(), "balance");
+            
             // Get user data
             User user = Main.userService.getOrCreateUser(targetUser.getId());
-            
+
             // Update quest progress if checking another user's balance
             if (!isOwnBalance) {
                 User currentUser = Main.userService.getOrCreateUser(event.getUser().getId());
@@ -90,7 +93,7 @@ public class BalanceCommand extends ListenerAdapter implements CommandHandler {
         // Set title and color based on premium status
         String title = isOwnBalance ? "💰 Your Balance" : "💰 " + discordUser.getName() + "'s Balance";
         Color embedColor = user.isPremium() ? PREMIUM_COLOR : COIN_COLOR;
-        
+
         embed.setTitle(title);
         embed.setColor(embedColor);
         embed.setTimestamp(Instant.now());
@@ -108,7 +111,7 @@ public class BalanceCommand extends ListenerAdapter implements CommandHandler {
         embed.addField("💳 Current Balance", balanceText, true);
 
         // Images generated
-        embed.addField("📸 Images Generated", 
+        embed.addField("📸 Images Generated",
                 String.format("```%s images```", formatter.format(user.getImagesGenerated())), true);
 
         // Premium status
@@ -116,19 +119,19 @@ public class BalanceCommand extends ListenerAdapter implements CommandHandler {
         embed.addField("🔰 Status", statusText, true);
 
         // Lifetime earnings
-        embed.addField("📈 Total Earned", 
+        embed.addField("📈 Total Earned",
                 String.format("```💰 %s coins```", formatter.format(user.getTotalCoinsEarned())), true);
 
         // Total spent
-        embed.addField("📉 Total Spent", 
+        embed.addField("📉 Total Spent",
                 String.format("```💰 %s coins```", formatter.format(user.getTotalCoinsSpent())), true);
 
         // Net worth
-        embed.addField("💎 Net Worth", 
+        embed.addField("💎 Net Worth",
                 String.format("```💰 %s coins```", formatter.format(user.getNetWorth())), true);
 
         // Earning info
-        embed.addField("💡 Earning Info", 
+        embed.addField("💡 Earning Info",
                 "```🎯 Complete daily quests to earn coins\n🛒 Visit /shop to spend your coins\n⭐ Premium users get exclusive benefits```", false);
 
         // Footer with tips

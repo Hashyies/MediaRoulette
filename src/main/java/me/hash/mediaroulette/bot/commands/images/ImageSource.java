@@ -12,6 +12,7 @@ import me.hash.mediaroulette.content.reddit.RedditClient;
 import me.hash.mediaroulette.content.reddit.SubredditManager;
 import me.hash.mediaroulette.model.User;
 import me.hash.mediaroulette.utils.Locale;
+import me.hash.mediaroulette.utils.LocalConfig;
 import net.dv8tion.jda.api.interactions.Interaction;
 
 import java.util.Map;
@@ -48,7 +49,8 @@ public enum ImageSource {
     public Map<String, String> handle(Interaction event, String option) throws Exception {
         User user = Main.userService.getOrCreateUser(event.getUser().getId());
 
-        if (isOptionDisabled(this.name)) {
+        // Check both old config system and new LocalConfig system
+        if (isOptionDisabled(this.name) || !isSourceEnabledInLocalConfig(this)) {
             errorHandler.sendErrorEmbed(event, new Locale(user.getLocale()).get("error.no_images_title"), new Locale(user.getLocale()).get("error.no_images_description"));
             throw new Exception("Command Disabled");
         }
@@ -162,6 +164,36 @@ public enum ImageSource {
 
     private static boolean isOptionDisabled(String option) {
         return !Bot.config.getOrDefault(option, true, Boolean.class);
+    }
+    
+    /**
+     * Check if this source is enabled in LocalConfig (admin toggle system)
+     */
+    private boolean isSourceEnabledInLocalConfig(ImageSource source) {
+        LocalConfig config = LocalConfig.getInstance();
+        String configKey = mapSourceToConfigKey(source);
+        return config.isSourceEnabled(configKey);
+    }
+    
+    /**
+     * Map ImageSource enum values to their corresponding LocalConfig keys
+     */
+    private String mapSourceToConfigKey(ImageSource source) {
+        return switch (source) {
+            case REDDIT -> "reddit";
+            case TENOR -> "tenor";
+            case _4CHAN -> "4chan";
+            case GOOGLE -> "google";
+            case IMGUR -> "imgur";
+            case PICSUM -> "picsum";
+            case RULE34XXX -> "rule34";
+            case MOVIE -> "tmdb_movie";
+            case TVSHOW -> "tmdb_tv";
+            case URBAN -> "urban_dictionary";
+            case YOUTUBE -> "youtube";
+            case SHORT -> "youtube_shorts";
+            case ALL -> "all"; // Special case - "all" should always be enabled if any sources are enabled
+        };
     }
 
     public static Optional<ImageSource> fromName(String name) {

@@ -2,10 +2,16 @@ package me.hash.mediaroulette.bot.commands.config;
 
 import me.hash.mediaroulette.Main;
 import me.hash.mediaroulette.bot.Bot;
+import me.hash.mediaroulette.bot.Emoji;
 import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.model.ImageOptions;
 import me.hash.mediaroulette.model.User;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
+import net.dv8tion.jda.api.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -15,11 +21,6 @@ import net.dv8tion.jda.api.interactions.IntegrationType;
 import net.dv8tion.jda.api.interactions.InteractionContextType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 
 import java.awt.Color;
@@ -476,18 +477,18 @@ public class ChancesCommand extends ListenerAdapter implements CommandHandler {
 
     private String getSourceEmoji(String imageType) {
         return switch (imageType.toLowerCase()) {
-            case "reddit" -> "🔴";
-            case "imgur" -> "🟢";
-            case "4chan" -> "🍀";
+            case "reddit" -> Emoji.REDDIT_LOGO.getFormat();
+            case "imgur" -> Emoji.IMGUR_LOGO.getFormat();
+            case "4chan" -> Emoji._4CHAN_LOGO.getFormat();
             case "picsum" -> "🖼️";
             case "rule34xxx" -> "🔞";
-            case "tenor" -> "🎭";
-            case "google" -> "🔍";
+            case "tenor" -> Emoji.TENOR_LOGO.getFormat();
+            case "google" -> Emoji.GOOGLE_LOGO.getFormat();
             case "movies" -> "🎬";
             case "tvshow" -> "📺";
-            case "youtube" -> "📹";
-            case "short" -> "⏱️";
-            case "urban" -> "📚";
+            case "youtube" -> Emoji.YT_LOGO.getFormat();
+            case "short" -> Emoji.YT_SHORTS_LOGO.getFormat();
+            case "urban" -> Emoji.URBAN_DICTIONARY_LOGO.getFormat();
             default -> "🎲";
         };
     }

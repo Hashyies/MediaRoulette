@@ -28,7 +28,10 @@ repositories {
 }
 
 dependencies {
-    implementation("net.dv8tion:JDA:5.6.1")
+    // Playwright for headless browser functionality with auto-browser installation
+    implementation("com.microsoft.playwright:playwright:1.40.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("net.dv8tion:JDA:6.0.0-rc.1")
 
     implementation("org.json:json:20231013")
     implementation("org.jsoup:jsoup:1.16.1")

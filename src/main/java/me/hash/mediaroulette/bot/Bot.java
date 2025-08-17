@@ -5,18 +5,12 @@ import me.hash.mediaroulette.bot.commands.CommandHandler;
 import me.hash.mediaroulette.bot.commands.admin.AdminCommand;
 import me.hash.mediaroulette.bot.commands.admin.ChannelNuke;
 import me.hash.mediaroulette.bot.commands.admin.GiveawayCommand;
-import me.hash.mediaroulette.bot.commands.bot.InfoCommand;
-import me.hash.mediaroulette.bot.commands.bot.ShardsCommand;
-import me.hash.mediaroulette.bot.commands.bot.SupportCommand;
-import me.hash.mediaroulette.bot.commands.bot.ThemeCommand;
-import me.hash.mediaroulette.bot.commands.config.ConfigCommand;
+import me.hash.mediaroulette.bot.commands.bot.*;
 import me.hash.mediaroulette.bot.commands.config.ChancesCommand;
 import me.hash.mediaroulette.bot.commands.dictionary.DictionaryCommand;
 import me.hash.mediaroulette.bot.commands.dictionary.SettingsCommand;
 import me.hash.mediaroulette.bot.commands.economy.BalanceCommand;
 import me.hash.mediaroulette.bot.commands.economy.QuestsCommand;
-import me.hash.mediaroulette.bot.commands.economy.ShopCommand;
-import me.hash.mediaroulette.bot.commands.minigame.MediaHuntCommand;
 import me.hash.mediaroulette.bot.commands.images.FavoritesCommand;
 import me.hash.mediaroulette.bot.commands.images.getRandomImage;
 import me.hash.mediaroulette.utils.Config;
@@ -71,7 +65,6 @@ public class Bot {
             List<CommandHandler> commandHandlers = Arrays.asList(
                     new FavoritesCommand(),
                     new getRandomImage(),
-                    new ConfigCommand(),
                     new ChancesCommand(),
                     new DictionaryCommand(Main.dictionaryService),
                     new SettingsCommand(Main.dictionaryService),
@@ -79,17 +72,18 @@ public class Bot {
                     new GiveawayCommand(),
                     new ChannelNuke(),
                     new InfoCommand(),
-                    new ShardsCommand(),
                     new SupportCommand(),
                     new ThemeCommand(),
                     new BalanceCommand(),
                     new QuestsCommand()
                     // new ShopCommand()
-                    // new MediaHuntCommand() // Temporarily disabled
             );
 
             // Add all event listeners (global to the entire bot)
             commandHandlers.forEach(shardManager::addEventListener);
+            
+            // Add autocomplete handler
+            shardManager.addEventListener(new AutoCompleteHandler());
 
             System.out.println("Registered all event listeners.");
         }
@@ -104,7 +98,6 @@ public class Bot {
             List<CommandData> commands = Arrays.asList(
                     new FavoritesCommand().getCommandData(),
                     new getRandomImage().getCommandData(),
-                    new ConfigCommand().getCommandData(),
                     new ChancesCommand().getCommandData(),
                     new DictionaryCommand(Main.dictionaryService).getCommandData(),
                     new SettingsCommand(Main.dictionaryService).getCommandData(),
@@ -112,7 +105,6 @@ public class Bot {
                     new GiveawayCommand().getCommandData(),
                     new ChannelNuke().getCommandData(),
                     new InfoCommand().getCommandData(),
-                    new ShardsCommand().getCommandData(),
                     new SupportCommand().getCommandData(),
                     new ThemeCommand().getCommandData(),
                     new BalanceCommand().getCommandData(),

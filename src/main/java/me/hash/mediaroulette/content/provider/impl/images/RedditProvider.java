@@ -1,6 +1,7 @@
 package me.hash.mediaroulette.content.provider.impl.images;
 
 import me.hash.mediaroulette.model.content.MediaResult;
+import me.hash.mediaroulette.model.content.CachedMediaResult;
 import me.hash.mediaroulette.content.provider.MediaProvider;
 import me.hash.mediaroulette.utils.DictionaryIntegration;
 import me.hash.mediaroulette.content.reddit.RedditClient;
@@ -8,9 +9,11 @@ import me.hash.mediaroulette.content.reddit.SubredditManager;
 import me.hash.mediaroulette.content.reddit.RedditPostProcessor;
 import me.hash.mediaroulette.utils.GlobalLogger;
 import me.hash.mediaroulette.utils.ErrorReporter;
+import me.hash.mediaroulette.utils.PersistentCache;
 import okhttp3.Response;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.IOException;
 import java.util.*;
@@ -19,14 +22,22 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class RedditProvider implements MediaProvider {
-    private static final long CACHE_EXPIRATION_TIME = 10 * 60 * 1000; // 10 minutes (reduced for fresher content)
-    private static final int POST_LIMIT = 50; // Reduced to get more varied content
-    private static final int MAX_RESULTS_PER_SUBREDDIT = 200; // Limit cache size
-    private static final int MIN_QUEUE_SIZE = 10; // Minimum items before refresh
+    private static final long CACHE_EXPIRATION_TIME = 10 * 60 * 1000; // 10 minutes
+    private static final int POST_LIMIT = 50;
+    private static final int MAX_RESULTS_PER_SUBREDDIT = 200;
+    private static final int MIN_QUEUE_SIZE = 10;
 
+    // In-memory queues for active use
     private final Map<String, Queue<MediaResult>> imageQueues = new ConcurrentHashMap<>();
     private final Map<String, Long> lastUpdated = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> processedPostIds = new ConcurrentHashMap<>();
+    
+    // Persistent cache for Reddit media results
+    private final PersistentCache<List<CachedMediaResult>> persistentCache = 
+        new PersistentCache<>("reddit_media_cache.json", new TypeReference<Map<String, List<CachedMediaResult>>>() {});
+    private final PersistentCache<Long> timestampCache = 
+        new PersistentCache<>("reddit_timestamps.json", new TypeReference<Map<String, Long>>() {});
+    
     private final ExecutorService executorService = Executors.newFixedThreadPool(6);
     private final Logger logger = GlobalLogger.getLogger();
 
@@ -98,6 +109,9 @@ public class RedditProvider implements MediaProvider {
             throw new IOException("No images available for subreddit: " + subreddit);
         }
 
+        // Update persistent cache to reflect the consumed item
+        saveToPersistentCache(subreddit, queue);
+
         logger.log(Level.INFO, "Successfully retrieved media from subreddit {0}. Queue size: {1}",
                 new Object[]{subreddit, queue.size()});
         return result;
@@ -105,8 +119,34 @@ public class RedditProvider implements MediaProvider {
 
     private void initializeCacheIfNeeded(String subreddit) {
         imageQueues.computeIfAbsent(subreddit, k -> new ConcurrentLinkedQueue<>());
-        lastUpdated.computeIfAbsent(subreddit, k -> 0L);
         processedPostIds.computeIfAbsent(subreddit, k -> ConcurrentHashMap.newKeySet());
+        
+        // Load from persistent cache if available
+        Long cachedTimestamp = timestampCache.get(subreddit);
+        if (cachedTimestamp != null) {
+            lastUpdated.put(subreddit, cachedTimestamp);
+            
+            // Load cached media results if they're still valid
+            List<CachedMediaResult> cachedResults = persistentCache.get(subreddit);
+            if (cachedResults != null && !cachedResults.isEmpty()) {
+                Queue<MediaResult> queue = imageQueues.get(subreddit);
+                int loadedCount = 0;
+                
+                for (CachedMediaResult cached : cachedResults) {
+                    if (cached.isValid(CACHE_EXPIRATION_TIME)) {
+                        queue.offer(cached.toMediaResult());
+                        loadedCount++;
+                    }
+                }
+                
+                if (loadedCount > 0) {
+                    logger.log(Level.INFO, "Loaded {0} cached media results for subreddit: {1}", 
+                        new Object[]{loadedCount, subreddit});
+                }
+            }
+        } else {
+            lastUpdated.put(subreddit, 0L);
+        }
     }
 
     private void refreshCacheIfNeeded(String subreddit) throws ExecutionException, InterruptedException {
@@ -119,7 +159,9 @@ public class RedditProvider implements MediaProvider {
             logger.log(Level.INFO, "Updating image queue for subreddit: {0} (current size: {1})",
                     new Object[]{subreddit, imageQueue.size()});
             updateImageQueue(subreddit);
-            lastUpdated.put(subreddit, System.currentTimeMillis());
+            long currentTime = System.currentTimeMillis();
+            lastUpdated.put(subreddit, currentTime);
+            timestampCache.put(subreddit, currentTime);
         }
     }
 
@@ -170,6 +212,9 @@ public class RedditProvider implements MediaProvider {
                 }
             }
 
+            // Save to persistent cache
+            saveToPersistentCache(subreddit, queue);
+            
             logger.log(Level.INFO, "Added {0} new media items to queue for subreddit {1}. Total queue size: {2}",
                     new Object[]{addedCount, subreddit, queue.size()});
         } else {
@@ -230,8 +275,29 @@ public class RedditProvider implements MediaProvider {
         return "Reddit Enhanced";
     }
 
+    // Save current queue to persistent cache
+    private void saveToPersistentCache(String subreddit, Queue<MediaResult> queue) {
+        try {
+            List<CachedMediaResult> cachedResults = new ArrayList<>();
+            for (MediaResult result : queue) {
+                cachedResults.add(new CachedMediaResult(result));
+            }
+            persistentCache.put(subreddit, cachedResults);
+            logger.log(Level.FINE, "Saved {0} media results to persistent cache for subreddit: {1}", 
+                new Object[]{cachedResults.size(), subreddit});
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to save cache for subreddit {0}: {1}", 
+                new Object[]{subreddit, e.getMessage()});
+        }
+    }
+
     // Cleanup method to prevent memory leaks
     public void cleanup() {
+        // Save all current caches before shutdown
+        for (Map.Entry<String, Queue<MediaResult>> entry : imageQueues.entrySet()) {
+            saveToPersistentCache(entry.getKey(), entry.getValue());
+        }
+        
         executorService.shutdown();
         try {
             if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {

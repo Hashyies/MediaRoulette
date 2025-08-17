@@ -3,17 +3,19 @@ package me.hash.mediaroulette.content.reddit;
 import okhttp3.Response;
 import org.json.JSONObject;
 import me.hash.mediaroulette.utils.ErrorReporter;
+import me.hash.mediaroulette.utils.PersistentCache;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class SubredditManager {
 
-    // Cache to avoid repeatedly checking for subreddit existence.
-    private static final Map<String, Boolean> SUBREDDIT_EXISTS_CACHE = new ConcurrentHashMap<>();
+    // Persistent cache to avoid repeatedly checking for subreddit existence
+    private static final PersistentCache<Boolean> SUBREDDIT_EXISTS_CACHE = 
+        new PersistentCache<>("subreddit_exists.json", new TypeReference<Map<String, Boolean>>() {});
     private final RedditClient redditClient;
 
     public SubredditManager(RedditClient redditClient) {
@@ -35,8 +37,9 @@ public class SubredditManager {
         boolean exists = !json.has("error");
         SUBREDDIT_EXISTS_CACHE.put(subreddit, exists);
 
-        // Simple cache eviction policy.
+        // Simple cache eviction policy - clear old entries if cache gets too large
         if (SUBREDDIT_EXISTS_CACHE.size() > 1000) {
+            System.out.println("Subreddit cache size exceeded 1000, clearing cache");
             SUBREDDIT_EXISTS_CACHE.clear();
         }
         return exists;
