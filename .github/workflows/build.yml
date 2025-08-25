@@ -23,6 +23,9 @@ jobs:
         with:
           gradle-version: wrapper
           
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+          
       - name: Build with Gradle ShadowJar Plugin
         run: ./gradlew shadowJar
         
