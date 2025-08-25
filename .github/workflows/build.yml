@@ -32,11 +32,21 @@ jobs:
       - name: Run tests
         run: ./gradlew test
         
+      - name: List build outputs (debug)
+        run: |
+          echo "Looking for JAR files..."
+          find . -name "*.jar" -type f
+          echo "Build directory contents:"
+          ls -la */build/libs/ 2>/dev/null || echo "No build/libs directories found"
+          
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: media-roulette-${{ github.sha }}
-          path: app/build/libs/*.jar
+          path: |
+            build/libs/*.jar
+            */build/libs/*.jar
+          if-no-files-found: error
           retention-days: 30
 
   release:
@@ -55,7 +65,7 @@ jobs:
       - name: Prepare release
         run: |
           mkdir -p release
-          cp artifacts/*.jar release/
+          find artifacts/ -name "*.jar" -exec cp {} release/ \;
           
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
