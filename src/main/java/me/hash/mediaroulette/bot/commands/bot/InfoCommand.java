@@ -337,7 +337,7 @@ public class InfoCommand extends ListenerAdapter implements CommandHandler {
                 Button.secondary("view_favorites", "❤️ Favorites"),
                 Button.secondary("check_balance", "💰 Balance"),
                 Button.secondary("refresh_profile", "🔄 Refresh"),
-                Button.link("https://discord.gg/hrahDvBu42", "🆘 Help")
+                Button.link("https://discord.gg/Kr7qvutZ4N", "🆘 Help")
         };
     }
 

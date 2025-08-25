@@ -1,5 +1,6 @@
 package me.hash.mediaroulette;
 
+import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,6 +13,7 @@ import com.mongodb.client.MongoCollection;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.github.cdimascio.dotenv.DotenvEntry;
 import me.hash.mediaroulette.bot.Bot;
+import me.hash.mediaroulette.plugins.PluginManager;
 import me.hash.mediaroulette.utils.LocalConfig;
 import me.hash.mediaroulette.repository.MongoUserRepository;
 import me.hash.mediaroulette.repository.UserRepository;
@@ -36,6 +38,7 @@ public class Main {
     public static StatsTrackingService statsService;
     public static TerminalInterface terminal;
     public static final long startTime = System.currentTimeMillis();
+    private static PluginManager pluginManager;
 
     public static void main(String[] args) throws Exception {
         // Setup shutdown hook first for proper cleanup
@@ -55,6 +58,21 @@ public class Main {
         
         // Initialize bot and related components
         bot = new Bot(getEnv("DISCORD_TOKEN"));
+
+        pluginManager = new PluginManager();
+
+        // Load plugins from plugins directory
+        File pluginDir = new File("plugins");
+        if (!pluginDir.exists()) {
+            pluginDir.mkdirs();
+        }
+
+        pluginManager.loadPlugins(pluginDir);
+        pluginManager.enablePlugins();
+
+        System.out.println("Application started with " + pluginManager.getPlugins().size() + " plugins");
+
+
         configureBot();
         me.hash.mediaroulette.utils.GiveawayManager.initialize();
         

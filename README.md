@@ -2,7 +2,7 @@
 ![Media Roullete](https://i.postimg.cc/d10Bgt57/banner.png)
 
 <p align="center">
-  <a href="https://discord.gg/hrahDvBu42">
+  <a href="https://discord.gg/Kr7qvutZ4N">
     <img src="https://img.shields.io/badge/Join%20us%20on-Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white"/>
   </a>
   <a href="https://www.buymeacoffee.com/HashyDev">

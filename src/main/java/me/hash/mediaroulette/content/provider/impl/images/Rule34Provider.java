@@ -20,48 +20,23 @@ public class Rule34Provider implements MediaProvider {
     @Override
     public MediaResult getRandomMedia(String query) throws IOException, HttpClientWrapper.RateLimitException, InterruptedException {
         try {
-            // Use API endpoint instead of web scraping to avoid 403 errors
-            String apiUrl = "https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&limit=1&pid=" + 
-                           (int)(Math.random() * 1000);
-            
-            String response = httpClient.getBody(apiUrl);
-            Document doc = Jsoup.parse(response);
-            Elements posts = doc.select("post");
+            String apiUrl = "https://rule34.xxx/index.php?page=post&s=random";
 
-            if (posts.isEmpty()) {
-                // Try a different approach with a simpler API call
-                apiUrl = "https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&limit=1";
-                response = httpClient.getBody(apiUrl);
-                doc = Jsoup.parse(response);
-                posts = doc.select("post");
-                
-                if (posts.isEmpty()) {
-                    throw new IOException("No posts found on Rule34 API");
+            String imageUrl = null;
+            try {
+                Document doc = Jsoup.connect(apiUrl).get();
+                Elements image = doc.select("#image");
+                if (image.size() != 0) {
+                    imageUrl = image.attr("src");
                 }
-            }
-
-            String imageUrl = posts.first().attr("file_url");
-            if (imageUrl.isEmpty()) {
-                imageUrl = posts.first().attr("sample_url");
-            }
-            
-            if (imageUrl.isEmpty()) {
-                throw new IOException("No image URL found in Rule34 response");
-            }
-
-            // Ensure the URL is absolute
-            if (imageUrl.startsWith("//")) {
-                imageUrl = "https:" + imageUrl;
-            } else if (imageUrl.startsWith("/")) {
-                imageUrl = "https://rule34.xxx" + imageUrl;
+            } catch (Exception e) {
+                e.printStackTrace();
             }
 
             String description = "Source: Rule34 - NSFW Content";
             String title = "Here is your random Rule34xxx (NSFW) picture!";
 
             return new MediaResult(imageUrl, title, description, MediaSource.RULE34);
-        } catch (HttpClientWrapper.RateLimitException e) {
-            throw e; // Re-throw rate limit exceptions
         } catch (Exception e) {
             throw new IOException("Failed to get Rule34 image: " + e.getMessage());
         }

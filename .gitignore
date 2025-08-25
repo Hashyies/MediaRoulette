@@ -11,3 +11,4 @@ bin/*
 /app.log
 .idea/*
 cache/
+/config.json

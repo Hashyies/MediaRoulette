@@ -44,7 +44,7 @@ public class FavoritesCommand extends ListenerAdapter implements CommandHandler 
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (!event.getName().equals("favorites"))
             return;
-        
+
         // Check maintenance mode
         if (MaintenanceChecker.isMaintenanceBlocked(event)) {
             MaintenanceChecker.sendMaintenanceMessage(event);

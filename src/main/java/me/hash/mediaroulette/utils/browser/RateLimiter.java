@@ -29,7 +29,7 @@ public class RateLimiter {
         defaultLimits.put("youtube", 100);    // YouTube API limit
         defaultLimits.put("tmdb", 40);        // TMDB API limit
         defaultLimits.put("imgur", 50);       // Imgur API limit
-        defaultLimits.put("rule34", 30);      // Rule34 API limit
+        defaultLimits.put("rule34", 0);      // Rule34 API limit
         defaultLimits.put("picsum", 100);     // Picsum has no strict limits
         defaultLimits.put("urban", 60);       // Urban Dictionary limit
     }
