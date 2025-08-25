@@ -21,13 +21,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.10.2'
+          gradle-version: wrapper
           
       - name: Build with Gradle ShadowJar Plugin
-        run: gradle shadowJar
+        run: ./gradlew shadowJar
         
       - name: Run tests
-        run: gradle test
+        run: ./gradlew test
         
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
