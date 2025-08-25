@@ -1,4 +1,3 @@
-
 # **Terms of Service (ToS)**
 
 **Effective Date:** 12/9/2024  
@@ -109,7 +108,7 @@ Your privacy is important to us. Our Privacy Policy explains how we collect, use
 ## **8. Contact Information**
 
 If you have any questions about the Terms of Service or wish to report violations, please contact us through the following means:  
-- **Email:** yeticool53@gmail.com
+- **Email:** hashys12@gmail.com
 - **Discord Username**: hashys
 
 **For further understanding of Discord’s Community Guidelines and Terms of Service, visit:**

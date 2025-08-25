@@ -1,3 +1,4 @@
+
 # Privacy Policy for Media Roulette
 
 **Effective Date:** August 17, 2025
