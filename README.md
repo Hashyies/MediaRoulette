@@ -37,13 +37,11 @@ I just happened to have this idea of letting users classify images as NSFW and n
 ### Roadmap
 **Ongoing tasks**
 
-- [ ] Allow code to only run in NSFW channels to follow Discord Terms of Service.
-- [ ] Think of more ideas meanwhile to add here
-- [ ] Investigate DeviantArt (Possible, but needs a dictionary like Reddit for galleries)
-- [ ] Try to add rigged Twitter
+- [ ] Complete a plugin system for the application
 
 <details><summary><strong>Completed Tasks</strong></summary>
-
+- [x] Allow code to only run in NSFW channels to follow Discord Terms of Service.
+- [x] Think of more ideas meanwhile to add here
 - [x] ~~Discord bot for receiving images~~
 - [x] ~~Adding a variety of popular subreddits~~
 - [x] ~~Create probability table for RandomImage for integration with other parts of the project~~
