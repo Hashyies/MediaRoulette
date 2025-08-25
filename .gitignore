@@ -3,7 +3,6 @@ bin/*
 .gradle/*
 .vscode/*
 /src/main/resources/.env
-/gradle/wrapper/gradle-wrapper.jar
 /app.log.lck
 /app.log
 .idea/*
